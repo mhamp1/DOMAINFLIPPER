@@ -1,10 +1,10 @@
 import { Toaster } from 'sonner'
-import { VaultDashboard } from './pages/VaultDashboard'
+import PersonalVault from './pages/PersonalVault'
 
 function App() {
   return (
     <>
-      <VaultDashboard />
+      <PersonalVault />
       <Toaster 
         theme="dark"
         position="top-right"
