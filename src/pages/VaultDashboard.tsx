@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { StatsOverview } from '@/components/vault/StatsOverview'
 import { StrategyEmpire } from '@/components/vault/StrategyEmpire'
 import { LiveDrops } from '@/components/vault/LiveDrops'
+import { EmpireControl } from '@/components/vault/EmpireControl'
 import type { Domain, UserStats } from '@/types/domain'
 import { domainScanner } from '@/lib/auctions/domainScanner'
 import { sniperEngine } from '@/lib/auctions/sniperEngine'
@@ -190,11 +191,20 @@ export function VaultDashboard() {
           <StatsOverview stats={stats} />
         </motion.div>
 
-        {/* Strategy Empire */}
+        {/* Empire Control - NEW AUTONOMOUS SYSTEM */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.3 }}
+        >
+          <EmpireControl />
+        </motion.div>
+
+        {/* Strategy Empire */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
         >
           <StrategyEmpire />
         </motion.div>
@@ -203,7 +213,7 @@ export function VaultDashboard() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
+          transition={{ duration: 0.6, delay: 0.5 }}
         >
           <LiveDrops domains={liveDrops} onSnipe={handleSnipeDomain} />
         </motion.div>
