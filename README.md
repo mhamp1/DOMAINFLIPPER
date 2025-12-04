@@ -457,14 +457,25 @@ Copyright (c) 2025 mhamp1
 
 ## 📸 Screenshots
 
-*(Screenshots will be added after UI is finalized)*
+### Dashboard Overview - Luxury Black & Gold Theme
+![DomainFlipper Vault Dashboard](https://github.com/user-attachments/assets/4110a38a-3f7e-489b-b31a-9de6b75b3a20)
 
-- Dashboard Overview
-- Live Domain Drops
-- Strategy Empire Grid
-- AI Valuation Details
-- God Mode Activated
-- Profit Analytics
+*Complete dashboard showing stats, 10 strategy empire cards, and live domain drops with AI valuation*
+
+### After Successful Snipe - God Mode Active
+![After Successful Snipe](https://github.com/user-attachments/assets/130ed98e-ec36-4088-ab5c-7052a1606951)
+
+*God Mode activated, domain successfully sniped, balance updated, and new opportunities refreshed*
+
+### Key Features Visible:
+- ✅ Real-time stats (Total Profit, Today's Gain, Domains Owned, ROI)
+- ✅ 10 God-Tier strategies with luxury animated cards
+- ✅ Live domain drops with AI confidence scores
+- ✅ ROI calculations and countdown timers
+- ✅ One-click snipe functionality
+- ✅ God Mode toggle with instant activation
+- ✅ Scanner status indicator
+- ✅ Toast notifications for actions
 
 ---
 
