@@ -157,11 +157,13 @@ export async function monitorYCombinator(): Promise<PreemptiveTarget[]> {
     const response = await fetch('https://www.ycombinator.com/companies')
     const html = await response.text()
     
-    // Simple parsing (in production, use proper HTML parser)
-    const companyNames = html.match(/<h3>([^<]+)<\/h3>/g) || []
+    // Use DOMParser for secure HTML parsing
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(html, 'text/html')
+    const h3Elements = doc.querySelectorAll('h3')
     
-    for (const match of companyNames.slice(0, 20)) {
-      const name = match.replace(/<[^>]+>/g, '').toLowerCase().replace(/[^a-z0-9]/g, '')
+    for (const element of Array.from(h3Elements).slice(0, 20)) {
+      const name = element.textContent?.toLowerCase().replace(/[^a-z0-9]/g, '') || ''
       
       if (name.length >= 3 && name.length <= 15) {
         targets.push({
