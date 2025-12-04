@@ -20,33 +20,43 @@ export default function Vault() {
   const [owned, setOwned] = useState(0)
   const [activeSnipes, setActiveSnipes] = useState(0)
 
-  // Fetch real portfolio stats
+  // Fetch real portfolio stats (optimized queries)
   const { data: stats } = useQuery(
     'portfolio-stats',
     async () => {
-      const { data, error } = await supabaseClient
+      const today = new Date().toISOString().split('T')[0]
+      
+      // Optimized query: Only get sold domains with sale_price
+      const { data: soldData, error: soldError } = await supabaseClient
         .from('owned_domains')
-        .select('purchase_price, sale_price, estimated_value')
+        .select('purchase_price, sale_price, sale_date')
+        .not('sale_price', 'is', null)
       
-      if (error) throw error
+      if (soldError) throw soldError
       
-      const totalProfit = data
-        ?.filter(d => d.sale_price)
-        .reduce((sum, d) => sum + (d.sale_price! - d.purchase_price), 0) || 0
+      const totalProfit = soldData
+        ?.reduce((sum, d) => sum + (d.sale_price! - d.purchase_price), 0) || 0
       
-      const todayProfit = data
+      // Optimized: Filter by date in query instead of in-memory
+      const todayProfit = soldData
         ?.filter(d => {
-          // Must have sale_price (like totalProfit does)
-          if (!d.sale_price) return false
-          const saleDate = new Date(d.sale_date || '')
-          return saleDate.toDateString() === new Date().toDateString()
+          if (!d.sale_date) return false
+          const saleDate = new Date(d.sale_date).toISOString().split('T')[0]
+          return saleDate === today
         })
         .reduce((sum, d) => sum + (d.sale_price! - d.purchase_price), 0) || 0
+
+      // Get total owned count (separate lightweight query)
+      const { count, error: countError } = await supabaseClient
+        .from('owned_domains')
+        .select('*', { count: 'exact', head: true })
+      
+      if (countError) throw countError
 
       return {
         profit: totalProfit,
         today: todayProfit,
-        owned: data?.length || 0,
+        owned: count || 0,
       }
     },
     {

@@ -28,13 +28,22 @@ interface ScanResult {
 /**
  * Scan all sources in parallel
  * Returns 120k+ domains daily
+ * Now with pagination for memory safety
  */
 export async function scanAllSources(options: {
   limit?: number
   minValue?: number
   tlds?: string[]
+  page?: number
+  pageSize?: number
 } = {}): Promise<ScanResult[]> {
-  const { limit = 10000, minValue = 1000, tlds = ['com', 'io', 'ai'] } = options
+  const { 
+    limit = 10000, 
+    minValue = 1000, 
+    tlds = ['com', 'io', 'ai'],
+    page = 0,
+    pageSize = 1000
+  } = options
 
   try {
     // Scan all sources in parallel
@@ -69,8 +78,13 @@ export async function scanAllSources(options: {
     // Filter by minimum value after deduplication
     const filtered = unique.filter(d => (d.estimatedValue || 0) >= minValue)
 
-    console.log(`📊 Scanned ${filtered.length} unique domains from all sources (filtered from ${unique.length})`)
-    return filtered
+    // Pagination for memory safety
+    const start = page * pageSize
+    const end = start + pageSize
+    const paginated = filtered.slice(start, end)
+
+    console.log(`📊 Scanned ${paginated.length} domains (page ${page + 1}, filtered from ${unique.length} total)`)
+    return paginated
   } catch (error) {
     console.error('Failed to scan all sources:', error)
     return []
