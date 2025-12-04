@@ -1,21 +1,15 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
 # Dependencies
-node_modules
+node_modules/
 .pnp
 .pnp.js
 
-# Build output
-dist
-dist-ssr
-build
+# Testing
+coverage/
+.nyc_output
+
+# Production
+dist/
+build/
 *.local
 
 # Environment variables
@@ -24,15 +18,16 @@ build
 .env.development.local
 .env.test.local
 .env.production.local
+.env*.local
 
-# Testing
-coverage
-.nyc_output
-
-# Cache
-.cache
-.parcel-cache
-.vite
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
 # Editor directories and files
 .vscode/*
@@ -45,26 +40,49 @@ coverage
 *.sln
 *.sw?
 
-# OS files
+# API Keys and Secrets
+*.key
+*.pem
+*.secret
+secrets/
+credentials/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Cache
+.cache/
+.parcel-cache/
+.next/
+.nuxt/
+.vite/
+
+# OS
 Thumbs.db
-.Spotlight-V100
-.Trashes
+.DS_Store
 
 # Temporary files
 tmp/
 temp/
 *.tmp
-*.bak
-*.swp
 
-# Debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
+# Build artifacts
+*.tsbuildinfo
+.eslintcache
+
+# TypeScript
+*.tsbuildinfo
+
+# Supabase
+.supabase/
 
 # Vercel
 .vercel
 
-# TypeScript
-*.tsbuildinfo
+# Model files (large)
+models/*.json
+models/*.h5
+models/*.pb
+!models/.gitkeep

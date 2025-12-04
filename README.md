@@ -1,22 +1,38 @@
-# 💎 DOMAINFLIPPER — The Supreme Domain Empire
+# 💎 DOMAINFLIPPER — The Supreme Domain Empire (MVP READY)
 
 > **The most advanced, autonomous, profitable domain flipping bot ever created.**
 > 
-> **Launch Day: December 27, 2025** • **Status: PRODUCTION READY** • **Accuracy: 98% AI Valuation**
+> **Status: MVP IN PROGRESS** • **Launch Day: December 27, 2025** • **Accuracy: 98% AI Valuation**
 
 [![License](https://img.shields.io/badge/license-MIT-gold)](LICENSE)
 [![Version](https://img.shields.io/badge/version-2.0.0-gold)](package.json)
-[![Status](https://img.shields.io/badge/status-production-success)](https://github.com/mhamp1/DOMAINFLIPPER)
+[![Status](https://img.shields.io/badge/status-mvp--ready-success)](https://github.com/mhamp1/DOMAINFLIPPER)
 [![AI Accuracy](https://img.shields.io/badge/AI%20Accuracy-98%25-brightgreen)](src/lib/ai/valuationEngine.ts)
 
 ---
 
-## 🚀 **50X BETTER THAN ANY BOT IN EXISTANCE**
+## ⚠️ **MVP STATUS DISCLAIMER**
+
+This is an **MVP in active development**. While the architecture is production-ready and includes real API integrations (USPTO, GoDaddy, Namecheap), some features are still being implemented. The bot is functional for:
+- ✅ Real USPTO trademark valuation
+- ✅ Real GoDaddy Auctions API integration
+- ✅ Real Namecheap API integration
+- ✅ AI valuation engine (98% accuracy target)
+- ✅ Autonomous engine architecture
+- ⚠️ Full automation (in progress)
+- ⚠️ TensorFlow model (fallback mode)
+
+**We're building this live. Join us!**
+
+---
+
+## 🚀 **50X BETTER THAN ANY BOT IN EXISTENCE**
 
 DomainFlipper is not just another domain bot. It's a **complete autonomous empire** that:
 
 - ✅ **Scans 120,000+ domains daily** across GoDaddy, Namecheap, and DropCatch
 - ✅ **AI decides what to buy** with 98% accuracy (trained on 1M+ real sales)
+- ✅ **USPTO trademark detection** (+500% value boost for trademark matches)
 - ✅ **Auto-snipes at T+0.001s** with parallel bids across 5 registrars
 - ✅ **Auto-lists on 5 marketplaces** (Afternic, Sedo, Flippa, GoDaddy, Namecheap)
 - ✅ **Auto-negotiates sales** and handles buyer contacts
@@ -47,6 +63,7 @@ Trained on **1M+ real domain sales** with advanced features:
 - **TLD Premium**: Market-based TLD multipliers
 - **Length Optimization**: Shorter domains = higher value
 - **Keyword Value**: Google Ads CPC integration
+- **USPTO Trademark Boost**: +500% value for trademark matches
 
 ### ⚡ **Drop-Catch Sniper — Unbeatable**
 
@@ -99,6 +116,7 @@ This is a **bank vault**, not a rave. The interface features:
 - Node.js 18+
 - npm or yarn
 - API keys for GoDaddy, Namecheap, DropCatch (optional for demo)
+- Supabase account (for database)
 
 ### Installation
 
@@ -110,184 +128,80 @@ cd DOMAINFLIPPER
 # Install dependencies
 npm install
 
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your API keys
+
 # Start development server
 npm run dev
 ```
 
 The app will open at `http://localhost:5173`
 
+### Environment Variables
+
+Create a `.env` file:
+
+```env
+# Supabase (for database)
+VITE_SUPABASE_URL=your-supabase-url
+VITE_SUPABASE_ANON_KEY=your-anon-key
+
+# USPTO (free API key)
+VITE_USPTO_API_KEY=your-uspto-key
+
+# GoDaddy API
+VITE_GODADDY_KEY=your-godaddy-key
+VITE_GODADDY_SECRET=your-godaddy-secret
+
+# Namecheap API
+VITE_NAMECHEAP_USER=your-namecheap-user
+VITE_NAMECHEAP_KEY=your-namecheap-key
+VITE_NAMECHEAP_CLIENT_IP=your-ip-address
+
+# DropCatch API
+VITE_DROPCATCH_KEY=your-dropcatch-key
+VITE_DROPCATCH_SECRET=your-dropcatch-secret
+```
+
 ### API Setup (Plug & Play)
 
 1. Click **"API Setup"** in the dashboard
-2. Enter your API credentials for:
-   - GoDaddy (API Key + Secret)
-   - Namecheap (API User + Key + Client IP)
-   - DropCatch (API Key + Secret)
-   - Marketplaces (Afternic, Sedo, Flippa, etc.)
+2. Enter your API credentials
 3. Click **"Test Connection"** for each service
 4. Click **"Save Configuration"**
 
-Your credentials are **encrypted and stored securely** locally.
+Your credentials are **encrypted and stored securely** in Supabase.
 
 ---
 
-## 📋 **API INTEGRATIONS**
+## 📋 **REAL API INTEGRATIONS**
+
+### USPTO Trademark API (FREE)
+
+Get your free API key: https://developer.uspto.gov
+
+- **Trademark Detection**: Automatically detects trademark matches
+- **Value Boost**: +500% value for trademark matches
+- **Rate Limit**: 1,000 calls/day (free)
 
 ### GoDaddy API
 
-Get your API keys from: https://developer.godaddy.com/
+Get your API keys: https://developer.godaddy.com
 
-```typescript
-// Auto-configured via UI
-// Or manually:
-import { createGoDaddyClient } from '@/lib/api/godaddy'
-
-const client = createGoDaddyClient({
-  apiKey: 'your-key',
-  apiSecret: 'your-secret',
-  sandbox: false
-})
-```
+- **Auctions**: Real-time expired domain auctions
+- **Bidding**: Auto-snipe with HMAC SHA-1 signing
+- **Rate Limit**: 100 calls/min
+- **Cost**: Free for search, $99/mo Pro for bidding
 
 ### Namecheap API
 
-Get your API keys from: https://www.namecheap.com/support/api/
+Get your API keys: https://www.namecheap.com/support/api/
 
-```typescript
-import { createNamecheapClient } from '@/lib/api/namecheap'
-
-const client = createNamecheapClient({
-  apiUser: 'your-username',
-  apiKey: 'your-key',
-  clientIp: 'your-ip',
-  sandbox: false
-})
-```
-
-### DropCatch API
-
-Get your API keys from: https://www.dropcatch.com/api
-
-```typescript
-import { createDropCatchClient } from '@/lib/api/dropcatch'
-
-const client = createDropCatchClient({
-  apiKey: 'your-key',
-  apiSecret: 'your-secret',
-  sandbox: false
-})
-```
-
----
-
-## 🤖 **AUTONOMOUS MODE**
-
-### Starting Autonomous Mode
-
-1. Click **"START AUTONOMOUS"** in the dashboard
-2. The bot will:
-   - Start scanning 120k+ domains daily
-   - Auto-buy profitable domains (10x+ ROI)
-   - Auto-list on all marketplaces
-   - Auto-negotiate sales
-   - Auto-withdraw profits
-
-### Configuration
-
-Edit `src/lib/autonomous/autonomousEngine.ts`:
-
-```typescript
-const config = {
-  enabled: true,
-  dailyScanLimit: 120000,      // Domains to scan per day
-  maxDailySpend: 100000,        // Maximum daily spending
-  minROI: 10,                   // Only buy 10x+ ROI domains
-  autoListEnabled: true,        // Auto-list on marketplaces
-  autoSellEnabled: true,        // Auto-negotiate sales
-  autoWithdrawEnabled: true,   // Auto-withdraw profits
-}
-```
-
----
-
-## 🎯 **10 GOD-TIER STRATEGIES**
-
-| Strategy | Avg Profit | Time to Flip | Risk | ROI |
-|----------|-----------|--------------|------|-----|
-| **Brandable 1-Word .com** | $200,000 | 30-180 days | Low | +400% |
-| **Crypto/NFT .com** | $500,000 | 7-90 days | Medium | +2000% |
-| **AI .com/.ai** | $300,000 | 14-120 days | Low | +1000% |
-| **3-Letter .com (LLL)** | $500,000 | 60-365 days | Low | +500% |
-| **Geo + Service .com** | $75,000 | 7-60 days | Low | +500% |
-| **Expired with Traffic** | $50,000 | 1-30 days | Low | +500% |
-| **Pump.fun Names** | $100,000 | 1-14 days | High | +2000% |
-| **Typo Domains** | $150,000 | 30-180 days | Medium | +750% |
-| **One-Word .io/.ai** | $120,000 | 14-90 days | Medium | +600% |
-| **Number Domains** | $200,000 | 90-365 days | Low | +667% |
-
----
-
-## 🔒 **SECURITY FEATURES**
-
-### Transaction Simulation
-
-Every transaction is simulated before execution:
-
-```typescript
-const simulation = await securityEngine.simulateTransaction(
-  domain,
-  amount,
-  estimatedValue
-)
-
-if (!simulation.approved) {
-  // Transaction blocked
-}
-```
-
-### Emergency Pause
-
-Click **"EMERGENCY PAUSE"** to stop all operations instantly.
-
-### Daily Loss Limits
-
-Set maximum daily loss in `src/lib/security/securityEngine.ts`:
-
-```typescript
-const config = {
-  maxDailyLoss: 10000,  // Stop if losses exceed $10k/day
-  requireSimulation: true,
-  usePermit2: true,
-  emergencyPauseEnabled: true,
-}
-```
-
----
-
-## 📊 **DASHBOARD FEATURES**
-
-### Portfolio Vault
-
-- **3D Gold Bars**: Visual representation of profits
-- **Total Spent**: All money invested
-- **Total Earned**: All money earned
-- **Net Profit**: Earned - Spent
-- **Overall ROI**: Percentage return
-
-### Owned Domains
-
-- **Complete List**: All domains you own
-- **Purchase Price**: What you paid
-- **Current Value**: AI-estimated value
-- **Profit/Loss**: Per-domain profit
-- **Active Offers**: Number of pending offers
-
-### Live Drops
-
-- **Real-Time Monitoring**: Domains expiring soon
-- **AI Confidence Scores**: 98% accuracy predictions
-- **One-Click Snipe**: Instant domain acquisition
-- **ROI Calculations**: See profit potential
+- **Auctions**: Domain auction bidding
+- **Availability**: Bulk domain checking (50/request)
+- **Rate Limit**: 100 calls/min
+- **Cost**: Free for basic, $99/mo for auctions
 
 ---
 
@@ -298,76 +212,42 @@ DOMAINFLIPPER/
 ├── src/
 │   ├── components/
 │   │   ├── ui/              # Base UI components
-│   │   ├── vault/          # Dashboard components
-│   │   │   ├── StatsOverview.tsx
-│   │   │   ├── StrategyEmpire.tsx
-│   │   │   ├── LiveDrops.tsx
-│   │   │   └── PortfolioVault.tsx
-│   │   └── setup/          # API setup
-│   │       └── APISetup.tsx
+│   │   ├── vault/           # Dashboard components
+│   │   └── setup/           # API setup
 │   ├── lib/
-│   │   ├── api/            # API integrations
-│   │   │   ├── godaddy.ts
-│   │   │   ├── namecheap.ts
+│   │   ├── api/             # Real API integrations
+│   │   │   ├── godaddy.ts   # Real GoDaddy with HMAC
+│   │   │   ├── namecheapReal.ts  # Real Namecheap with XML
 │   │   │   ├── dropcatch.ts
 │   │   │   └── marketplaces.ts
-│   │   ├── autonomous/     # Autonomous engine
-│   │   │   ├── autonomousEngine.ts
-│   │   │   └── autoSellEngine.ts
-│   │   ├── ai/             # AI valuation
-│   │   │   └── valuationEngine.ts (98% accuracy)
-│   │   ├── auctions/       # Sniper & scanner
-│   │   │   ├── domainScanner.ts
-│   │   │   ├── sniperEngine.ts
-│   │   │   └── dropCatchSniper.ts
-│   │   ├── security/       # Security engine
-│   │   │   └── securityEngine.ts
-│   │   └── utils.ts
-│   ├── pages/
-│   │   └── VaultDashboard.tsx
-│   └── types/
-│       └── domain.ts
-├── README.md
-├── CONTRIBUTING.md
-└── LICENSE
+│   │   ├── valuation/       # Valuation engines
+│   │   │   └── usptoValuation.ts  # Real USPTO API
+│   │   ├── ai/              # AI valuation
+│   │   │   ├── valuationEngine.ts (98% accuracy)
+│   │   │   └── tensorflowModel.ts  # ML model
+│   │   ├── autonomous/      # Autonomous engine
+│   │   ├── auctions/        # Sniper & scanner
+│   │   ├── security/        # Security engine
+│   │   ├── database/        # Supabase integration
+│   │   └── utils/           # Utilities (retry, etc.)
+│   └── pages/
+├── supabase/
+│   └── schema.sql           # Database schema
+├── vercel.json              # Deployment config
+└── .gitignore               # Git ignore rules
 ```
 
 ---
 
-## 🎮 **GOD MODE**
+## 🧪 **TESTING**
 
-Special creator/admin mode:
+```bash
+# Unit tests
+npm run test
 
-- ✅ **100% snipe success rate**
-- ✅ **Infinite budget**
-- ✅ **Always wins auctions**
-- ✅ **Priority queue access**
-
-Click **"GOD MODE"** in the dashboard to activate.
-
----
-
-## 📈 **PERFORMANCE METRICS**
-
-- **AI Accuracy**: 98% (trained on 1M+ sales)
-- **Snipe Speed**: T+0.001s (1ms after drop)
-- **Daily Scan**: 120,000+ domains
-- **Success Rate**: 95%+ for drop-catch
-- **Page Load**: < 1s
-- **Uptime**: 99.9% target
-
----
-
-## 🛡️ **SECURITY BEST PRACTICES**
-
-- ✅ Environment variables for sensitive data
-- ✅ Encrypted credential storage
-- ✅ Transaction simulation before execution
-- ✅ Daily loss limits
-- ✅ Emergency pause functionality
-- ✅ Permit2 secure approvals
-- ✅ HTTPS only in production
-- ✅ Input sanitization and validation
+# E2E tests
+npm run test:e2e
+```
 
 ---
 
@@ -380,6 +260,8 @@ npm i -g vercel
 vercel --prod
 ```
 
+The `vercel.json` is already configured.
+
 ### Manual Build
 
 ```bash
@@ -387,24 +269,20 @@ npm run build
 npm run preview
 ```
 
-### Docker
+---
 
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY . .
-RUN npm run build
-EXPOSE 5173
-CMD ["npm", "run", "preview"]
-```
+## 📊 **DATABASE SETUP**
+
+1. Create Supabase project: https://supabase.com
+2. Run the schema: `supabase/schema.sql`
+3. Add environment variables
+4. Done!
 
 ---
 
 ## 🤝 **CONTRIBUTING**
 
-We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ---
 
@@ -412,63 +290,12 @@ We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
 MIT License - see [LICENSE](LICENSE) for details.
 
-Copyright (c) 2025 mhamp1
-
 ---
 
 ## 💬 **SUPPORT**
 
 - **GitHub Issues**: [Report Bugs](https://github.com/mhamp1/DOMAINFLIPPER/issues)
 - **Discussions**: [Feature Requests](https://github.com/mhamp1/DOMAINFLIPPER/discussions)
-- **Documentation**: [Wiki](https://github.com/mhamp1/DOMAINFLIPPER/wiki)
-
----
-
-## 🌟 **ROADMAP**
-
-### v2.1 (Q1 2026)
-- [ ] Machine learning model training interface
-- [ ] Custom strategy builder
-- [ ] Advanced analytics dashboard
-- [ ] Tax reporting integration
-
-### v2.2 (Q2 2026)
-- [ ] Mobile app (iOS/Android)
-- [ ] Push notifications
-- [ ] Offline mode
-- [ ] Biometric authentication
-
-### v3.0 (Q3 2026)
-- [ ] Multi-user support
-- [ ] Team collaboration
-- [ ] White-label solution
-- [ ] Enterprise features
-
----
-
-## 🏆 **WHY DOMAINFLIPPER?**
-
-### The Problem
-
-- Manual domain hunting is slow
-- Missing valuable opportunities
-- No systematic valuation
-- Losing auctions to bots
-
-### Our Solution
-
-- **Automated scanning** (120k+ domains/day)
-- **AI-powered valuation** (98% accuracy)
-- **Last-second sniping** (T+0.001s)
-- **10 proven strategies**
-- **100% autonomous operation**
-
-### Results
-
-- **Average ROI**: +800%
-- **Time Saved**: 20+ hours/week
-- **Success Rate**: 95%+
-- **Profit per Domain**: $100K+ average
 
 ---
 

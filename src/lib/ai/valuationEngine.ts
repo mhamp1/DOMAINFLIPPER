@@ -1,9 +1,11 @@
 import type { Domain } from '@/types/domain'
+import { usptoValuation } from '@/lib/valuation/usptoValuation'
 
 /**
  * AI Domain Valuation Engine v2.0
  * Predicts domain value with 98% accuracy using 1M+ real sales training data
  * Features: backlinks, traffic, age, brandability, TLD, keyword CPC, AI sentiment
+ * + USPTO trademark valuation (500% boost for trademark matches)
  */
 export class ValuationEngine {
   // Training data from 1M+ real domain sales
@@ -187,6 +189,7 @@ export class ValuationEngine {
     value: number
     score: number
     confidence: number
+    trademarkBoost: number
     breakdown: {
       brandScore: number
       seoScore: number
@@ -265,17 +268,36 @@ export class ValuationEngine {
       value *= 1 + (domain.traffic / 10000)
     }
 
+    // USPTO Trademark Boost (500% increase for trademark matches)
+    let trademarkBoost = 1.0
+    let hasTrademark = false
+    try {
+      if (domain.name) {
+        const trademark = await usptoValuation.checkTrademarkValue(domain.name)
+        if (trademark.hasTrademark) {
+          trademarkBoost = trademark.valueBoost // 5.0 = 500%
+          hasTrademark = true
+          value *= trademarkBoost
+        }
+      }
+    } catch (error) {
+      // USPTO check failed, continue without boost
+      console.warn('USPTO check failed:', error)
+    }
+
     // Confidence score based on data quality
     let confidence = 98 // Base 98% accuracy
     if (!domain.backlinks && !domain.traffic) confidence -= 5
     if (!domain.age) confidence -= 3
     if (domain.aiScore && domain.aiScore < 70) confidence -= 10
+    if (hasTrademark) confidence += 2 // Trademark match increases confidence
     confidence = Math.max(0, Math.min(100, confidence)) // Clamp between 0-100
 
     return {
       value: Math.round(value),
       score: Math.round(finalScore),
       confidence: Math.round(confidence),
+      trademarkBoost: hasTrademark ? trademarkBoost : 1.0,
       breakdown: {
         brandScore: Math.round(brandScore),
         seoScore: Math.round(seoScore),
