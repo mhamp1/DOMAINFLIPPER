@@ -61,16 +61,16 @@ export async function scanAllSources(options: {
       allDomains.push(...expiredDomains.value)
     }
 
-    // Filter by minimum value
-    const filtered = allDomains.filter(d => (d.estimatedValue || 0) >= minValue)
-
-    // Remove duplicates
+    // Remove duplicates first
     const unique = Array.from(
       new Map(allDomains.map(d => [d.name, d])).values()
     )
 
-    console.log(`📊 Scanned ${unique.length} unique domains from all sources`)
-    return unique
+    // Filter by minimum value after deduplication
+    const filtered = unique.filter(d => (d.estimatedValue || 0) >= minValue)
+
+    console.log(`📊 Scanned ${filtered.length} unique domains from all sources (filtered from ${unique.length})`)
+    return filtered
   } catch (error) {
     console.error('Failed to scan all sources:', error)
     return []

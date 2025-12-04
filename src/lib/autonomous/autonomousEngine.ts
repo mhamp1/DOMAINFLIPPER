@@ -179,12 +179,11 @@ export class AutonomousEngine {
           currentBid: result.currentBid,
         }
 
-        // Valuate if not already valuated
-        if (!domain.estimatedValue) {
-          const valuation = await valuationEngine.predictValue(domain)
-          domain.estimatedValue = valuation.value
-          domain.aiScore = valuation.score
-        }
+        // Always valuate to get AI score (required for shouldBuy check)
+        // If estimatedValue exists, we still need aiScore for the decision
+        const valuation = await valuationEngine.predictValue(domain)
+        domain.estimatedValue = domain.estimatedValue || valuation.value
+        domain.aiScore = valuation.score
 
         // Check if we should buy
         if (this.shouldBuy(domain as Domain)) {
@@ -202,8 +201,8 @@ export class AutonomousEngine {
    * Decide if we should buy a domain
    */
   private shouldBuy(domain: Domain): boolean {
-    // Only buy if AI confidence is high
-    if (domain.aiScore < 85) return false
+    // Only buy if AI confidence is high (must have aiScore)
+    if (!domain.aiScore || domain.aiScore < 85) return false
 
     // Only buy if ROI is 10x+
     const currentBid = domain.currentBid || 0
