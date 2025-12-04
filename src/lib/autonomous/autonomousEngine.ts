@@ -195,6 +195,9 @@ export class AutonomousEngine {
 
     // Only buy if ROI is 10x+
     const currentBid = domain.currentBid || 0
+    // Skip if no current bid (can't calculate ROI)
+    if (currentBid <= 0) return false
+    
     const roi = (domain.estimatedValue - currentBid) / currentBid
     if (roi < this.config.minROI) return false
 

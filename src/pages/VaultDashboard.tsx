@@ -49,16 +49,24 @@ export function VaultDashboard() {
         const totalInvested = autonomousEngine.getTotalInvested()
         const owned = autonomousEngine.getOwnedDomains()
 
-        setOwnedDomains(owned.map(o => ({
-          domain: o.domain,
-          purchasePrice: o.purchasePrice,
-          purchaseDate: o.purchaseDate,
-          currentValue: o.domain.estimatedValue,
-          profit: o.domain.estimatedValue - o.purchasePrice,
-          roi: ((o.domain.estimatedValue - o.purchasePrice) / o.purchasePrice) * 100,
-          listed: o.listings.length > 0,
-          offers: o.offers.length,
-        })))
+        setOwnedDomains(owned.map(o => {
+          const purchasePrice = o.purchasePrice || 1 // Prevent division by zero
+          const profit = o.domain.estimatedValue - o.purchasePrice
+          const roi = purchasePrice > 0 
+            ? ((o.domain.estimatedValue - o.purchasePrice) / purchasePrice) * 100 
+            : 0
+          
+          return {
+            domain: o.domain,
+            purchasePrice: o.purchasePrice,
+            purchaseDate: o.purchaseDate,
+            currentValue: o.domain.estimatedValue,
+            profit,
+            roi,
+            listed: o.listings.length > 0,
+            offers: o.offers.length,
+          }
+        }))
 
         setStats(prev => ({
           ...prev,

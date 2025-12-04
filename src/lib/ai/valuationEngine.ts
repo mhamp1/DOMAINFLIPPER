@@ -186,6 +186,7 @@ export class ValuationEngine {
   async predictValue(domain: Partial<Domain>): Promise<{
     value: number
     score: number
+    confidence: number
     breakdown: {
       brandScore: number
       seoScore: number
@@ -268,11 +269,13 @@ export class ValuationEngine {
     let confidence = 98 // Base 98% accuracy
     if (!domain.backlinks && !domain.traffic) confidence -= 5
     if (!domain.age) confidence -= 3
-    if (domain.aiScore < 70) confidence -= 10
+    if (domain.aiScore && domain.aiScore < 70) confidence -= 10
+    confidence = Math.max(0, Math.min(100, confidence)) // Clamp between 0-100
 
     return {
       value: Math.round(value),
       score: Math.round(finalScore),
+      confidence: Math.round(confidence),
       breakdown: {
         brandScore: Math.round(brandScore),
         seoScore: Math.round(seoScore),
@@ -293,12 +296,15 @@ export class ValuationEngine {
     valuation: {
       value: number
       score: number
+      confidence: number
       breakdown: {
         brandScore: number
         seoScore: number
         trendScore: number
         lengthScore: number
         tldScore: number
+        sentimentScore: number
+        keywordScore: number
       }
     }
   }>> {
