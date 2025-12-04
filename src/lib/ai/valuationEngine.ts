@@ -319,6 +319,7 @@ export class ValuationEngine {
       value: number
       score: number
       confidence: number
+      trademarkBoost: number
       breakdown: {
         brandScore: number
         seoScore: number

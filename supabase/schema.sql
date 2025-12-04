@@ -4,7 +4,8 @@
 -- Owned Domains Table
 CREATE TABLE IF NOT EXISTS owned_domains (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  domain TEXT NOT NULL UNIQUE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  domain TEXT NOT NULL,
   purchase_price DECIMAL(12, 2) NOT NULL,
   purchase_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   estimated_value DECIMAL(12, 2) NOT NULL,
@@ -15,12 +16,14 @@ CREATE TABLE IF NOT EXISTS owned_domains (
   sale_price DECIMAL(12, 2),
   sale_date TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, domain)
 );
 
 -- Transactions Table
 CREATE TABLE IF NOT EXISTS transactions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   type TEXT NOT NULL CHECK (type IN ('buy', 'sell')),
   domain TEXT NOT NULL,
   amount DECIMAL(12, 2) NOT NULL,
@@ -66,6 +69,29 @@ CREATE POLICY "Users can insert own domains" ON owned_domains
 
 CREATE POLICY "Users can update own domains" ON owned_domains
   FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own domains" ON owned_domains
+  FOR DELETE USING (auth.uid() = user_id);
+
+-- Transaction policies
+CREATE POLICY "Users can view own transactions" ON transactions
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own transactions" ON transactions
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- API config policies
+CREATE POLICY "Users can view own api configs" ON api_configs
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own api configs" ON api_configs
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own api configs" ON api_configs
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own api configs" ON api_configs
+  FOR DELETE USING (auth.uid() = user_id);
 
 -- Functions
 CREATE OR REPLACE FUNCTION update_updated_at_column()

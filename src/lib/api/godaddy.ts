@@ -169,10 +169,14 @@ export class GoDaddyAPI {
     const now = Date.now()
     const delay = Math.max(0, end - now - 3000) // 3 seconds before end
 
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       setTimeout(async () => {
-        const result = await this.placeBid(auctionId, maxBid)
-        resolve(result)
+        try {
+          const result = await this.placeBid(auctionId, maxBid)
+          resolve(result)
+        } catch (error) {
+          reject(error)
+        }
       }, delay)
     })
   }
@@ -181,24 +185,29 @@ export class GoDaddyAPI {
    * Get my active bids
    */
   async getMyBids(): Promise<GoDaddyDomain[]> {
-    return this.request('/auctions/my-bids')
+    const data = await this.request('GET', '/auctions/my-bids')
+    return data.bids || []
   }
 
   /**
    * Get my won auctions
    */
   async getMyWonAuctions(): Promise<GoDaddyDomain[]> {
-    return this.request('/auctions/my-won')
+    const data = await this.request('GET', '/auctions/my-won')
+    return data.auctions || []
   }
 
   /**
    * Transfer domain to my account
    */
   async transferDomain(domain: string, authCode: string): Promise<{ success: boolean }> {
-    return this.request(`/domains/${domain}/transfer`, {
-      method: 'POST',
-      body: JSON.stringify({ authCode }),
-    })
+    try {
+      await this.request('POST', `/domains/${domain}/transfer`, { authCode })
+      return { success: true }
+    } catch (error: any) {
+      console.error(`Failed to transfer domain ${domain}:`, error)
+      return { success: false }
+    }
   }
 }
 

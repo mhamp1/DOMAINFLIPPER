@@ -6,6 +6,7 @@
 
 import axios from 'axios'
 import CryptoJS from 'crypto-js'
+import { parseString } from 'xml2js'
 
 interface NamecheapConfig {
   apiUser: string
@@ -54,23 +55,31 @@ export class NamecheapAPI {
   }
 
   /**
-   * Parse XML response (simplified - in production use proper XML parser)
+   * Parse XML response using xml2js (works in Node.js and browser)
    */
-  private parseXMLResponse(xml: string): any {
-    // Extract data from XML using regex (simplified)
-    // In production, use xml2js or similar
-    const parser = new DOMParser()
-    const doc = parser.parseFromString(xml, 'text/xml')
-    
-    // Check for errors
-    const errors = doc.getElementsByTagName('Error')
-    if (errors.length > 0) {
-      const errorNumber = errors[0].getAttribute('Number')
-      const errorMessage = errors[0].textContent
-      throw new Error(`Namecheap API Error ${errorNumber}: ${errorMessage}`)
-    }
+  private async parseXMLResponse(xml: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+      parseString(xml, { explicitArray: false, mergeAttrs: true }, (err, result) => {
+        if (err) {
+          reject(new Error(`XML Parse Error: ${err.message}`))
+          return
+        }
 
-    return doc
+        // Check for API errors
+        const apiResponse = result?.ApiResponse
+        if (apiResponse?.Errors) {
+          const error = Array.isArray(apiResponse.Errors.Error) 
+            ? apiResponse.Errors.Error[0] 
+            : apiResponse.Errors.Error
+          const errorNumber = error.$.Number || 'Unknown'
+          const errorMessage = error._ || error.$?.Message || 'Unknown error'
+          reject(new Error(`Namecheap API Error ${errorNumber}: ${errorMessage}`))
+          return
+        }
+
+        resolve(apiResponse?.CommandResponse || apiResponse)
+      })
+    })
   }
 
   /**
@@ -105,7 +114,7 @@ export class NamecheapAPI {
         },
       })
 
-      return this.parseXMLResponse(response.data)
+      return await this.parseXMLResponse(response.data)
     } catch (error: any) {
       // Retry on rate limit or server errors
       if (retries > 0 && (error.response?.status === 429 || error.response?.status >= 500)) {
@@ -131,15 +140,17 @@ export class NamecheapAPI {
       DomainList: domains.join(','),
     })
 
-    // Parse domain check results
+    // Parse domain check results from xml2js structure
     const domainResults: NamecheapDomain[] = []
-    const domainElements = result.getElementsByTagName('DomainCheckResult')
+    const domainCheck = result?.DomainCheckResult
     
-    for (let i = 0; i < domainElements.length; i++) {
-      const elem = domainElements[i]
-      domainResults.push({
-        DomainName: elem.getAttribute('Domain') || '',
-        Available: elem.getAttribute('Available') === 'true',
+    if (domainCheck) {
+      const domainsArray = Array.isArray(domainCheck) ? domainCheck : [domainCheck]
+      domainsArray.forEach((domain: any) => {
+        domainResults.push({
+          DomainName: domain.$.Domain || '',
+          Available: domain.$.Available === 'true',
+        })
       })
     }
 
@@ -228,10 +239,14 @@ export class NamecheapAPI {
     const now = Date.now()
     const delay = Math.max(0, end - now - 3000) // 3 seconds before end
 
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       setTimeout(async () => {
-        const result = await this.placeBid(auctionId, maxBid)
-        resolve(result)
+        try {
+          const result = await this.placeBid(auctionId, maxBid)
+          resolve(result)
+        } catch (error) {
+          reject(error)
+        }
       }, delay)
     })
   }

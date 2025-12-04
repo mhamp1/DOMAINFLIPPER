@@ -48,10 +48,11 @@ export class SupabaseDB {
   /**
    * Save owned domain
    */
-  async saveOwnedDomain(domain: Domain, purchasePrice: number): Promise<OwnedDomain> {
+  async saveOwnedDomain(domain: Domain, purchasePrice: number, userId: string): Promise<OwnedDomain> {
     const { data, error } = await this.client
       .from('owned_domains')
       .insert({
+        user_id: userId,
         domain: domain.name,
         purchase_price: purchasePrice,
         purchase_date: new Date().toISOString(),
@@ -146,10 +147,13 @@ export class SupabaseDB {
   /**
    * Log transaction
    */
-  async logTransaction(transaction: Omit<Transaction, 'id'>): Promise<Transaction> {
+  async logTransaction(transaction: Omit<Transaction, 'id'>, userId: string): Promise<Transaction> {
     const { data, error } = await this.client
       .from('transactions')
-      .insert(transaction)
+      .insert({
+        ...transaction,
+        user_id: userId,
+      })
       .select()
       .single()
 
