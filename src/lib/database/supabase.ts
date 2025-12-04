@@ -98,6 +98,16 @@ export class SupabaseDB {
    * Mark domain as listed
    */
   async markDomainListed(domainId: string, marketplace: string): Promise<void> {
+    // Get domain to retrieve user_id
+    const { data: domain, error: fetchError } = await this.client
+      .from('owned_domains')
+      .select('user_id, domain, strategy_id')
+      .eq('id', domainId)
+      .single()
+
+    if (fetchError) throw fetchError
+    if (!domain) throw new Error('Domain not found')
+
     const { error } = await this.client
       .from('owned_domains')
       .update({ listed: true, updated_at: new Date().toISOString() })
@@ -108,19 +118,29 @@ export class SupabaseDB {
     // Log transaction
     await this.logTransaction({
       type: 'sell',
-      domain: domainId,
+      domain: domain.domain,
       amount: 0,
       date: new Date().toISOString(),
-      strategy_id: '',
+      strategy_id: domain.strategy_id,
       status: 'pending',
       marketplace,
-    })
+    }, domain.user_id)
   }
 
   /**
    * Mark domain as sold
    */
   async markDomainSold(domainId: string, salePrice: number): Promise<void> {
+    // Get domain to retrieve user_id
+    const { data: domain, error: fetchError } = await this.client
+      .from('owned_domains')
+      .select('user_id, domain, strategy_id')
+      .eq('id', domainId)
+      .single()
+
+    if (fetchError) throw fetchError
+    if (!domain) throw new Error('Domain not found')
+
     const { error } = await this.client
       .from('owned_domains')
       .update({
@@ -136,12 +156,12 @@ export class SupabaseDB {
     // Log transaction
     await this.logTransaction({
       type: 'sell',
-      domain: domainId,
+      domain: domain.domain,
       amount: salePrice,
       date: new Date().toISOString(),
-      strategy_id: '',
+      strategy_id: domain.strategy_id,
       status: 'completed',
-    })
+    }, domain.user_id)
   }
 
   /**
