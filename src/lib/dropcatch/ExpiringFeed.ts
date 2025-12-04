@@ -54,6 +54,9 @@ export const fetchExpiringDomains = async (): Promise<ExpiringDomain[]> => {
   return generateExpiringDomains()
 }
 
+// Quality filtering constants
+const MIN_CRITERIA_COUNT = 2 // Minimum number of quality criteria that must be met
+
 /**
  * Filter expiring domains by quality criteria
  */
@@ -65,9 +68,9 @@ export const filterHighValueDomains = (domains: ExpiringDomain[]): ExpiringDomai
     const isAged = (domain.age || 0) > 2
     const isPremiumTLD = ['.com', '.ai', '.io'].includes(domain.tld)
     
-    // Must meet at least 2 criteria
+    // Must meet at least MIN_CRITERIA_COUNT criteria
     const criteriaCount = [hasBacklinks, hasTraffic, isAged, isPremiumTLD].filter(Boolean).length
     
-    return criteriaCount >= 2
+    return criteriaCount >= MIN_CRITERIA_COUNT
   })
 }

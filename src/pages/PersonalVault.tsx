@@ -5,6 +5,9 @@ import { Card } from '@/components/ui/card'
 import { dropSniper } from '@/lib/dropcatch/DropSniper'
 import { soundEngine } from '@/lib/sounds/soundEffects'
 
+// Profit calculation constant
+const FLIP_PROFIT_MULTIPLIER = 5 // Expected 5x profit on flipped domains
+
 /**
  * Personal Vault - Single-user luxury domain empire
  * No tiers, no subscriptions, pure profit
@@ -28,12 +31,13 @@ export default function PersonalVault() {
 
     dropSniper.startDropSniper((_domain: string, value: number) => {
       // Update stats on successful snipe
+      const profitAmount = Math.floor(value * FLIP_PROFIT_MULTIPLIER)
       setStats(prev => ({
         ...prev,
         domainsOwned: prev.domainsOwned + 1,
         dropsSniped: prev.dropsSniped + 1,
-        todayProfit: prev.todayProfit + Math.floor(value * 5), // 5x flip multiplier
-        totalProfit: prev.totalProfit + Math.floor(value * 5),
+        todayProfit: prev.todayProfit + profitAmount,
+        totalProfit: prev.totalProfit + profitAmount,
       }))
 
       soundEngine.success()

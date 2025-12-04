@@ -10,6 +10,12 @@ import { fetchExpiringDomains, filterHighValueDomains } from './ExpiringFeed'
  * Multi-registrar parallel bidding for maximum success rate
  */
 
+// Configuration constants
+const AI_SCORE_THRESHOLD = 95 // Minimum AI score to trigger snipe
+const BID_MULTIPLIER = 1.5 // Max bid as percentage of predicted value (150%)
+const PROFIT_MULTIPLIER = 5 // Expected flip multiplier for profit predictions
+const DEMO_SUCCESS_RATE = 0.94 // 94% success rate for demo mode
+
 interface SnipeSchedule {
   domain: ExpiringDomain
   timeout: ReturnType<typeof setTimeout>
@@ -118,13 +124,13 @@ class DropSniperEngine {
       length: domain.name.length,
     })
 
-    // Only snipe if AI score is above 95
-    if (valuation.score < 95) {
+    // Only snipe if AI score is above threshold
+    if (valuation.score < AI_SCORE_THRESHOLD) {
       return
     }
 
     // Calculate max bid (150% of predicted value)
-    const maxBid = valuation.value * 1.5
+    const maxBid = valuation.value * BID_MULTIPLIER
 
     // Schedule snipe for T+1ms after drop time
     const timeout = setTimeout(async () => {
@@ -171,7 +177,7 @@ class DropSniperEngine {
 
       if (successful) {
         // Success! Domain sniped
-        const profitPrediction = predictedValue * 5 // 5x flip multiplier
+        const profitPrediction = predictedValue * PROFIT_MULTIPLIER
 
         toast.success('🎯 DROP SNIPED!', {
           description: `${domain.name} → $${profitPrediction.toLocaleString()} profit predicted`,
@@ -224,8 +230,8 @@ class DropSniperEngine {
     // })
     // return response.ok
 
-    // For demo: 94% success rate
-    return Math.random() < 0.94
+    // For demo: configurable success rate
+    return Math.random() < DEMO_SUCCESS_RATE
   }
 
   /**
