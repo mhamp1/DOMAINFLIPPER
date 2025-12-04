@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { StatsOverview } from '@/components/vault/StatsOverview'
 import { StrategyEmpire } from '@/components/vault/StrategyEmpire'
 import { LiveDrops } from '@/components/vault/LiveDrops'
+import { EmpireControl } from '@/components/vault/EmpireControl'
 import { PortfolioVault } from '@/components/vault/PortfolioVault'
 import { APISetup } from '@/components/setup/APISetup'
 import type { Domain, UserStats } from '@/types/domain'
@@ -361,12 +362,14 @@ export function VaultDashboard() {
           <StatsOverview stats={stats} />
         </motion.div>
 
+        {/* Empire Control - NEW AUTONOMOUS SYSTEM */}
         {/* Portfolio Vault */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.3 }}
         >
+          <EmpireControl />
           <PortfolioVault
             ownedDomains={ownedDomains}
             totalSpent={portfolioStats.totalSpent}
