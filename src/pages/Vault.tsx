@@ -36,6 +36,8 @@ export default function Vault() {
       
       const todayProfit = data
         ?.filter(d => {
+          // Must have sale_price (like totalProfit does)
+          if (!d.sale_price) return false
           const saleDate = new Date(d.sale_date || '')
           return saleDate.toDateString() === new Date().toDateString()
         })

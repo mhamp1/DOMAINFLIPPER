@@ -34,33 +34,24 @@ export function StrategyEmpire({ strategies = STRATEGIES }: StrategyEmpireProps)
         </Badge>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12">
         {strategies.map((strat, i) => {
           const Icon = LUXURY_ICONS[strat.id as keyof typeof LUXURY_ICONS] || Diamond
           
           return (
             <motion.div
               key={strat.id}
-              initial={{ opacity: 0, y: 60, rotateY: -30 }}
-              animate={{ opacity: 1, y: 0, rotateY: 0 }}
-              transition={{ 
-                delay: i * 0.15, 
-                duration: 0.8, 
-                ease: [0.22, 1, 0.36, 1]
-              }}
-              whileHover={{ 
-                scale: 1.05,
-                rotateY: 5,
-                transition: { duration: 0.3, ease: "easeOut" }
-              }}
+              initial={{ opacity: 0, scale: 0.8, rotate: -10 }}
+              animate={{ opacity: 1, scale: 1, rotate: 0 }}
+              transition={{ delay: i * 0.15, duration: 1 }}
+              whileHover={{ scale: 1.1, rotate: 5 }}
               onHoverStart={handleStrategyHover}
               onClick={() => handleStrategyClick(strat)}
               className="relative group cursor-pointer"
             >
-              {/* Gold border glow on hover */}
-              <div className="absolute -inset-1 bg-gradient-to-r from-yellow-600 via-yellow-500 to-amber-600 rounded-3xl blur-lg opacity-0 group-hover:opacity-70 transition-opacity duration-700" />
+              <div className="absolute -inset-2 bg-gradient-to-r from-yellow-600 to-amber-600 rounded-3xl blur-3xl opacity-0 group-hover:opacity-60 transition-opacity duration-1000" />
               
-              <Card className="relative bg-black border-2 border-yellow-600/30 rounded-3xl p-8 text-center overflow-hidden h-full group-hover:border-yellow-600/60 transition-all duration-500">
+              <Card className="relative bg-black border-4 border-yellow-600/40 rounded-3xl p-12 text-center h-full hover:border-yellow-600 transition-all duration-500">
                 {/* Subtle gold particle background */}
                 <div className="absolute inset-0 opacity-5">
                   <motion.div 
@@ -90,54 +81,27 @@ export function StrategyEmpire({ strategies = STRATEGIES }: StrategyEmpireProps)
                   />
                 </div>
 
-                {/* Luxury Icon with smooth rotation on hover */}
                 <motion.div
-                  className="mb-8 relative"
-                  whileHover={{ rotate: 360 }}
-                  transition={{ duration: 2, ease: "easeInOut" }}
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                  className="mb-8"
                 >
-                  <div className="p-8 rounded-full bg-gradient-to-br from-yellow-600/20 to-amber-600/20 mx-auto w-fit border-4 border-yellow-600/40 group-hover:border-yellow-600/80 transition-all duration-500">
-                    <Icon size={72} weight="duotone" className="text-yellow-600 drop-shadow-2xl" />
-                  </div>
+                  <Icon size={100} weight="duotone" className="mx-auto text-yellow-600 drop-shadow-2xl" />
                 </motion.div>
 
-                <h3 className="text-xl font-bold text-yellow-600 mb-4 tracking-wider uppercase">
-                  {strat.name}
-                </h3>
+                <h3 className="text-3xl font-black text-yellow-600 mb-4">{strat.name.toUpperCase()}</h3>
+                <p className="text-5xl font-black text-white mb-2">{formatCurrency(strat.expectedProfit)}</p>
+                <p className="text-yellow-600/80 mb-8">avg flip profit</p>
                 
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-gray-400 text-xs uppercase tracking-widest mb-2">
-                      AVG FLIP PROFIT
-                    </p>
-                    <motion.p 
-                      className="text-4xl font-black text-yellow-600"
-                      animate={{ 
-                        scale: [1, 1.05, 1]
-                      }}
-                      transition={{ 
-                        duration: 3,
-                        repeat: Infinity,
-                        ease: "easeInOut"
-                      }}
-                    >
-                      {formatCurrency(strat.expectedProfit)}
-                    </motion.p>
-                  </div>
-                  
-                  <motion.div 
-                    animate={{ scale: [1, 1.05, 1] }}
-                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-                    className="inline-block"
-                  >
-                    <Badge 
-                      variant="gold" 
-                      className="text-base px-8 py-3 bg-gradient-to-r from-yellow-600 to-amber-600 text-black font-bold border-0"
-                    >
-                      {strat.domainsBought || 0} ACQUIRED
-                    </Badge>
-                  </motion.div>
-                </div>
+                <motion.div 
+                  animate={{ scale: [1, 1.1, 1] }}
+                  transition={{ duration: 3, repeat: Infinity }}
+                  className="mt-8"
+                >
+                  <Badge className="text-2xl px-12 py-6 bg-gradient-to-r from-yellow-600 to-amber-600 text-black">
+                    {strat.domainsBought || 0} ACQUIRED
+                  </Badge>
+                </motion.div>
 
                 {/* Live auction indicator */}
                 {strat.liveAuctions && strat.liveAuctions > 0 && (
