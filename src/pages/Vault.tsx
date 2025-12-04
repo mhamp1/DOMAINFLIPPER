@@ -6,7 +6,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Crown, Diamond, Wallet, Zap, Shield, TrendingUp, Coins } from '@phosphor-icons/react'
+import { Crown, Diamond, Wallet, Lightning, Shield, TrendUp, Coins } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import confetti from 'canvas-confetti'
@@ -34,17 +34,18 @@ export default function Vault() {
       
       if (soldError) throw soldError
       
-      const totalProfit = soldData
-        ?.reduce((sum, d) => sum + (d.sale_price! - d.purchase_price), 0) || 0
+      const soldDataTyped = (soldData || []) as any[]
+      const totalProfit = soldDataTyped
+        .reduce((sum: number, d: any) => sum + (d.sale_price! - d.purchase_price), 0)
       
       // Optimized: Filter by date in query instead of in-memory
-      const todayProfit = soldData
-        ?.filter(d => {
+      const todayProfit = soldDataTyped
+        .filter((d: any) => {
           if (!d.sale_date) return false
           const saleDate = new Date(d.sale_date).toISOString().split('T')[0]
           return saleDate === today
         })
-        .reduce((sum, d) => sum + (d.sale_price! - d.purchase_price), 0) || 0
+        .reduce((sum: number, d: any) => sum + (d.sale_price! - d.purchase_price), 0)
 
       // Get total owned count (separate lightweight query)
       const { count, error: countError } = await supabaseClient
@@ -129,7 +130,7 @@ export default function Vault() {
             transition={{ delay: 0.2 }}
           >
             <Card className="bg-obsidian border-4 border-gold/30 p-12 text-center obsidian-glass hover:border-gold/50 transition-all duration-300">
-              <Zap size={80} className="mx-auto mb-6 text-gold drop-shadow-[0_0_20px_rgba(212,175,55,0.5)]" />
+              <Lightning size={80} className="mx-auto mb-6 text-gold drop-shadow-[0_0_20px_rgba(212,175,55,0.5)]" />
               <p className="text-6xl font-black text-gold mb-2">+{formatCurrency(today)}</p>
               <p className="text-gold/80 mt-2 text-xl">Today</p>
             </Card>
@@ -194,7 +195,7 @@ export default function Vault() {
         >
           <Card className="bg-obsidian border-4 border-gold/30 p-12 obsidian-glass">
             <div className="flex items-center gap-4 mb-8">
-              <TrendingUp size={48} className="text-gold" />
+              <TrendUp size={48} className="text-gold" />
               <h3 className="text-4xl font-black text-gold">Profit Growth</h3>
             </div>
             <div className="h-64 flex items-center justify-center">
