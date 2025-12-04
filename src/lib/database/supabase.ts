@@ -25,6 +25,13 @@ interface OwnedDomain {
   strategy_id: string
   created_at: string
   updated_at: string
+  user_id?: string
+}
+
+interface DomainQueryResult {
+  user_id: string
+  domain: string
+  strategy_id: string
 }
 
 interface Transaction {
@@ -107,6 +114,12 @@ export class SupabaseDB {
 
     if (fetchError) throw fetchError
     if (!domain) throw new Error('Domain not found')
+    
+    // Type safety: ensure user_id exists
+    const domainData = domain as DomainQueryResult
+    if (!domainData.user_id) {
+      throw new Error('Domain user_id not found - cannot log transaction')
+    }
 
     const { error } = await this.client
       .from('owned_domains')
@@ -118,13 +131,13 @@ export class SupabaseDB {
     // Log transaction
     await this.logTransaction({
       type: 'sell',
-      domain: domain.domain,
+      domain: domainData.domain,
       amount: 0,
       date: new Date().toISOString(),
-      strategy_id: domain.strategy_id,
+      strategy_id: domainData.strategy_id,
       status: 'pending',
       marketplace,
-    }, domain.user_id)
+    }, domainData.user_id)
   }
 
   /**
@@ -140,6 +153,12 @@ export class SupabaseDB {
 
     if (fetchError) throw fetchError
     if (!domain) throw new Error('Domain not found')
+    
+    // Type safety: ensure user_id exists
+    const domainData = domain as DomainQueryResult
+    if (!domainData.user_id) {
+      throw new Error('Domain user_id not found - cannot log transaction')
+    }
 
     const { error } = await this.client
       .from('owned_domains')
@@ -156,12 +175,12 @@ export class SupabaseDB {
     // Log transaction
     await this.logTransaction({
       type: 'sell',
-      domain: domain.domain,
+      domain: domainData.domain,
       amount: salePrice,
       date: new Date().toISOString(),
-      strategy_id: domain.strategy_id,
+      strategy_id: domainData.strategy_id,
       status: 'completed',
-    }, domain.user_id)
+    }, domainData.user_id)
   }
 
   /**
