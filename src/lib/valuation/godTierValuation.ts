@@ -217,10 +217,15 @@ async function getTrafficValue(domain: string): Promise<{ value: number; boost: 
       return { value: 0, boost: 1 }
     }
 
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 3000)
+    
     const response = await fetch(
       `https://apiv2.ahrefs.com/?from=domain_rating&target=${domain}&mode=domain&output=json&token=${ahrefsKey}`,
-      { timeout: 3000 }
+      { signal: controller.signal }
     )
+    
+    clearTimeout(timeoutId)
 
     if (!response.ok) throw new Error('Ahrefs API error')
 
