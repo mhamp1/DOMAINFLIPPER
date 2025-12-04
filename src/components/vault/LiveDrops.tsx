@@ -45,142 +45,68 @@ export function LiveDrops({ domains, onSnipe }: LiveDropsProps) {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-4xl font-bold text-white mb-2">Live Domain Drops</h2>
-          <p className="text-zinc-500">Premium opportunities expiring soon</p>
-        </div>
-        <Badge variant="gold" className="text-lg px-6 py-3 flex items-center gap-2">
-          <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse" />
-          {domains.length} Active
-        </Badge>
-      </div>
+    <div className="space-y-12">
+      {/* GOD-TIER HEADER */}
+      <motion.div className="text-center">
+        <h2 className="text-7xl font-black text-yellow-600 mb-4">LIVE DROPS</h2>
+        <p className="text-3xl text-yellow-600/80">God-tier domains expiring now</p>
+      </motion.div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
         {domains.slice(0, 9).map((domain, i) => (
           <motion.div
             key={domain.id}
-            initial={{ opacity: 0, y: 40, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ 
-              delay: i * 0.1,
-              duration: 0.6,
-              ease: [0.22, 1, 0.36, 1]
-            }}
-            whileHover={{ 
-              scale: 1.03,
-              transition: { duration: 0.2 }
-            }}
+            initial={{ opacity: 0, y: 100, rotateX: -30 }}
+            animate={{ opacity: 1, y: 0, rotateX: 0 }}
+            transition={{ delay: i * 0.2, duration: 0.8 }}
+            whileHover={{ scale: 1.05, rotateY: 10 }}
             className="relative group"
           >
-            {/* Subtle glow effect */}
-            <div className="absolute -inset-1 bg-gradient-to-r from-yellow-600/20 to-amber-600/20 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            {/* Epic glow */}
+            <div className="absolute -inset-2 bg-gradient-to-r from-yellow-600 via-amber-500 to-yellow-600 rounded-3xl blur-2xl opacity-0 group-hover:opacity-80 transition-opacity duration-1000" />
             
-            <Card className="relative bg-zinc-950 border-2 border-zinc-800 rounded-3xl p-8 hover:border-yellow-600/50 transition-all duration-500 h-full flex flex-col">
-              {/* Header */}
-              <div className="flex items-start justify-between mb-6">
-                <div className="flex-1">
-                  <motion.h3 
-                    className="text-3xl font-bold text-white mb-2 break-all"
-                    animate={{ 
-                      textShadow: [
-                        "0 0 0px rgba(212, 175, 55, 0)",
-                        "0 0 10px rgba(212, 175, 55, 0.3)",
-                        "0 0 0px rgba(212, 175, 55, 0)"
-                      ]
-                    }}
-                    transition={{ 
-                      duration: 3,
-                      repeat: Infinity,
-                      ease: "easeInOut"
-                    }}
-                  >
-                    {domain.name}
-                  </motion.h3>
-                  <p className="text-sm text-zinc-500">{domain.registrar}</p>
-                </div>
-                
-                <Badge 
-                  variant="gold" 
-                  className="flex items-center gap-2 text-sm px-3 py-2 ml-2"
-                >
-                  <Timer size={16} weight="fill" />
-                  {domain.timeLeft}
-                </Badge>
-              </div>
-
-              {/* Stats */}
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div>
-                  <p className="text-xs text-zinc-500 mb-1">Current Bid</p>
-                  <p className="text-xl font-bold text-white">
-                    {formatCurrency(domain.currentBid || 0)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-zinc-500 mb-1">Est. Value</p>
-                  <p className="text-xl font-bold text-green-500">
-                    {formatCurrency(domain.estimatedValue)}
-                  </p>
-                </div>
-              </div>
-
-              {/* AI Score */}
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-zinc-500">AI CONFIDENCE</span>
-                  <span className="text-sm font-bold text-yellow-600">{domain.aiScore}%</span>
-                </div>
-                <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${domain.aiScore}%` }}
-                    transition={{ duration: 1, delay: i * 0.1 }}
-                    className="h-full bg-gradient-to-r from-yellow-600 to-amber-600"
-                  />
-                </div>
-              </div>
-
-              {/* ROI Badge */}
-              {domain.estimatedValue > (domain.currentBid || 0) && (
-                <div className="mb-6">
-                  <Badge variant="success" className="w-full justify-center py-3 text-sm font-bold">
-                    <TrendUp size={16} weight="bold" className="mr-2" />
-                    +{Math.round(((domain.estimatedValue - (domain.currentBid || 0)) / (domain.currentBid || 1)) * 100)}% ROI
-                  </Badge>
-                </div>
-              )}
-
-              {/* Snipe Button */}
+            <Card className="relative bg-black border-4 border-yellow-600/40 rounded-3xl p-12 text-center h-full">
               <motion.div
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="mt-auto"
+                animate={{ rotate: [0, 5, -5, 0] }}
+                transition={{ duration: 6, repeat: Infinity }}
+                className="mb-8"
+              >
+                <Diamond size={120} weight="duotone" className="mx-auto text-yellow-600 drop-shadow-2xl" />
+              </motion.div>
+
+              <h3 className="text-5xl font-black text-yellow-600 mb-6">{domain.name}</h3>
+              
+              <div className="space-y-6 mb-12">
+                <div>
+                  <p className="text-yellow-600/80 text-xl uppercase mb-2">CURRENT BID</p>
+                  <p className="text-6xl font-black text-white">${(domain.currentBid || 0).toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-yellow-600/80 text-xl uppercase mb-2">AI VALUE</p>
+                  <p className="text-7xl font-black text-green-500">${domain.estimatedValue.toLocaleString()}</p>
+                </div>
+              </div>
+
+              <motion.div
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
               >
                 <Button 
-                  variant="gold"
-                  size="lg"
-                  className="w-full text-xl font-bold h-16 group/btn"
+                  className="w-full h-24 text-4xl font-black bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-500 hover:to-amber-500 text-black shadow-2xl shadow-yellow-600/50"
                   onClick={() => handleSnipe(domain)}
-                  onMouseEnter={() => soundEngine.hover()}
                 >
-                  <span>SNIPE NOW</span>
-                  <motion.div
-                    animate={{ x: [0, 5, 0] }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
-                  >
-                    <ArrowRight className="ml-4" weight="bold" size={24} />
-                  </motion.div>
+                  SNIPE NOW
                 </Button>
               </motion.div>
 
-              {/* Corner badge for strategy */}
-              <div className="absolute top-4 left-4">
-                <Badge variant="secondary" className="text-xs uppercase">
-                  {domain.strategyId}
-                </Badge>
-              </div>
+              {/* Live timer */}
+              <motion.div 
+                animate={{ scale: [1, 1.05, 1] }}
+                transition={{ duration: 1, repeat: Infinity }}
+                className="mt-8 text-2xl text-red-500 font-bold"
+              >
+                {domain.timeLeft}
+              </motion.div>
             </Card>
           </motion.div>
         ))}

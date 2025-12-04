@@ -4,26 +4,37 @@
 @theme {
   --font-inter: 'Inter', system-ui, sans-serif;
   
+  /* Pure Luxury Gold Palette */
   --color-gold: #D4AF37;
   --color-gold-light: #F2E8CF;
   --color-gold-dark: #B8941E;
+  --color-gold-pure: #FFD700;
   
+  /* Pure Black Background */
   --color-obsidian: #000000;
+  --color-black-pure: #000000;
   
-  --color-vault-50: #fafafa;
-  --color-vault-100: #f4f4f5;
-  --color-vault-200: #e4e4e7;
-  --color-vault-300: #d4d4d8;
-  --color-vault-400: #a1a1aa;
-  --color-vault-500: #71717a;
-  --color-vault-600: #52525b;
-  --color-vault-700: #3f3f46;
-  --color-vault-800: #27272a;
-  --color-vault-900: #18181b;
-  --color-vault-950: #09090b;
+  /* Neutral grays for text hierarchy */
+  --color-vault-50: #1a1a1a;
+  --color-vault-100: #0f0f0f;
+  --color-vault-200: #1a1a1a;
+  --color-vault-300: #2a2a2a;
+  --color-vault-400: #3a3a3a;
+  --color-vault-500: #4a4a4a;
+  --color-vault-600: #5a5a5a;
+  --color-vault-700: #6a6a6a;
+  --color-vault-800: #7a7a7a;
+  --color-vault-900: #8a8a8a;
+  --color-vault-950: #0a0a0a;
   
-  --shadow-gold: 0 0 30px rgba(212, 175, 55, 0.3);
-  --shadow-gold-lg: 0 0 40px rgba(212, 175, 55, 0.5);
+  /* Luxury Gold Shadows */
+  --shadow-gold: 0 0 20px rgba(212, 175, 55, 0.2);
+  --shadow-gold-lg: 0 0 40px rgba(212, 175, 55, 0.3);
+  --shadow-gold-xl: 0 0 60px rgba(212, 175, 55, 0.4);
+  
+  /* Obsidian Glass Effect */
+  --glass-obsidian: rgba(0, 0, 0, 0.6);
+  --glass-gold-border: rgba(212, 175, 55, 0.3);
 }
 
 * {
@@ -31,16 +42,19 @@
 }
 
 body {
-  @apply bg-black text-white;
+  @apply bg-black text-gold;
   font-family: var(--font-inter);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: #000000;
+  color: #D4AF37;
 }
 
 .glass-effect {
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: var(--glass-obsidian);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-gold-border);
 }
 
 .gold-glow {
@@ -67,7 +81,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #F2E8CF;
+  background: #FFD700;
 }
 
 /* Smooth animations */
@@ -77,12 +91,34 @@ body {
 
 /* Selection color */
 ::selection {
-  background-color: rgba(212, 175, 55, 0.3);
-  color: #ffffff;
+  background-color: rgba(212, 175, 55, 0.4);
+  color: #000000;
 }
 
 /* Focus states */
 :focus-visible {
   outline: 2px solid #D4AF37;
   outline-offset: 2px;
+}
+
+/* Luxury gold text */
+.text-gold {
+  color: #D4AF37;
+}
+
+.text-gold-pure {
+  color: #FFD700;
+}
+
+/* Obsidian glass cards */
+.obsidian-glass {
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.obsidian-glass-hover:hover {
+  border-color: rgba(212, 175, 55, 0.5);
+  box-shadow: var(--shadow-gold);
 }

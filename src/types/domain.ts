@@ -83,3 +83,12 @@ export interface UserStats {
   activeSnipes: number
   successRate: number
 }
+
+export interface ExpiringDomain {
+  name: string
+  dropTime: string
+  tld: string
+  backlinks?: number
+  age?: number
+  traffic?: number
+}

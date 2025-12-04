@@ -19,3 +19,110 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+## Additional Terms for DomainFlipper
+
+### Commercial Use
+
+This software is provided for commercial and non-commercial use. You may use
+DomainFlipper for any purpose, including:
+
+- Personal domain flipping
+- Commercial domain investment
+- Educational purposes
+- Research and development
+
+### API Usage
+
+When using DomainFlipper with third-party APIs (GoDaddy, Namecheap, DropCatch, etc.),
+you are responsible for:
+
+- Complying with each API provider's terms of service
+- Managing your own API credentials securely
+- Respecting rate limits and usage restrictions
+- Any fees or charges from API providers
+
+### Liability
+
+The authors and contributors of DomainFlipper are not responsible for:
+
+- Financial losses from domain investments
+- API usage fees or charges
+- Domain purchase or sale outcomes
+- Any damages resulting from use of this software
+
+### Security
+
+You are responsible for:
+
+- Securing your API credentials
+- Protecting your wallet and funds
+- Implementing appropriate security measures
+- Following security best practices
+
+### Modifications
+
+You may modify the Software for your own use. However:
+
+- Modified versions are not officially supported
+- You may not claim the modified version as official
+- You must retain the original copyright notice
+
+### Distribution
+
+You may distribute the Software, provided that:
+
+- You include the original copyright notice
+- You include this license file
+- You do not remove or modify copyright notices
+- You do not claim ownership of the Software
+
+### Attribution
+
+While not required, attribution is appreciated:
+
+- Link back to the original repository
+- Mention DomainFlipper in your project
+- Credit the original authors
+
+---
+
+## Disclaimer
+
+**USE AT YOUR OWN RISK**
+
+DomainFlipper is provided "as is" without warranty of any kind. The authors
+and contributors make no representations or warranties regarding:
+
+- The accuracy of AI valuations
+- The success rate of domain purchases
+- The profitability of domain investments
+- The reliability of API integrations
+- The security of the software
+
+Domain investing involves financial risk. Past performance does not guarantee
+future results. Always:
+
+- Do your own research
+- Start with small investments
+- Understand the risks involved
+- Never invest more than you can afford to lose
+- Consult with financial advisors if needed
+
+---
+
+## Support
+
+For support, questions, or issues:
+
+- GitHub Issues: https://github.com/mhamp1/DOMAINFLIPPER/issues
+- GitHub Discussions: https://github.com/mhamp1/DOMAINFLIPPER/discussions
+- Documentation: https://github.com/mhamp1/DOMAINFLIPPER/wiki
+
+---
+
+**By using DomainFlipper, you agree to these terms.**
+
+**Last Updated: December 27, 2025**
