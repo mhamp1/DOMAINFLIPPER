@@ -9,11 +9,13 @@ import axios from 'axios'
 interface TrademarkResult {
   hasTrademark: boolean
   owner?: string
-  status?: string
+  status: string
   valueBoost: number
   serialNumber?: string
   markIdentification?: string
   liveCount?: number
+  exactMatch?: boolean
+  multiplier?: number
 }
 
 interface USPTOConfig {
