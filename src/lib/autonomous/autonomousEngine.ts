@@ -9,6 +9,7 @@ import { sniperEngine } from '@/lib/auctions/sniperEngine'
 import { createGoDaddyClient } from '@/lib/api/godaddy'
 import { createNamecheapClient } from '@/lib/api/namecheap'
 import { createDropCatchClient } from '@/lib/api/dropcatch'
+import { createGoDaddySniper } from '@/lib/auctions/godaddySniper'
 import { createMarketplaceClient } from '@/lib/api/marketplaces'
 import { STRATEGIES } from '@/lib/strategies/strategyDefinitions'
 import { generateId, sleep } from '@/lib/utils'
@@ -58,6 +59,7 @@ export class AutonomousEngine {
   private isRunning: boolean = false
   private scanInterval: number | null = null
   private ownedDomains: Map<string, OwnedDomain> = new Map()
+  private godaddySniper: ReturnType<typeof createGoDaddySniper> | null = null
   private dailyStats = {
     domainsScanned: 0,
     domainsBought: 0,
@@ -69,6 +71,16 @@ export class AutonomousEngine {
 
   constructor(config: AutonomousConfig) {
     this.config = config
+    
+    // Initialize GoDaddy sniper if credentials provided
+    if (config.godaddy) {
+      this.godaddySniper = createGoDaddySniper({
+        apiKey: config.godaddy.apiKey,
+        apiSecret: config.godaddy.apiSecret,
+        minROI: config.minROI,
+        maxBid: config.maxDailySpend * 0.1, // Max 10% of daily budget per domain
+      })
+    }
   }
 
   /**
@@ -139,11 +151,15 @@ export class AutonomousEngine {
     try {
       const domains: Domain[] = []
 
-      // Scan GoDaddy
-      if (this.config.godaddy) {
+      // Scan GoDaddy Auctions
+      if (this.config.godaddy && this.godaddySniper) {
         const godaddy = createGoDaddyClient(this.config.godaddy)
         const godaddyDomains = await godaddy.searchExpiringDomains({ limit: 1000 })
         domains.push(...this.mapGoDaddyDomains(godaddyDomains))
+        
+        // Auto-snipe profitable auctions
+        const profitableAuctions = await this.godaddySniper.searchProfitableAuctions(undefined, 50)
+        console.log(`🎯 Monitoring ${profitableAuctions.length} profitable GoDaddy auctions`)
       }
 
       // Scan Namecheap
