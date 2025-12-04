@@ -104,10 +104,15 @@ async function getEstiBotValue(domain: string): Promise<number> {
       return estimateBasicValue(domain)
     }
 
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 3000)
+    
     const response = await fetch(
       `https://www.estibot.com/appraise?a=appraise&domain=${domain}&key=${apiKey}`,
-      { timeout: 3000 }
+      { signal: controller.signal }
     )
+    
+    clearTimeout(timeoutId)
 
     if (!response.ok) throw new Error('EstiBot API error')
 
@@ -133,6 +138,9 @@ async function getGoDaddyAppraisal(domain: string): Promise<number> {
       return estimateBasicValue(domain)
     }
 
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 3000)
+    
     const response = await fetch(
       `https://api.godaddy.com/v1/appraisal/${domain}`,
       {
@@ -140,9 +148,11 @@ async function getGoDaddyAppraisal(domain: string): Promise<number> {
           'Authorization': `sso-key ${apiKey}:${apiSecret}`,
           'Accept': 'application/json'
         },
-        timeout: 3000
+        signal: controller.signal
       }
     )
+    
+    clearTimeout(timeoutId)
 
     if (!response.ok) throw new Error('GoDaddy API error')
 
