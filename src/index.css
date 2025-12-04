@@ -1,0 +1,88 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+@theme {
+  --font-inter: 'Inter', system-ui, sans-serif;
+  
+  --color-gold: #D4AF37;
+  --color-gold-light: #F2E8CF;
+  --color-gold-dark: #B8941E;
+  
+  --color-obsidian: #000000;
+  
+  --color-vault-50: #fafafa;
+  --color-vault-100: #f4f4f5;
+  --color-vault-200: #e4e4e7;
+  --color-vault-300: #d4d4d8;
+  --color-vault-400: #a1a1aa;
+  --color-vault-500: #71717a;
+  --color-vault-600: #52525b;
+  --color-vault-700: #3f3f46;
+  --color-vault-800: #27272a;
+  --color-vault-900: #18181b;
+  --color-vault-950: #09090b;
+  
+  --shadow-gold: 0 0 30px rgba(212, 175, 55, 0.3);
+  --shadow-gold-lg: 0 0 40px rgba(212, 175, 55, 0.5);
+}
+
+* {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-black text-white;
+  font-family: var(--font-inter);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.glass-effect {
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.gold-glow {
+  box-shadow: var(--shadow-gold);
+}
+
+.gold-text-shadow {
+  text-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
+}
+
+/* Custom scrollbar for luxury feel */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #000000;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D4AF37;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #F2E8CF;
+}
+
+/* Smooth animations */
+* {
+  scroll-behavior: smooth;
+}
+
+/* Selection color */
+::selection {
+  background-color: rgba(212, 175, 55, 0.3);
+  color: #ffffff;
+}
+
+/* Focus states */
+:focus-visible {
+  outline: 2px solid #D4AF37;
+  outline-offset: 2px;
+}
