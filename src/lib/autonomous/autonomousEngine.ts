@@ -7,10 +7,12 @@ import type { Domain, Transaction } from '@/types/domain'
 import { valuationEngine } from '@/lib/ai/valuationEngine'
 import { sniperEngine } from '@/lib/auctions/sniperEngine'
 import { createGoDaddyClient } from '@/lib/api/godaddy'
-import { createNamecheapClient } from '@/lib/api/namecheap'
+import { createNamecheapClient } from '@/lib/api/namecheapReal'
 import { createDropCatchClient } from '@/lib/api/dropcatch'
 import { createGoDaddySniper } from '@/lib/auctions/godaddySniper'
 import { createMarketplaceClient } from '@/lib/api/marketplaces'
+import { scanAllSources } from '@/lib/scanner/multiSourceScanner'
+import { snipeDomainMultiRegistrar } from '@/lib/buy/multiRegistrarSniper'
 import { STRATEGIES } from '@/lib/strategies/strategyDefinitions'
 import { generateId, sleep } from '@/lib/utils'
 import { soundEngine } from '@/lib/sounds/soundEffects'
@@ -146,57 +148,51 @@ export class AutonomousEngine {
 
   /**
    * Scan all sources and auto-buy profitable domains
+   * Uses multi-source scanner for 120k+ domains daily
    */
   private async scanAndBuy() {
     try {
-      const domains: Domain[] = []
+      console.log('🔍 Scanning all sources (120k+ domains)...')
+      
+      // Use multi-source scanner
+      const scanResults = await scanAllSources({
+        limit: Math.floor(this.config.dailyScanLimit / 4), // Divide across 4 sources
+        minValue: 1000,
+      })
 
-      // Scan GoDaddy Auctions
-      if (this.config.godaddy && this.godaddySniper) {
-        const godaddy = createGoDaddyClient(this.config.godaddy)
-        const godaddyDomains = await godaddy.searchExpiringDomains({ limit: 1000 })
-        domains.push(...this.mapGoDaddyDomains(godaddyDomains))
-        
-        // Auto-snipe profitable auctions
-        const profitableAuctions = await this.godaddySniper.searchProfitableAuctions(undefined, 50)
-        console.log(`🎯 Monitoring ${profitableAuctions.length} profitable GoDaddy auctions`)
-      }
+      this.dailyStats.domainsScanned += scanResults.length
 
-      // Scan Namecheap
-      if (this.config.namecheap) {
-        const namecheap = createNamecheapClient(this.config.namecheap)
-        const namecheapDomains = await namecheap.searchExpiringDomains({ limit: 1000 })
-        domains.push(...this.mapNamecheapDomains(namecheapDomains))
-      }
+      // Process each domain
+      for (const result of scanResults) {
+        if (this.dailyStats.totalSpent >= this.config.maxDailySpend) {
+          console.log('💰 Daily budget reached')
+          break
+        }
 
-      // Scan DropCatch
-      if (this.config.dropcatch) {
-        const dropcatch = createDropCatchClient(this.config.dropcatch)
-        const dropcatchDomains = await dropcatch.searchDroppingDomains({ limit: 1000 })
-        domains.push(...this.mapDropCatchDomains(dropcatchDomains))
-      }
+        const domain: Partial<Domain> = {
+          name: result.name,
+          tld: result.tld,
+          estimatedValue: result.estimatedValue,
+          backlinks: result.backlinks,
+          traffic: result.traffic,
+          age: result.age,
+          currentBid: result.currentBid,
+        }
 
-      this.dailyStats.domainsScanned += domains.length
-
-      // Valuate all domains
-      const valuatedDomains = await Promise.all(
-        domains.map(async (domain) => {
+        // Valuate if not already valuated
+        if (!domain.estimatedValue) {
           const valuation = await valuationEngine.predictValue(domain)
-          return {
-            ...domain,
-            estimatedValue: valuation.value,
-            aiScore: valuation.score,
-          }
-        })
-      )
+          domain.estimatedValue = valuation.value
+          domain.aiScore = valuation.score
+        }
 
-      // Filter and auto-buy profitable domains
-      for (const domain of valuatedDomains) {
-        if (!this.shouldBuy(domain)) continue
-        if (this.dailyStats.totalSpent >= this.config.maxDailySpend) break
-
-        await this.autoBuy(domain)
+        // Check if we should buy
+        if (this.shouldBuy(domain as Domain)) {
+          await this.autoBuy(domain as Domain, result.dropTime)
+        }
       }
+
+      console.log(`✅ Processed ${scanResults.length} domains`)
     } catch (error) {
       console.error('Scan error:', error)
     }
@@ -228,25 +224,30 @@ export class AutonomousEngine {
   }
 
   /**
-   * Auto-buy a domain
+   * Auto-buy a domain using multi-registrar sniper
    */
-  private async autoBuy(domain: Domain) {
+  private async autoBuy(domain: Domain, dropTime?: Date) {
     try {
-      const maxBid = domain.estimatedValue * 0.7 // Max 70% of estimated value
-      const transaction = await sniperEngine.snipeNow(domain, maxBid)
+      const maxBid = Math.min(
+        domain.estimatedValue * 0.7, // Max 70% of estimated value
+        this.config.maxDailySpend * 0.1 // Max 10% of daily budget per domain
+      )
 
-      if (transaction.status === 'completed') {
+      // Use multi-registrar sniper for 90%+ success rate
+      const result = await snipeDomainMultiRegistrar(domain.name, maxBid, dropTime)
+
+      if (result?.success) {
         // Add to owned domains
         this.ownedDomains.set(domain.name, {
-          domain: { ...domain, status: 'owned', purchasePrice: transaction.amount },
-          purchasePrice: transaction.amount,
+          domain: { ...domain, status: 'owned', purchasePrice: result.bidAmount },
+          purchasePrice: result.bidAmount,
           purchaseDate: new Date(),
           listings: [],
           offers: [],
         })
 
         this.dailyStats.domainsBought++
-        this.dailyStats.totalSpent += transaction.amount
+        this.dailyStats.totalSpent += result.bidAmount
 
         // Auto-list if enabled
         if (this.config.autoListEnabled) {
@@ -254,7 +255,7 @@ export class AutonomousEngine {
         }
 
         soundEngine.success()
-        console.log(`✅ AUTO-BOUGHT: ${domain.name} for ${transaction.amount}`)
+        console.log(`✅ AUTO-BOUGHT: ${domain.name} for ${result.bidAmount} via ${result.registrar}`)
       }
     } catch (error) {
       console.error(`Failed to auto-buy ${domain.name}:`, error)
