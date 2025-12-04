@@ -90,6 +90,17 @@ class SoundEngine {
     this.playTone(220, 0.15, 0.08, 'triangle')
   }
 
+  // Cash register "cha-ching" on sales
+  cashRegister() {
+    if (!this.audioContext) return
+    
+    // Cash register sound: two-tone chime
+    this.playTone(523.25, 0.1, 0.12) // C5
+    setTimeout(() => this.playTone(659.25, 0.15, 0.15), 100) // E5
+    setTimeout(() => this.playTone(783.99, 0.2, 0.18), 200) // G5
+    setTimeout(() => this.playTone(1046.5, 0.15, 0.15), 300) // C6
+  }
+
   toggle(enabled: boolean) {
     this.enabled = enabled
   }
