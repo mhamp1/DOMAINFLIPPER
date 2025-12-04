@@ -7,6 +7,7 @@
 import axios from 'axios'
 import CryptoJS from 'crypto-js'
 import { parseString } from 'xml2js'
+import { rateLimiter } from '@/lib/utils/rateLimiter'
 
 interface NamecheapConfig {
   apiUser: string
@@ -90,6 +91,9 @@ export class NamecheapAPI {
     params: Record<string, string> = {},
     retries = this.retryCount
   ): Promise<any> {
+    // Respect rate limit
+    await rateLimiter.waitIfNeeded('namecheap')
+
     const timestamp = Math.floor(Date.now() / 1000)
     const baseParams = {
       ApiUser: this.config.apiUser,
@@ -249,6 +253,82 @@ export class NamecheapAPI {
         }
       }, delay)
     })
+  }
+
+  /**
+   * Register domain (instant snipe when available)
+   * Required for sniping expired domains
+   */
+  async registerDomain(
+    domain: string,
+    options: {
+      years?: number
+      registrant: {
+        firstName: string
+        lastName: string
+        address1: string
+        city: string
+        stateProvince: string
+        postalCode: string
+        country: string
+        phone: string
+        email: string
+      }
+    }
+  ): Promise<{ success: boolean; domainId?: string }> {
+    try {
+      const params = {
+        Command: 'namecheap.domains.create',
+        DomainName: domain,
+        Years: (options.years || 1).toString(),
+        RegistrantFirstName: options.registrant.firstName,
+        RegistrantLastName: options.registrant.lastName,
+        RegistrantAddress1: options.registrant.address1,
+        RegistrantCity: options.registrant.city,
+        RegistrantStateProvince: options.registrant.stateProvince,
+        RegistrantPostalCode: options.registrant.postalCode,
+        RegistrantCountry: options.registrant.country,
+        RegistrantPhone: options.registrant.phone,
+        RegistrantEmail: options.registrant.email,
+        // Use same info for Admin/Tech contacts (Namecheap requirement)
+        AdminFirstName: options.registrant.firstName,
+        AdminLastName: options.registrant.lastName,
+        AdminAddress1: options.registrant.address1,
+        AdminCity: options.registrant.city,
+        AdminStateProvince: options.registrant.stateProvince,
+        AdminPostalCode: options.registrant.postalCode,
+        AdminCountry: options.registrant.country,
+        AdminPhone: options.registrant.phone,
+        AdminEmail: options.registrant.email,
+        TechFirstName: options.registrant.firstName,
+        TechLastName: options.registrant.lastName,
+        TechAddress1: options.registrant.address1,
+        TechCity: options.registrant.city,
+        TechStateProvince: options.registrant.stateProvince,
+        TechPostalCode: options.registrant.postalCode,
+        TechCountry: options.registrant.country,
+        TechPhone: options.registrant.phone,
+        TechEmail: options.registrant.email,
+      }
+
+      const result = await this.request('namecheap.domains.create', params)
+      
+      // Parse registration result
+      const createResult = result?.DomainCreateResult
+      if (createResult) {
+        const resultArray = Array.isArray(createResult) ? createResult : [createResult]
+        const firstResult = resultArray[0]
+        
+        if (firstResult?.$.Registered === 'true') {
+          return { success: true, domainId: firstResult.$.DomainID }
+        }
+      }
+
+      return { success: false }
+    } catch (error: any) {
+      console.error(`Failed to register domain ${domain}:`, error)
+      return { success: false }
+    }
   }
 }
 

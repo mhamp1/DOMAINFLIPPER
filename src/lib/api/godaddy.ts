@@ -6,11 +6,16 @@
 
 import axios from 'axios'
 import CryptoJS from 'crypto-js'
+import { createGoDaddyOAuth, type GoDaddyOAuth } from '@/lib/api/oauth'
+import { rateLimiter } from '@/lib/utils/rateLimiter'
 
 interface GoDaddyConfig {
   apiKey: string
   apiSecret: string
   sandbox?: boolean
+  useOAuth?: boolean // Use OAuth 2.0 instead of HMAC
+  clientId?: string // For OAuth
+  clientSecret?: string // For OAuth
 }
 
 interface GoDaddyDomain {
@@ -37,12 +42,22 @@ export class GoDaddyAPI {
   private baseUrl: string
   private retryCount = 3
   private retryDelay = 1000
+  private oauth: GoDaddyOAuth | null = null
 
   constructor(config: GoDaddyConfig) {
     this.config = config
     this.baseUrl = config.sandbox 
       ? 'https://api.ote-godaddy.com/v1'
       : 'https://api.godaddy.com/v1'
+    
+    // Initialize OAuth if configured
+    if (config.useOAuth && config.clientId && config.clientSecret) {
+      this.oauth = createGoDaddyOAuth({
+        clientId: config.clientId,
+        clientSecret: config.clientSecret,
+        sandbox: config.sandbox,
+      })
+    }
   }
 
   /**
@@ -62,15 +77,24 @@ export class GoDaddyAPI {
     body?: any,
     retries = this.retryCount
   ): Promise<any> {
-    const timestamp = Math.floor(Date.now() / 1000)
-    const bodyString = body ? JSON.stringify(body) : ''
-    const signature = this.signRequest(method, endpoint, bodyString, timestamp)
+    // Respect rate limit
+    await rateLimiter.waitIfNeeded('godaddy')
 
     const url = `${this.baseUrl}${endpoint}`
-    const headers: Record<string, string> = {
-      'Authorization': `sso-key ${this.config.apiKey}:${signature}`,
-      'X-Timestamp': timestamp.toString(),
+    let headers: Record<string, string> = {
       'Content-Type': 'application/json',
+    }
+
+    // Use OAuth if configured, otherwise HMAC
+    if (this.oauth) {
+      const token = await this.oauth.getAccessToken()
+      headers['Authorization'] = `Bearer ${token}`
+    } else {
+      const timestamp = Math.floor(Date.now() / 1000)
+      const bodyString = body ? JSON.stringify(body) : ''
+      const signature = this.signRequest(method, endpoint, bodyString, timestamp)
+      headers['Authorization'] = `sso-key ${this.config.apiKey}:${signature}`
+      headers['X-Timestamp'] = timestamp.toString()
     }
 
     try {

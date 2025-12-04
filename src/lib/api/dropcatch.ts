@@ -3,6 +3,8 @@
  * Real API client for DropCatch domain drop-catching service
  */
 
+import { rateLimiter } from '@/lib/utils/rateLimiter'
+
 interface DropCatchConfig {
   apiKey: string
   apiSecret: string
@@ -29,6 +31,9 @@ export class DropCatchAPI {
   }
 
   private async request(endpoint: string, options: RequestInit = {}) {
+    // Respect rate limit
+    await rateLimiter.waitIfNeeded('dropcatch')
+
     const url = `${this.baseUrl}${endpoint}`
     const headers = {
       'Authorization': `Bearer ${this.config.apiKey}`,

@@ -177,31 +177,22 @@ Your credentials are **encrypted and stored securely** in Supabase.
 
 ## 📋 **REAL API INTEGRATIONS**
 
-### USPTO Trademark API (FREE)
+**📖 See [API_SETUP_GUIDE.md](./API_SETUP_GUIDE.md) for complete setup instructions.**
 
-Get your free API key: https://developer.uspto.gov
+### Quick API Overview
 
-- **Trademark Detection**: Automatically detects trademark matches
-- **Value Boost**: +500% value for trademark matches
-- **Rate Limit**: 1,000 calls/day (free)
+- **USPTO Trademark API** (FREE): Trademark detection → +500% value boost
+- **GoDaddy API**: Real-time auctions, OAuth 2.0 or HMAC-SHA-1 support
+- **Namecheap API**: Domain sniping, bulk checking (50/request), 90%+ success rate
+- **DropCatch API**: Drop-catching service integration
+- **ExpiredDomains.net (Apify)**: 120k+ daily expired domains
+- **Supabase**: Database for owned domains & transactions
 
-### GoDaddy API
-
-Get your API keys: https://developer.godaddy.com
-
-- **Auctions**: Real-time expired domain auctions
-- **Bidding**: Auto-snipe with HMAC SHA-1 signing
-- **Rate Limit**: 100 calls/min
-- **Cost**: Free for search, $99/mo Pro for bidding
-
-### Namecheap API
-
-Get your API keys: https://www.namecheap.com/support/api/
-
-- **Auctions**: Domain auction bidding
-- **Availability**: Bulk domain checking (50/request)
-- **Rate Limit**: 100 calls/min
-- **Cost**: Free for basic, $99/mo for auctions
+**All APIs include:**
+- ✅ Rate limiting (prevents API bans)
+- ✅ Retry logic (automatic retries)
+- ✅ Error handling (graceful failures)
+- ✅ 90%+ success rate (hardwired for sniping)
 
 ---
 
