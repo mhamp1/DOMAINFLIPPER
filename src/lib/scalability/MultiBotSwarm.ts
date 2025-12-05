@@ -142,12 +142,12 @@ export class MultiBotSwarm {
 
     const bot: BotConfig = {
       id,
-      name: params.name,
-      strategy: params.strategy,
       status: 'paused',
       autoScaling: true,
       ...strategyDefaults[params.strategy],
       ...params,
+      name: params.name || strategyDefaults[params.strategy]?.name || params.strategy,
+      strategy: params.strategy,
     }
 
     this.bots.set(id, bot)
@@ -236,7 +236,7 @@ export class MultiBotSwarm {
     // Check total allocation doesn't exceed 100%
     const currentTotal = Array.from(this.bots.values())
       .filter(b => b.id !== botId)
-      .reduce((sum, b) => sum + b.capitalAllocation, 0)
+      .reduce((sum, b) => sum + (b.capitalAllocation || 0), 0)
 
     if (currentTotal + percentage > 100) {
       throw new Error(`Capital allocation would exceed 100% (current: ${currentTotal}%)`)
@@ -255,7 +255,7 @@ export class MultiBotSwarm {
   getBotCapital(botId: string): number {
     const bot = this.bots.get(botId)
     if (!bot) return 0
-    return (this.config.totalCapital * bot.capitalAllocation) / 100
+    return (this.config.totalCapital * (bot.capitalAllocation || 0)) / 100
   }
 
   /**
@@ -291,9 +291,9 @@ export class MultiBotSwarm {
     })
 
     // Normalize to exactly 100%
-    const total = bots.reduce((sum, b) => sum + b.capitalAllocation, 0)
-    if (total !== 100 && bots.length > 0) {
-      bots[0].capitalAllocation += (100 - total)
+    const total = bots.reduce((sum, b) => sum + (b.capitalAllocation || 0), 0)
+    if (total !== 100 && bots.length > 0 && bots[0]) {
+      bots[0].capitalAllocation = (bots[0].capitalAllocation || 0) + (100 - total)
     }
 
     toast.success('⚖️ Capital rebalanced', {
@@ -483,10 +483,11 @@ export class MultiBotSwarm {
 
     // Share 10% of profit with other bots proportionally
     const sharePool = profit * 0.1
-    const totalAllocation = activeBots.reduce((sum, b) => sum + b.capitalAllocation, 0)
+    const totalAllocation = activeBots.reduce((sum, b) => sum + (b.capitalAllocation || 0), 0)
+    if (totalAllocation === 0) return
 
     activeBots.forEach(bot => {
-      const share = (bot.capitalAllocation / totalAllocation) * sharePool
+      const share = ((bot.capitalAllocation || 0) / totalAllocation) * sharePool
       const stats = this.botStats.get(bot.id)
       if (stats) {
         stats.totalProfit += share

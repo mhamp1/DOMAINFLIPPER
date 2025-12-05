@@ -342,7 +342,7 @@ export class AIPricingEngine {
   async optimizePortfolio(domains: Array<{ name: string; baseValue: number }>): Promise<
     Array<{ domain: string; oldPrice: number; newPrice: number; change: number }>
   > {
-    const results = []
+    const results: Array<{ domain: string; oldPrice: number; newPrice: number; change: number }> = []
 
     for (const { name, baseValue } of domains) {
       const oldPrice = baseValue

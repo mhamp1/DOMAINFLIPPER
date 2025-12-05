@@ -257,6 +257,66 @@ DOMAINFLIPPER/
 
 ---
 
+## 🔧 **TROUBLESHOOTING**
+
+### Common Issues & Solutions
+
+#### 1. "Module not found" errors
+```bash
+# Clear node_modules and reinstall
+rm -rf node_modules
+rm package-lock.json
+npm install --legacy-peer-deps
+```
+
+#### 2. TypeScript errors on build
+```bash
+# Make sure TypeScript is up to date
+npm install typescript@latest
+npx tsc --noEmit  # Check for errors without building
+```
+
+#### 3. API connection failures
+- Verify your API keys are correct in `.env.local`
+- Check rate limits on your API accounts
+- Ensure your IP is whitelisted (especially Namecheap)
+- The app works in demo mode without APIs
+
+#### 4. Vite build warnings
+The `module externalized` warnings are normal - they're for Node.js modules that aren't needed in the browser.
+
+#### 5. Supabase connection issues
+- Verify your Supabase URL and anon key are correct
+- The app will run in "demo mode" if Supabase isn't configured
+- Check your Supabase project is active (free tier pauses after inactivity)
+
+#### 6. Bot not running after logout
+- The bot is designed to continue running after logout
+- Check `localStorage` for `domainFlipper_botRunning` 
+- Only the "Pause Empire" button stops the bot
+
+#### 7. Windows-specific issues
+```bash
+# If you see CRLF warnings
+git config core.autocrlf true
+```
+
+### Performance Tips
+
+1. **First Load**: Initial scan may take 30-60 seconds
+2. **Caching**: Valuations are cached for 24 hours
+3. **Batch Processing**: Large scans use parallel processing
+4. **Rate Limiting**: APIs are automatically rate-limited
+
+### Debug Mode
+
+Enable debug logging by opening browser console and running:
+```javascript
+localStorage.setItem('domainFlipper_debugMode', 'true')
+```
+
+---
+
 ## 🧪 **TESTING**
 
 ```bash
@@ -265,6 +325,9 @@ npm run test
 
 # E2E tests
 npm run test:e2e
+
+# Coverage report
+npm run test:coverage
 ```
 
 ---

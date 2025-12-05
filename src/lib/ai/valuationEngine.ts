@@ -2,6 +2,7 @@ import type { Domain } from '@/types/domain'
 import { usptoValuation } from '@/lib/valuation/usptoValuation'
 import { intelligenceEngine } from '@/lib/intelligence/intelligenceEngine'
 import { tensorFlowModel } from '@/lib/ai/tensorflowModel'
+import { logger } from '@/lib/utils/logger'
 
 /**
  * AI Domain Valuation Engine v2.0
@@ -464,6 +465,9 @@ export class ValuationEngine {
 
     // Cache result for future use
     this.setCached(domain, result)
+
+    // Log valuation
+    logger.valuation(domain.name || 'unknown', result.value, result.score)
 
     return result
   }

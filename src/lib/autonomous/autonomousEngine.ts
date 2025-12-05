@@ -279,10 +279,10 @@ export class AutonomousEngine {
 
     // Check if matches any enabled strategy (ALL strategies are enabled)
     const allStrategies = getAllEnabledStrategies()
-    const strategy = allStrategies.find(s => s.id === domain.strategyId)
-    if (!strategy) {
+    let matchedStrategy = allStrategies.find(s => s.id === domain.strategyId)
+    if (!matchedStrategy) {
       // Try to match by other criteria if no exact strategyId match
-      const matchedStrategy = allStrategies.find(s => {
+      matchedStrategy = allStrategies.find(s => {
         const name = domain.name.replace(/\.[^.]+$/, '').toLowerCase()
         // Check keywords
         if (s.keywords?.some(kw => name.includes(kw))) return true
@@ -295,7 +295,7 @@ export class AutonomousEngine {
     }
 
     // Check budget
-    if (currentBid > strategy.budgetPerDomain) return false
+    if (currentBid > matchedStrategy.budgetPerDomain) return false
 
     return true
   }

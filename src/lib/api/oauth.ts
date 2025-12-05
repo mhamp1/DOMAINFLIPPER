@@ -65,9 +65,9 @@ export class GoDaddyOAuth {
       )
 
       this.token = response.data
-      this.tokenExpiry = Date.now() + (this.token.expires_in * 1000)
+      this.tokenExpiry = Date.now() + ((this.token?.expires_in || 3600) * 1000)
 
-      return this.token.access_token
+      return this.token?.access_token || ''
     } catch (error: any) {
       throw new Error(`GoDaddy OAuth Error: ${error.response?.status || 'Network'} - ${error.message}`)
     }
