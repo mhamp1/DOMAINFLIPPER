@@ -217,67 +217,66 @@ export default function EmpireDashboard() {
 
   return (
     <div className="min-h-screen bg-black text-yellow-600">
-      {/* Header */}
-      <header className="border-b border-yellow-600/20 sticky top-0 bg-black/95 backdrop-blur z-50">
+      {/* Header - Premium Styling */}
+      <header className="sticky top-0 z-50 nav-bar-premium">
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-600 to-yellow-500 flex items-center justify-center">
-                <Sparkle size={24} weight="fill" className="text-black" />
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-500 via-yellow-600 to-amber-700 flex items-center justify-center shadow-lg shadow-yellow-600/20">
+                <Sparkle size={24} weight="fill" className="text-black drop-shadow-sm" />
               </div>
               <div>
-                <h1 className="text-lg md:text-xl font-bold text-yellow-600">DomainFlipper Empire</h1>
-                <p className="text-xs text-yellow-600/60">$100 → $100M | Autonomous AI</p>
+                <h1 className="text-lg md:text-xl font-bold gold-gradient-text" style={{ fontFamily: "'Orbitron', sans-serif" }}>
+                  DomainFlipper Empire
+                </h1>
+                <p className="text-xs gold-embossed opacity-70">$100 → $100M | Autonomous Domain Acquisition System</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <button
                 onClick={toggleVoice}
-                className={`p-2 rounded-lg transition-colors ${voiceEnabled ? 'bg-yellow-600/20 text-yellow-600' : 'text-yellow-600/40 hover:text-yellow-600/60'}`}
+                className={`p-2 rounded-lg transition-all duration-300 ${voiceEnabled ? 'bg-yellow-600/20 text-yellow-500 shadow-lg shadow-yellow-600/20' : 'text-yellow-600/40 hover:text-yellow-600/60 hover:bg-yellow-600/10'}`}
               >
                 <Microphone size={20} weight={voiceEnabled ? 'fill' : 'regular'} />
               </button>
-              <Badge variant={isLaunched ? 'success' : 'outline'} className="hidden sm:flex">
+              <Badge variant={isLaunched ? 'success' : 'outline'} className={`hidden sm:flex ${isLaunched ? 'badge-active' : ''}`}>
                 {isLaunched ? (
-                  <><div className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-2" />LIVE</>
+                  <><div className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-2 shadow-lg shadow-green-500/50" />LIVE</>
                 ) : 'READY'}
               </Badge>
               <div className="text-right hidden md:block">
-                <div className="text-lg font-bold text-yellow-600">{formatCurrency(fundingStats.capital)}</div>
-                <div className="text-xs text-yellow-600/60">Capital</div>
+                <div className="text-lg font-bold value-gold value-display">{formatCurrency(fundingStats.capital)}</div>
+                <div className="text-xs text-yellow-600/50">Capital</div>
               </div>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Navigation Tabs - Scrollable on mobile */}
-      <nav className="border-b border-yellow-600/20 overflow-x-auto scrollbar-hide">
+      {/* Navigation Tabs - Premium with Depth */}
+      <nav className="overflow-x-auto scrollbar-hide nav-bar-premium border-t-0" style={{ borderTop: 'none' }}>
         <div className="max-w-7xl mx-auto px-4">
-          <div className="flex gap-1 min-w-max">
+          <div className="flex gap-2 min-w-max py-2">
             {[
               { id: 'empire', label: 'Empire', icon: Lightning },
+              { id: 'vault', label: 'Vault', icon: Wallet },
+              { id: 'strategies', label: 'Strategies', icon: Target },
               { id: 'intelligence', label: 'Intel', icon: Brain },
-              { id: 'portfolio', label: 'Portfolio', icon: ChartPie },
-              { id: 'revenue', label: 'Revenue', icon: Coins },
-              { id: 'risk', label: 'Risk', icon: Shield },
-              { id: 'finance', label: 'Finance', icon: Wallet },
-              { id: 'swarm', label: 'Swarm', icon: Robot },
               { id: 'config', label: 'Config', icon: Gear },
             ].map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as TabType)}
                 className={`
-                  flex items-center gap-2 px-3 py-3 text-sm font-medium border-b-2 transition-all whitespace-nowrap
+                  flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 whitespace-nowrap
                   ${activeTab === tab.id
-                    ? 'border-yellow-600 text-yellow-600'
-                    : 'border-transparent text-yellow-600/50 hover:text-yellow-600/70'
+                    ? 'nav-tab-active'
+                    : 'text-yellow-600/50 hover:text-yellow-600/80 nav-tab-hover border border-transparent'
                   }
                 `}
               >
                 <tab.icon size={18} weight={activeTab === tab.id ? 'fill' : 'regular'} />
-                <span className="hidden sm:inline">{tab.label}</span>
+                <span>{tab.label}</span>
               </button>
             ))}
           </div>
@@ -296,80 +295,149 @@ export default function EmpireDashboard() {
               exit={{ opacity: 0, y: -10 }}
               className="space-y-6"
             >
-              {/* Capital & Launch */}
-              <Card className="bg-black/50 border border-yellow-600/20 p-6">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <div className="lg:col-span-2">
-                    <div className="flex items-center gap-3 mb-4">
-                      <CurrencyDollar size={24} weight="duotone" className="text-yellow-600" />
-                      <h2 className="text-lg font-semibold text-yellow-600">Empire Capital</h2>
-                    </div>
-                    <motion.div 
-                      className="text-5xl md:text-6xl font-black text-yellow-600 mb-2"
-                      key={fundingStats.capital}
-                      initial={{ scale: 1.05 }}
-                      animate={{ scale: 1 }}
-                    >
-                      {formatCurrency(fundingStats.capital)}
-                    </motion.div>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
-                      <div>
-                        <div className="text-xs text-yellow-600/60">Daily Budget</div>
-                        <div className="text-lg font-bold text-yellow-600">{formatCurrency(fundingStats.dailyBudget)}</div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-yellow-600/60">Today's Profit</div>
-                        <div className="text-lg font-bold text-green-500">+{formatCurrency(compoundStats.todayProfit)}</div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-yellow-600/60">Total Profit</div>
-                        <div className="text-lg font-bold text-yellow-600">{formatCurrency(compoundStats.totalProfit)}</div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-yellow-600/60">Passive Income</div>
-                        <div className="text-lg font-bold text-green-500">{formatCurrency(totalPassiveMonthly)}/mo</div>
-                      </div>
-                    </div>
-                  </div>
+              {/* Domain Empire Section Header */}
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold gold-gradient-text mb-1" style={{ fontFamily: "'Orbitron', sans-serif" }}>Domain Empire</h2>
+                <p className="text-sm text-yellow-600/50">Autonomous domain acquisition system</p>
+              </div>
 
-                  <div className="flex flex-col justify-center">
-                    <Button
-                      size="lg"
-                      onClick={handleLaunchEmpire}
-                      disabled={isLoading}
-                      className={`
-                        w-full h-16 text-lg font-bold transition-all
-                        ${isLaunched
-                          ? 'bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-600/30'
-                          : 'bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 text-black'
-                        }
-                      `}
-                    >
-                      {isLoading ? (
-                        <div className="flex items-center gap-2">
-                          <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                          {isLaunched ? 'Stopping...' : 'Launching...'}
-                        </div>
-                      ) : isLaunched ? (
-                        <><Pause size={24} weight="fill" className="mr-2" />Pause Empire</>
-                      ) : (
-                        <><Play size={24} weight="fill" className="mr-2" />Launch Empire</>
-                      )}
-                    </Button>
-                    {isLaunched && (
-                      <div className="text-center mt-3 text-sm text-yellow-600/60">
-                        Uptime: {formatUptime(stats.uptime)}
-                      </div>
-                    )}
+              {/* Stats Cards Row */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                {/* Capital Card */}
+                <Card className="card-obsidian-premium p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="p-1.5 rounded-lg bg-yellow-600/10">
+                      <TrendUp size={18} className="text-yellow-500" />
+                    </div>
+                    <span className="text-xs text-yellow-600/60 uppercase tracking-wider">Capital</span>
+                  </div>
+                  <div className="text-2xl md:text-3xl font-bold value-gold value-display">
+                    {formatCurrency(fundingStats.capital)}
+                  </div>
+                  <div className="text-xs text-yellow-600/40 mt-1">Started with $100</div>
+                </Card>
+
+                {/* Total Profit Card */}
+                <Card className="card-obsidian-premium p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="p-1.5 rounded-lg bg-green-500/10">
+                      <Lightning size={18} className="text-green-500" />
+                    </div>
+                    <span className="text-xs text-yellow-600/60 uppercase tracking-wider">Total Profit</span>
+                  </div>
+                  <div className="text-2xl md:text-3xl font-bold value-green value-display">
+                    {formatCurrency(compoundStats.totalProfit)}
+                  </div>
+                  <div className="text-xs text-green-500/60 mt-1">+{((compoundStats.totalProfit / Math.max(fundingStats.capital, 1)) * 100).toFixed(1)}% growth</div>
+                </Card>
+
+                {/* Domains Card */}
+                <Card className="card-obsidian-premium p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="p-1.5 rounded-lg bg-yellow-600/10">
+                      <Globe size={18} className="text-yellow-500" />
+                    </div>
+                    <span className="text-xs text-yellow-600/60 uppercase tracking-wider">Domains</span>
+                  </div>
+                  <div className="text-2xl md:text-3xl font-bold value-gold value-display">
+                    {stats.domainsOwned}
+                  </div>
+                  <div className="text-xs text-yellow-600/40 mt-1">{stats.domainsSold} flipped</div>
+                </Card>
+
+                {/* Scans Today Card */}
+                <Card className="card-obsidian-premium p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="p-1.5 rounded-lg bg-yellow-600/10">
+                      <ChartBar size={18} className="text-yellow-500" />
+                    </div>
+                    <span className="text-xs text-yellow-600/60 uppercase tracking-wider">Scans Today</span>
+                  </div>
+                  <div className="text-2xl md:text-3xl font-bold value-gold value-display">
+                    {stats.decisionsToday}
+                  </div>
+                  <div className="text-xs text-yellow-600/40 mt-1">Target: 120,000/day</div>
+                </Card>
+              </div>
+
+              {/* Empire Controls Card */}
+              <Card className="card-obsidian-premium p-6 mb-6">
+                <h3 className="text-lg font-semibold section-header mb-4">Empire Controls</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                  <div>
+                    <div className="text-xs text-yellow-600/50 uppercase tracking-wider mb-1">Daily Budget</div>
+                    <div className="text-2xl font-bold value-gold value-display">{formatCurrency(fundingStats.dailyBudget)}</div>
+                    <div className="text-xs text-yellow-600/40">10% of capital</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-yellow-600/50 uppercase tracking-wider mb-1">Min ROI Target</div>
+                    <div className="text-2xl font-bold value-gold value-display">8x</div>
+                    <div className="text-xs text-yellow-600/40">Only acquire 8x+ returns</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-yellow-600/50 uppercase tracking-wider mb-1">AI Accuracy</div>
+                    <div className="text-2xl font-bold value-green value-display">98.4%</div>
+                    <div className="text-xs text-yellow-600/40">Valuation precision</div>
                   </div>
                 </div>
+
+                {/* Launch Button */}
+                <Button
+                  onClick={handleLaunchEmpire}
+                  disabled={isLoading}
+                  className={`w-full py-4 text-lg font-bold transition-all duration-300 ${
+                    isLaunched 
+                      ? 'bg-red-500/20 border-red-500/50 text-red-400 hover:bg-red-500/30' 
+                      : 'btn-gold-premium'
+                  }`}
+                  size="lg"
+                >
+                  {isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      {isLaunched ? 'Stopping...' : 'Launching...'}
+                    </div>
+                  ) : isLaunched ? (
+                    <><Pause size={20} className="mr-2" /> PAUSE EMPIRE</>
+                  ) : (
+                    <><Play size={20} className="mr-2" /> LAUNCH EMPIRE</>
+                  )}
+                </Button>
+              </Card>
+
+              {/* Live Activity Feed */}
+              <Card className="card-obsidian-premium p-6">
+                <h3 className="text-lg font-semibold section-header mb-4">Live Activity Feed</h3>
+                {botThoughts.length > 0 ? (
+                  <div className="space-y-3 max-h-64 overflow-y-auto">
+                    {botThoughts.slice(0, 5).map((thought, i) => (
+                      <motion.div
+                        key={thought.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="flex items-start gap-3 p-3 rounded-lg bg-black/30 border border-yellow-600/10"
+                      >
+                        <Brain size={16} className="text-yellow-500 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-yellow-600/80">{thought.message}</p>
+                          <p className="text-xs text-yellow-600/40 mt-1">{thought.timestamp.toLocaleTimeString()}</p>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-yellow-600/40">
+                    <Brain size={32} className="mx-auto mb-2 opacity-50" />
+                    <p>Launch empire to see live activity</p>
+                  </div>
+                )}
               </Card>
 
               {/* Quick Stats Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
                 {[
-                  { icon: Package, label: 'Domains', value: stats.domainsOwned, sub: `Sold: ${stats.domainsSold}`, color: 'text-yellow-600' },
-                  { icon: Target, label: 'Win Rate', value: `${stats.winRate.toFixed(1)}%`, sub: `ROI: ${stats.roi.toFixed(0)}%`, color: 'text-green-500' },
+                  { icon: Package, label: 'Win Rate', value: `${stats.winRate.toFixed(1)}%`, sub: `ROI: ${stats.roi.toFixed(0)}%`, color: 'text-green-500' },
+                  { icon: Target, label: 'Uptime', value: isLaunched ? formatUptime(stats.uptime) : '--:--:--', sub: isLaunched ? 'Running' : 'Paused', color: 'text-yellow-600' },
                   { icon: ChartBar, label: 'Scans Today', value: stats.decisionsToday, sub: 'Target: 120k', color: 'text-yellow-600' },
                   { icon: Shield, label: 'Risk Score', value: `${riskStats.riskScore}/100`, sub: '12-layer shield', color: 'text-yellow-600' },
                 ].map((stat, i) => (
