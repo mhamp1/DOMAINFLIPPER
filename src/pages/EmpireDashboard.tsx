@@ -56,6 +56,8 @@ import { multiBotSwarm } from '@/lib/scalability/MultiBotSwarm'
 import { formatCurrency } from '@/lib/utils'
 import { toast } from 'sonner'
 import { STRATEGIES, getStrategiesForBudget } from '@/lib/strategies/strategyDefinitions'
+import { ownerAuth } from '@/lib/auth/OwnerAuth'
+import { SignOut } from '@phosphor-icons/react'
 
 // Tab types
 type TabType = 'empire' | 'vault' | 'strategies' | 'intelligence' | 'portfolio' | 'revenue' | 'risk' | 'finance' | 'swarm' | 'config'
@@ -251,6 +253,7 @@ export default function EmpireDashboard() {
               <button
                 onClick={toggleVoice}
                 className={`p-2 rounded-lg transition-all duration-300 ${voiceEnabled ? 'bg-yellow-600/20 text-yellow-500 shadow-lg shadow-yellow-600/20' : 'text-yellow-600/40 hover:text-yellow-600/60 hover:bg-yellow-600/10'}`}
+                title="Toggle Voice"
               >
                 <Microphone size={20} weight={voiceEnabled ? 'fill' : 'regular'} />
               </button>
@@ -263,6 +266,17 @@ export default function EmpireDashboard() {
                 <div className="text-lg font-bold value-gold value-display">{formatCurrency(fundingStats.capital)}</div>
                 <div className="text-xs text-yellow-600/50">Capital</div>
               </div>
+              {/* Logout Button */}
+              <button
+                onClick={() => {
+                  ownerAuth.logout()
+                  window.location.reload()
+                }}
+                className="p-2 rounded-lg text-yellow-600/40 hover:text-red-400 hover:bg-red-500/10 transition-all duration-300"
+                title="Logout"
+              >
+                <SignOut size={20} />
+              </button>
             </div>
           </div>
         </div>
