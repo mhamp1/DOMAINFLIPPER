@@ -28,12 +28,5 @@
         }
       ]
     }
-  ],
-  "env": {
-    "VITE_SUPABASE_URL": "@vite_supabase_url",
-    "VITE_SUPABASE_ANON_KEY": "@vite_supabase_anon_key",
-    "VITE_USPTO_API_KEY": "@vite_uspto_api_key",
-    "VITE_GODADDY_KEY": "@vite_godaddy_key",
-    "VITE_GODADDY_SECRET": "@vite_godaddy_secret"
-  }
+  ]
 }

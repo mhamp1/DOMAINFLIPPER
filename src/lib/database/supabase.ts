@@ -1,9 +1,10 @@
 /**
  * Supabase Database Integration
  * Real database for tracking domains, flips, profits
+ * Falls back to demo mode if Supabase is not configured
  */
 
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import type { Domain } from '@/types/domain'
 
 interface SupabaseConfig {
@@ -45,17 +46,43 @@ interface Transaction {
   marketplace?: string
 }
 
+// Demo data for when Supabase is not configured
+const demoOwnedDomains: OwnedDomain[] = []
+const demoTransactions: Transaction[] = []
+let demoIdCounter = 1
+
 export class SupabaseDB {
-  private client: ReturnType<typeof createClient>
+  private client: SupabaseClient | null = null
+  private isDemoMode: boolean = false
 
   constructor(config: SupabaseConfig) {
-    this.client = createClient(config.url, config.anonKey)
+    // Check if Supabase is properly configured
+    if (config.url && config.anonKey && config.url !== '' && config.anonKey !== '') {
+      try {
+        this.client = createClient(config.url, config.anonKey)
+        this.isDemoMode = false
+        console.log('✅ Supabase connected')
+      } catch (error) {
+        console.warn('⚠️ Supabase connection failed, using demo mode:', error)
+        this.isDemoMode = true
+      }
+    } else {
+      console.info('ℹ️ Supabase not configured, running in demo mode')
+      this.isDemoMode = true
+    }
+  }
+
+  /**
+   * Check if running in demo mode
+   */
+  isDemo(): boolean {
+    return this.isDemoMode
   }
 
   /**
    * Get underlying Supabase client for direct access
    */
-  getClient() {
+  getClient(): SupabaseClient | null {
     return this.client
   }
 
@@ -63,6 +90,19 @@ export class SupabaseDB {
    * Shorthand for direct table access (for backward compatibility)
    */
   from(table: string) {
+    if (!this.client) {
+      // Return a mock that mimics Supabase's chainable API
+      return {
+        select: () => this.from(table),
+        insert: () => this.from(table),
+        update: () => this.from(table),
+        delete: () => this.from(table),
+        eq: () => this.from(table),
+        single: () => Promise.resolve({ data: null, error: null }),
+        order: () => this.from(table),
+        limit: () => Promise.resolve({ data: [], error: null }),
+      }
+    }
     return this.client.from(table)
   }
 
@@ -70,7 +110,26 @@ export class SupabaseDB {
    * Save owned domain
    */
   async saveOwnedDomain(domain: Domain, purchasePrice: number, userId: string): Promise<OwnedDomain> {
-    const { data, error } = await this.client
+    if (this.isDemoMode) {
+      const newDomain: OwnedDomain = {
+        id: `demo-${demoIdCounter++}`,
+        domain: domain.name,
+        purchase_price: purchasePrice,
+        purchase_date: new Date().toISOString(),
+        estimated_value: domain.estimatedValue || purchasePrice * 3,
+        current_value: domain.estimatedValue || purchasePrice * 3,
+        strategy_id: domain.strategyId || 'default',
+        listed: false,
+        sold: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        user_id: userId,
+      }
+      demoOwnedDomains.push(newDomain)
+      return newDomain
+    }
+
+    const { data, error } = await this.client!
       .from('owned_domains')
       .insert({
         user_id: userId,
@@ -94,7 +153,13 @@ export class SupabaseDB {
    * Get all owned domains
    */
   async getOwnedDomains(): Promise<OwnedDomain[]> {
-    const { data, error } = await this.client
+    if (this.isDemoMode) {
+      return [...demoOwnedDomains].sort((a, b) => 
+        new Date(b.purchase_date).getTime() - new Date(a.purchase_date).getTime()
+      )
+    }
+
+    const { data, error } = await this.client!
       .from('owned_domains')
       .select('*')
       .order('purchase_date', { ascending: false })
@@ -107,7 +172,16 @@ export class SupabaseDB {
    * Update domain value
    */
   async updateDomainValue(domainId: string, currentValue: number): Promise<void> {
-    const { error } = await this.client
+    if (this.isDemoMode) {
+      const domain = demoOwnedDomains.find(d => d.id === domainId)
+      if (domain) {
+        domain.current_value = currentValue
+        domain.updated_at = new Date().toISOString()
+      }
+      return
+    }
+
+    const { error } = await this.client!
       .from('owned_domains')
       // @ts-ignore - Supabase type inference issue
       .update({ current_value: currentValue, updated_at: new Date().toISOString() } as any)
@@ -120,8 +194,29 @@ export class SupabaseDB {
    * Mark domain as listed
    */
   async markDomainListed(domainId: string, marketplace: string): Promise<void> {
+    if (this.isDemoMode) {
+      const domain = demoOwnedDomains.find(d => d.id === domainId)
+      if (domain) {
+        domain.listed = true
+        domain.updated_at = new Date().toISOString()
+        
+        // Log demo transaction
+        demoTransactions.push({
+          id: `tx-${demoIdCounter++}`,
+          type: 'sell',
+          domain: domain.domain,
+          amount: 0,
+          date: new Date().toISOString(),
+          strategy_id: domain.strategy_id,
+          status: 'pending',
+          marketplace,
+        })
+      }
+      return
+    }
+
     // Get domain to retrieve user_id
-    const { data: domain, error: fetchError } = await this.client
+    const { data: domain, error: fetchError } = await this.client!
       .from('owned_domains')
       .select('user_id, domain, strategy_id')
       .eq('id', domainId)
@@ -136,7 +231,7 @@ export class SupabaseDB {
       throw new Error('Domain user_id not found - cannot log transaction')
     }
 
-    const { error } = await this.client
+    const { error } = await this.client!
       .from('owned_domains')
       // @ts-ignore - Supabase type inference issue
       .update({ listed: true, updated_at: new Date().toISOString() } as any)
@@ -160,8 +255,29 @@ export class SupabaseDB {
    * Mark domain as sold
    */
   async markDomainSold(domainId: string, salePrice: number): Promise<void> {
+    if (this.isDemoMode) {
+      const domain = demoOwnedDomains.find(d => d.id === domainId)
+      if (domain) {
+        domain.sold = true
+        domain.sale_price = salePrice
+        domain.sale_date = new Date().toISOString()
+        domain.updated_at = new Date().toISOString()
+        
+        demoTransactions.push({
+          id: `tx-${demoIdCounter++}`,
+          type: 'sell',
+          domain: domain.domain,
+          amount: salePrice,
+          date: new Date().toISOString(),
+          strategy_id: domain.strategy_id,
+          status: 'completed',
+        })
+      }
+      return
+    }
+
     // Get domain to retrieve user_id
-    const { data: domain, error: fetchError } = await this.client
+    const { data: domain, error: fetchError } = await this.client!
       .from('owned_domains')
       .select('user_id, domain, strategy_id')
       .eq('id', domainId)
@@ -176,7 +292,7 @@ export class SupabaseDB {
       throw new Error('Domain user_id not found - cannot log transaction')
     }
 
-    const { error } = await this.client
+    const { error } = await this.client!
       .from('owned_domains')
       // @ts-ignore - Supabase type inference issue
       .update({
@@ -204,7 +320,16 @@ export class SupabaseDB {
    * Log transaction
    */
   async logTransaction(transaction: Omit<Transaction, 'id'>, userId: string): Promise<Transaction> {
-    const { data, error } = await this.client
+    if (this.isDemoMode) {
+      const tx: Transaction = {
+        id: `tx-${demoIdCounter++}`,
+        ...transaction,
+      }
+      demoTransactions.push(tx)
+      return tx
+    }
+
+    const { data, error } = await this.client!
       .from('transactions')
       .insert({
         ...transaction,
@@ -221,7 +346,13 @@ export class SupabaseDB {
    * Get transaction history
    */
   async getTransactions(limit = 100): Promise<Transaction[]> {
-    const { data, error } = await this.client
+    if (this.isDemoMode) {
+      return [...demoTransactions]
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .slice(0, limit)
+    }
+
+    const { data, error } = await this.client!
       .from('transactions')
       .select('*')
       .order('date', { ascending: false })
@@ -242,7 +373,28 @@ export class SupabaseDB {
     domainsOwned: number
     domainsSold: number
   }> {
-    const { data: owned, error: ownedError } = await this.client
+    if (this.isDemoMode) {
+      const ownedDomains = demoOwnedDomains
+      const totalSpent = ownedDomains.reduce((sum, d) => sum + (d.purchase_price || 0), 0)
+      const totalValue = ownedDomains.reduce((sum, d) => sum + (d.current_value || 0), 0)
+      const totalEarned = ownedDomains
+        .filter(d => d.sold)
+        .reduce((sum, d) => sum + (d.sale_price || 0), 0)
+      const totalProfit = totalEarned + totalValue - totalSpent
+      const domainsOwned = ownedDomains.filter(d => !d.sold).length
+      const domainsSold = ownedDomains.filter(d => d.sold).length
+
+      return {
+        totalSpent,
+        totalEarned,
+        totalValue,
+        totalProfit,
+        domainsOwned,
+        domainsSold,
+      }
+    }
+
+    const { data: owned, error: ownedError } = await this.client!
       .from('owned_domains')
       .select('purchase_price, current_value, sale_price, sold')
 
@@ -269,12 +421,14 @@ export class SupabaseDB {
   }
 }
 
-// Initialize with environment variables
+// Initialize with environment variables (gracefully handle missing vars)
+const supabaseUrl = typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_URL || ''
+const supabaseAnonKey = typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_ANON_KEY || ''
+
 export const supabaseDB = new SupabaseDB({
-  url: import.meta.env.VITE_SUPABASE_URL || '',
-  anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+  url: supabaseUrl,
+  anonKey: supabaseAnonKey,
 })
 
 // Export client for direct access if needed
 export const supabaseClient = supabaseDB
-

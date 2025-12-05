@@ -33,7 +33,6 @@ import {
   ChartPie,
   Coins,
   ArrowsClockwise,
-  Plug,
   Sparkle,
 } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
@@ -48,16 +47,14 @@ import { marketIntelEngine } from '@/lib/intelligence/MarketIntelEngine'
 import { portfolioOptimizer } from '@/lib/portfolio/PortfolioOptimizer'
 import { leasingEngine } from '@/lib/revenue/LeasingEngine'
 import { affiliateEngine } from '@/lib/revenue/AffiliateEngine'
-import { legalScanner } from '@/lib/compliance/LegalScanner'
 import { aiNarrator } from '@/lib/ai/AINarrator'
 import { multiCurrencyEngine } from '@/lib/finance/MultiCurrencyEngine'
 import { multiBotSwarm } from '@/lib/scalability/MultiBotSwarm'
-import { apiMarketplace } from '@/lib/api/APIMarketplace'
 import { formatCurrency } from '@/lib/utils'
 import { toast } from 'sonner'
 
 // Tab types
-type TabType = 'empire' | 'intelligence' | 'portfolio' | 'revenue' | 'risk' | 'finance' | 'swarm' | 'api' | 'config'
+type TabType = 'empire' | 'intelligence' | 'portfolio' | 'revenue' | 'risk' | 'finance' | 'swarm' | 'config'
 
 // Bot thinking state
 interface BotThought {
@@ -89,7 +86,6 @@ export default function EmpireDashboard() {
   const [leasingStats, setLeasingStats] = useState(leasingEngine.getStats())
   const [affiliateStats, setAffiliateStats] = useState(affiliateEngine.getStats())
   const [swarmStats, setSwarmStats] = useState(multiBotSwarm.getSwarmStats())
-  const [apiStats, setApiStats] = useState(apiMarketplace.getStats())
   const [currencyStats, setCurrencyStats] = useState(multiCurrencyEngine.getStats())
   
   // Narrator events
@@ -109,7 +105,6 @@ export default function EmpireDashboard() {
       setLeasingStats(leasingEngine.getStats())
       setAffiliateStats(affiliateEngine.getStats())
       setSwarmStats(multiBotSwarm.getSwarmStats())
-      setApiStats(apiMarketplace.getStats())
       setCurrencyStats(multiCurrencyEngine.getStats())
       setNarratorEvents(aiNarrator.getRecentEvents(10))
     }, 1000)
@@ -217,7 +212,7 @@ export default function EmpireDashboard() {
   const taxSummary = taxTracker.getTaxSummary()
 
   // Calculate total passive income
-  const totalPassiveMonthly = leasingStats.monthlyRecurring + affiliateStats.monthlyCommission + apiStats.monthlyRecurring
+  const totalPassiveMonthly = leasingStats.monthlyRecurring + affiliateStats.monthlyCommission
 
   return (
     <div className="min-h-screen bg-black text-yellow-600">
@@ -267,7 +262,6 @@ export default function EmpireDashboard() {
               { id: 'risk', label: 'Risk', icon: Shield },
               { id: 'finance', label: 'Finance', icon: Wallet },
               { id: 'swarm', label: 'Swarm', icon: Robot },
-              { id: 'api', label: 'API', icon: Plug },
               { id: 'config', label: 'Config', icon: Gear },
             ].map(tab => (
               <button
@@ -977,66 +971,6 @@ export default function EmpireDashboard() {
                     <p className="text-sm mt-1">Click "Deploy Balanced" to create a fleet</p>
                   </div>
                 )}
-              </Card>
-            </motion.div>
-          )}
-
-          {/* ===== API TAB ===== */}
-          {activeTab === 'api' && (
-            <motion.div
-              key="api"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="space-y-6"
-            >
-              {/* API Revenue */}
-              <Card className="bg-black/50 border border-yellow-600/20 p-6">
-                <h3 className="text-lg font-semibold text-yellow-600 mb-4">API Marketplace Revenue</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <div className="p-4 bg-black/50 rounded-lg border border-yellow-600/10">
-                    <div className="text-sm text-yellow-600/60 mb-1">Subscribers</div>
-                    <div className="text-3xl font-bold text-yellow-600">{apiStats.totalSubscribers}</div>
-                  </div>
-                  <div className="p-4 bg-black/50 rounded-lg border border-yellow-600/10">
-                    <div className="text-sm text-yellow-600/60 mb-1">MRR</div>
-                    <div className="text-3xl font-bold text-green-500">{formatCurrency(apiStats.monthlyRecurring)}</div>
-                  </div>
-                  <div className="p-4 bg-black/50 rounded-lg border border-yellow-600/10">
-                    <div className="text-sm text-yellow-600/60 mb-1">ARR</div>
-                    <div className="text-3xl font-bold text-green-500">{formatCurrency(apiStats.annualRecurring)}</div>
-                  </div>
-                  <div className="p-4 bg-black/50 rounded-lg border border-yellow-600/10">
-                    <div className="text-sm text-yellow-600/60 mb-1">Total Requests</div>
-                    <div className="text-3xl font-bold text-yellow-600">{apiStats.totalRequests.toLocaleString()}</div>
-                  </div>
-                </div>
-              </Card>
-
-              {/* Pricing Tiers */}
-              <Card className="bg-black/50 border border-yellow-600/20 p-6">
-                <h3 className="text-lg font-semibold text-yellow-600 mb-4">API Pricing Tiers</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {apiMarketplace.getPricingTiers().map((tier, i) => (
-                    <div key={i} className={`p-6 rounded-lg border ${tier.tier === 'pro' ? 'bg-yellow-600/5 border-yellow-600/30' : 'bg-black/50 border-yellow-600/10'}`}>
-                      <div className="text-lg font-bold text-yellow-600 mb-1">{tier.name}</div>
-                      <div className="text-3xl font-black text-yellow-600 mb-4">
-                        ${tier.price}<span className="text-sm font-normal text-yellow-600/50">/mo</span>
-                      </div>
-                      <div className="text-sm text-yellow-600/70 mb-4">
-                        {tier.requests.toLocaleString()} requests/month
-                      </div>
-                      <ul className="space-y-2">
-                        {tier.features.map((feature, j) => (
-                          <li key={j} className="flex items-center gap-2 text-sm text-yellow-600/70">
-                            <CheckCircle size={14} className="text-green-500" />
-                            {feature}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
               </Card>
             </motion.div>
           )}

@@ -147,29 +147,49 @@ The app will open at `http://localhost:5173`
 
 ### Environment Variables
 
-Create a `.env` file:
+Create a `.env.local` file in your project root (or set them in Vercel Dashboard):
 
 ```env
-# Supabase (for database)
+# ===== DATABASE (Optional - works in demo mode without) =====
+# Supabase - Get from https://supabase.com
 VITE_SUPABASE_URL=your-supabase-url
 VITE_SUPABASE_ANON_KEY=your-anon-key
 
-# USPTO (free API key)
-VITE_USPTO_API_KEY=your-uspto-key
-
-# GoDaddy API
+# ===== DOMAIN REGISTRAR APIs =====
+# GoDaddy - Get from https://developer.godaddy.com
 VITE_GODADDY_KEY=your-godaddy-key
 VITE_GODADDY_SECRET=your-godaddy-secret
 
-# Namecheap API
-VITE_NAMECHEAP_USER=your-namecheap-user
-VITE_NAMECHEAP_KEY=your-namecheap-key
+# Namecheap - Get from https://namecheap.com/support/api
+VITE_NAMECHEAP_API_USER=your-username
+VITE_NAMECHEAP_API_KEY=your-api-key
 VITE_NAMECHEAP_CLIENT_IP=your-ip-address
 
-# DropCatch API
-VITE_DROPCATCH_KEY=your-dropcatch-key
-VITE_DROPCATCH_SECRET=your-dropcatch-secret
+# DropCatch - Get from https://dropcatch.com
+VITE_DROPCATCH_API_KEY=your-dropcatch-key
+VITE_DROPCATCH_API_SECRET=your-dropcatch-secret
+
+# ===== INTELLIGENCE APIs =====
+# USPTO (FREE) - Get from https://developer.uspto.gov
+VITE_USPTO_API_KEY=your-uspto-key
+
+# ===== OPTIONAL APIs (for enhanced features) =====
+# Google API - https://console.cloud.google.com
+VITE_GOOGLE_API_KEY=
+# SEMrush - https://semrush.com/api
+VITE_SEMRUSH_API_KEY=
+# Ahrefs - https://ahrefs.com/api
+VITE_AHREFS_API_KEY=
+# Twitter/X - https://developer.twitter.com
+VITE_TWITTER_BEARER_TOKEN=
+# Reddit - https://reddit.com/prefs/apps
+VITE_REDDIT_CLIENT_ID=
+VITE_REDDIT_SECRET=
+# Apify (ExpiredDomains) - https://apify.com
+VITE_APIFY_TOKEN=
 ```
+
+**Note:** The app works in demo mode without any environment variables. Add APIs as you need them!
 
 ### API Setup (Plug & Play)
 
