@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import confetti from 'canvas-confetti'
 import { formatCurrency } from '@/lib/utils'
-import { useQuery } from 'react-query'
+import { useQuery } from '@tanstack/react-query'
 import { supabaseClient } from '@/lib/database/supabase'
 
 export default function Vault() {
@@ -21,9 +21,9 @@ export default function Vault() {
   const [activeSnipes, setActiveSnipes] = useState(0)
 
   // Fetch real portfolio stats (optimized queries)
-  const { data: stats } = useQuery(
-    'portfolio-stats',
-    async () => {
+  const { data: stats } = useQuery({
+    queryKey: ['portfolio-stats'],
+    queryFn: async () => {
       const today = new Date().toISOString().split('T')[0]
       
       // Optimized query: Only get sold domains with sale_price
@@ -60,10 +60,8 @@ export default function Vault() {
         owned: count || 0,
       }
     },
-    {
-      refetchInterval: 5000, // Update every 5 seconds
-    }
-  )
+    refetchInterval: 5000, // Update every 5 seconds
+  })
 
   useEffect(() => {
     if (stats) {

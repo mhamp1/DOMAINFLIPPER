@@ -1,9 +1,20 @@
 import { Toaster } from 'sonner'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import EmpireDashboard from './pages/EmpireDashboard'
+
+// Create a client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+})
 
 function App() {
   return (
-    <>
+    <QueryClientProvider client={queryClient}>
       <EmpireDashboard />
       <Toaster 
         theme="dark"
@@ -16,7 +27,7 @@ function App() {
           },
         }}
       />
-    </>
+    </QueryClientProvider>
   )
 }
 
