@@ -11,11 +11,11 @@ import {
   Pause,
   Brain,
   Shield,
-  TrendingUp,
+  TrendUp,
   CurrencyDollar,
   Package,
   Target,
-  Activity,
+  ChartLineUp,
   Gear,
   Lightning,
   Eye,
@@ -34,6 +34,7 @@ import {
   Coins,
   ArrowsClockwise,
   Sparkle,
+  Plug,
 } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -213,6 +214,12 @@ export default function EmpireDashboard() {
 
   // Calculate total passive income
   const totalPassiveMonthly = leasingStats.monthlyRecurring + affiliateStats.monthlyCommission
+  
+  // API stats (placeholder - can be integrated with API marketplace later)
+  const apiStats = {
+    monthlyRecurring: 0,
+    totalSubscribers: 0
+  }
 
   return (
     <div className="min-h-screen bg-black text-yellow-600">
@@ -369,7 +376,7 @@ export default function EmpireDashboard() {
                 {[
                   { icon: Package, label: 'Domains', value: stats.domainsOwned, sub: `Sold: ${stats.domainsSold}`, color: 'text-yellow-600' },
                   { icon: Target, label: 'Win Rate', value: `${stats.winRate.toFixed(1)}%`, sub: `ROI: ${stats.roi.toFixed(0)}%`, color: 'text-green-500' },
-                  { icon: Activity, label: 'Scans Today', value: stats.decisionsToday, sub: 'Target: 120k', color: 'text-yellow-600' },
+                  { icon: ChartLineUp, label: 'Scans Today', value: stats.decisionsToday, sub: 'Target: 120k', color: 'text-yellow-600' },
                   { icon: Shield, label: 'Risk Score', value: `${riskStats.riskScore}/100`, sub: '12-layer shield', color: 'text-yellow-600' },
                 ].map((stat, i) => (
                   <Card key={i} className="bg-black/50 border border-yellow-600/20 p-4">
@@ -668,7 +675,7 @@ export default function EmpireDashboard() {
                 </Card>
                 <Card className="bg-black/50 border border-yellow-600/20 p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <TrendingUp size={16} className="text-green-500" />
+                    <TrendUp size={16} className="text-green-500" />
                     <span className="text-xs text-yellow-600/60">Total Passive</span>
                   </div>
                   <div className="text-2xl font-bold text-green-500">{formatCurrency(totalPassiveMonthly)}/mo</div>

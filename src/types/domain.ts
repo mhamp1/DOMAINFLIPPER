@@ -13,6 +13,7 @@ export interface Domain {
   strategyId: string
   status: 'available' | 'auction' | 'owned' | 'listed'
   acquiredAt?: Date
+  purchasedAt?: Date // Alias for acquiredAt
   listedAt?: Date
   soldAt?: Date
   purchasePrice?: number

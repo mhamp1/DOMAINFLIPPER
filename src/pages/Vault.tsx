@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import confetti from 'canvas-confetti'
 import { formatCurrency } from '@/lib/utils'
-import { useQuery } from 'react-query'
+import { useQuery } from '@tanstack/react-query'
 import { supabaseClient } from '@/lib/database/supabase'
 
 export default function Vault() {
@@ -21,36 +21,37 @@ export default function Vault() {
   const [activeSnipes, setActiveSnipes] = useState(0)
 
   // Fetch real portfolio stats (optimized queries)
-  const { data: stats } = useQuery(
-    'portfolio-stats',
-    async () => {
+  const { data: stats } = useQuery({
+    queryKey: ['portfolio-stats'],
+    queryFn: async () => {
       const today = new Date().toISOString().split('T')[0]
       
       // Optimized query: Only get sold domains with sale_price
-      const { data: soldData, error: soldError } = await supabaseClient
+      const { data: soldData, error: soldError } = await (supabaseClient
         .from('owned_domains')
-        .select('purchase_price, sale_price, sale_date')
-        .not('sale_price', 'is', null)
+        .select('purchase_price, sale_price, sale_date') as any)
       
       if (soldError) throw soldError
       
       const soldDataTyped = (soldData || []) as any[]
-      const totalProfit = soldDataTyped
-        .reduce((sum: number, d: any) => sum + (d.sale_price! - d.purchase_price), 0)
+      // Filter out domains without sale price (not sold)
+      const soldOnly = soldDataTyped.filter((d: any) => d.sale_price != null)
+      const totalProfit = soldOnly
+        .reduce((sum: number, d: any) => sum + (d.sale_price - d.purchase_price), 0)
       
       // Optimized: Filter by date in query instead of in-memory
-      const todayProfit = soldDataTyped
+      const todayProfit = soldOnly
         .filter((d: any) => {
           if (!d.sale_date) return false
           const saleDate = new Date(d.sale_date).toISOString().split('T')[0]
           return saleDate === today
         })
-        .reduce((sum: number, d: any) => sum + (d.sale_price! - d.purchase_price), 0)
+        .reduce((sum: number, d: any) => sum + (d.sale_price - d.purchase_price), 0)
 
       // Get total owned count (separate lightweight query)
-      const { count, error: countError } = await supabaseClient
+      const { count, error: countError } = await (supabaseClient
         .from('owned_domains')
-        .select('*', { count: 'exact', head: true })
+        .select('*', { count: 'exact', head: true }) as any)
       
       if (countError) throw countError
 
@@ -60,10 +61,8 @@ export default function Vault() {
         owned: count || 0,
       }
     },
-    {
-      refetchInterval: 5000, // Update every 5 seconds
-    }
-  )
+    refetchInterval: 5000, // Update every 5 seconds
+  })
 
   useEffect(() => {
     if (stats) {
