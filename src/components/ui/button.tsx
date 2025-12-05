@@ -12,16 +12,16 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <button
         className={cn(
-          "inline-flex items-center justify-center rounded-xl font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold disabled:pointer-events-none disabled:opacity-50",
+          "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-600/50 disabled:pointer-events-none disabled:opacity-50",
           {
-            "bg-gold text-black hover:bg-gold-light hover:scale-105 shadow-gold":
+            "bg-yellow-600 text-black hover:bg-yellow-500 active:scale-[0.98]":
               variant === "default",
-            "bg-gold hover:bg-gold-dark text-black hover:scale-105":
+            "bg-yellow-600 hover:bg-yellow-500 text-black active:scale-[0.98]":
               variant === "gold",
-            "border-2 border-gold text-gold hover:bg-gold hover:text-black":
+            "border border-yellow-600/30 text-yellow-600 hover:bg-yellow-600/10 hover:border-yellow-600/50":
               variant === "outline",
-            "hover:bg-gold/10 text-gold": variant === "ghost",
-            "bg-red-600 text-white hover:bg-red-700 hover:scale-105":
+            "hover:bg-yellow-600/10 text-yellow-600": variant === "ghost",
+            "bg-red-600/20 text-red-400 border border-red-600/30 hover:bg-red-600/30 active:scale-[0.98]":
               variant === "destructive",
           },
           {

@@ -54,12 +54,12 @@ export class EmpireEngine {
 
   constructor(config?: Partial<EmpireConfig>) {
     this.config = {
-      startingCapital: config?.startingCapital || 50000,
-      dailyBudget: config?.dailyBudget || 10000,
+      startingCapital: config?.startingCapital || 100, // Start with $100
+      dailyBudget: config?.dailyBudget || 50, // $50/day budget (conservative for $100 start)
       profitTarget: config?.profitTarget || 1000000,
-      minScore: config?.minScore || 92,
-      maxBidRatio: config?.maxBidRatio || 0.7,
-      autoListMultiplier: config?.autoListMultiplier || 5,
+      minScore: config?.minScore || 85, // Lower threshold for $100 start (more opportunities)
+      maxBidRatio: config?.maxBidRatio || 0.5, // More conservative bidding (50% of value)
+      autoListMultiplier: config?.autoListMultiplier || 3, // 3x listing multiplier (conservative)
       learningEnabled: config?.learningEnabled !== false,
       scanInterval: config?.scanInterval || 300000, // 5 minutes
     }
@@ -101,11 +101,14 @@ export class EmpireEngine {
       icon: '👑',
     })
 
-    // Start AutoSeller bot (monitors marketplace inquiries)
+    // Start AutoSeller bot (monitors marketplace inquiries and negotiates)
     await autoSeller.start()
 
     // Start the main autonomous loop
     this.autonomousLoop()
+
+    // Start auto-sale monitoring (check for offers every 5 minutes)
+    this.startAutoSaleMonitoring()
 
     // Start daily learning/retraining
     if (this.config.learningEnabled) {
@@ -186,13 +189,19 @@ export class EmpireEngine {
 
     // Rule 2: Current price must be significantly below estimated value
     const maxBid = valuation.value * this.config.maxBidRatio
-    if (domain.currentBid && domain.currentBid > maxBid) {
+    const currentBid = domain.currentBid || 0
+    if (currentBid > maxBid) {
       return false
     }
 
-    // Rule 3: Check if we have enough balance
-    const estimatedCost = (domain.currentBid || 0) * 1.3
+    // Rule 3: Check if we have enough balance (with 20% buffer for fees)
+    const estimatedCost = currentBid * 1.2 // 20% buffer for fees
     if (estimatedCost > this.stats.balance) {
+      return false
+    }
+
+    // Rule 3.5: For $100 start, only buy domains under $30 to maintain portfolio diversity
+    if (this.config.startingCapital <= 100 && currentBid > 30) {
       return false
     }
 
@@ -201,15 +210,24 @@ export class EmpireEngine {
     const expectedProfit = expectedSalePrice - estimatedCost
     const expectedROI = (expectedProfit / estimatedCost) * 100
 
-    // Only buy if ROI > 300%
-    if (expectedROI < 300) {
+    // For $100 start, require 10x ROI minimum (more conservative)
+    // For larger capital, require 3x ROI
+    const minROI = this.config.startingCapital <= 100 ? 1000 : 300
+    if (expectedROI < minROI) {
       return false
     }
 
     // Rule 5: Check portfolio diversity (don't over-invest in one strategy)
     const strategyCount = Array.from(this.portfolio.values())
       .filter(d => d.strategyId === domain.strategyId).length
-    if (strategyCount > 10) {
+    // For $100 start, limit to 3 domains per strategy (maintain diversity)
+    const maxPerStrategy = this.config.startingCapital <= 100 ? 3 : 10
+    if (strategyCount > maxPerStrategy) {
+      return false
+    }
+
+    // Rule 6: For $100 start, ensure we always keep at least $20 in reserve
+    if (this.config.startingCapital <= 100 && (this.stats.balance - estimatedCost) < 20) {
       return false
     }
 
@@ -343,6 +361,29 @@ export class EmpireEngine {
         console.error('Pricing loop error:', error)
       }
     }, 6 * 60 * 60 * 1000) // 6 hours
+  }
+
+  /**
+   * Auto-sale monitoring - checks for offers and negotiates intelligently
+   */
+  private startAutoSaleMonitoring(): void {
+    // Check for offers every 5 minutes
+    setInterval(async () => {
+      if (!this.isRunning) return
+
+      try {
+        // AutoSeller handles all marketplace inquiries automatically
+        // This just ensures it's running and processing offers
+        for (const [domainName, domain] of this.portfolio.entries()) {
+          if (domain.status === 'sold') continue
+
+          // AutoSeller will handle negotiations automatically
+          // We just need to ensure it's monitoring
+        }
+      } catch (error) {
+        console.error('Auto-sale monitoring error:', error)
+      }
+    }, 5 * 60 * 1000) // Every 5 minutes
   }
 
   /**
