@@ -104,3 +104,10 @@ rateLimiter.register('expireddomains', {
   windowMs: 24 * 60 * 60 * 1000,
 })
 
+// Twitter/X API v2: 1500 calls/month free tier (50/day average)
+// Basic $100/mo: 10,000 calls/month (333/day average)
+rateLimiter.register('twitter', {
+  maxRequests: 50,
+  windowMs: 24 * 60 * 60 * 1000, // 24 hours
+})
+
