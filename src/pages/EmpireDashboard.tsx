@@ -41,6 +41,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { empireEngine } from '@/lib/autonomy/EmpireEngine'
+import { autonomousBrain } from '@/lib/autonomy/AutonomousBrain'
 import { autoFundEngine } from '@/lib/funding/AutoFundEngine'
 import { compoundEngine } from '@/lib/empire/CompoundEngine'
 import { quantumShield } from '@/lib/risk/QuantumShield'
@@ -54,6 +55,7 @@ import { multiCurrencyEngine } from '@/lib/finance/MultiCurrencyEngine'
 import { multiBotSwarm } from '@/lib/scalability/MultiBotSwarm'
 import { formatCurrency } from '@/lib/utils'
 import { toast } from 'sonner'
+import { STRATEGIES, getStrategiesForBudget } from '@/lib/strategies/strategyDefinitions'
 
 // Tab types
 type TabType = 'empire' | 'vault' | 'strategies' | 'intelligence' | 'portfolio' | 'revenue' | 'risk' | 'finance' | 'swarm' | 'config'
@@ -163,12 +165,16 @@ export default function EmpireDashboard() {
   const handleLaunchEmpire = async () => {
     if (isLaunched) {
       setIsLoading(true)
+      
+      // Stop all autonomous systems
+      autonomousBrain.stop()
       empireEngine.stop()
       autoFundEngine.stopAutoFundLoop()
       compoundEngine.stopCompoundLoop()
       marketIntelEngine.stopMonitoring()
       leasingEngine.stopAutoRenewalMonitoring()
       multiBotSwarm.pauseSwarm()
+      
       setIsLaunched(false)
       setIsLoading(false)
       setBotThoughts([])
@@ -177,15 +183,23 @@ export default function EmpireDashboard() {
     } else {
       setIsLoading(true)
       try {
+        // Start the Autonomous Brain (THE CORE)
+        await autonomousBrain.start()
+        
+        // Start supporting systems
         await empireEngine.runForever()
         autoFundEngine.startAutoFundLoop()
         compoundEngine.startCompoundLoop()
         await marketIntelEngine.startMonitoring()
         leasingEngine.startAutoRenewalMonitoring()
         multiBotSwarm.startSwarm()
+        
         setIsLaunched(true)
-        aiNarrator.narrateInsight('Empire Launched', 'All systems now operating autonomously at full capacity', 'high')
-        toast.success('🚀 EMPIRE LAUNCHED', { description: '100% autonomous operation active' })
+        aiNarrator.narrateInsight('Empire Launched', 'Autonomous Brain activated — making smart decisions 24/7', 'high')
+        toast.success('🧠 AUTONOMOUS BRAIN ACTIVATED', { 
+          description: 'Bot will now buy, list, and sell domains automatically',
+          duration: 7000,
+        })
       } catch (error) {
         toast.error('Launch Failed', { description: 'Check configuration' })
       } finally {
@@ -409,6 +423,49 @@ export default function EmpireDashboard() {
                     <><Play size={20} className="mr-2" /> LAUNCH EMPIRE</>
                   )}
                 </Button>
+
+                {/* How Autonomous Mode Works */}
+                <div className="mt-4 p-4 rounded-lg bg-green-500/10 border border-green-500/30">
+                  <div className="flex items-start gap-3">
+                    <Brain size={24} className="text-green-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold text-green-500 mb-2">100% Autonomous Operation</h4>
+                      <p className="text-sm text-green-500/70 mb-3">
+                        Once launched, the bot runs completely by itself. You don't need to do anything.
+                      </p>
+                      <div className="space-y-1.5 text-xs text-green-500/60">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle size={12} className="text-green-500" />
+                          <span><strong>Scans</strong> 120k+ domains daily from GoDaddy, Namecheap, DropCatch</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle size={12} className="text-green-500" />
+                          <span><strong>AI Evaluates</strong> each domain for ROI potential (min 5x return)</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle size={12} className="text-green-500" />
+                          <span><strong>Auto-Bids</strong> using YOUR GoDaddy account balance</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle size={12} className="text-green-500" />
+                          <span><strong>Auto-Lists</strong> on Sedo, Flippa, Afternic, GoDaddy, DAN.com</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle size={12} className="text-green-500" />
+                          <span><strong>Auto-Negotiates</strong> with buyers via AI</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle size={12} className="text-green-500" />
+                          <span><strong>Auto-Transfers</strong> domain when payment received</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle size={12} className="text-green-500" />
+                          <span><strong>Money goes</strong> to your PayPal/bank linked to marketplaces</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </Card>
 
               {/* Live Activity Feed */}

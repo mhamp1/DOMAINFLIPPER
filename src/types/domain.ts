@@ -47,6 +47,7 @@ export interface Strategy {
   roi?: number
   liveAuctions?: number
   enabled?: boolean
+  priority?: number // 1 = highest priority (used for budget-based strategy selection)
 }
 
 export interface Auction {
