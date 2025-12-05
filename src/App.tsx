@@ -1,10 +1,10 @@
 import { Toaster } from 'sonner'
-import EmpireLaunch from './pages/EmpireLaunch'
+import EmpireDashboard from './pages/EmpireDashboard'
 
 function App() {
   return (
     <>
-      <EmpireLaunch />
+      <EmpireDashboard />
       <Toaster 
         theme="dark"
         position="top-right"
