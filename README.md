@@ -9,7 +9,7 @@
 [![Status](https://img.shields.io/badge/status-production--ready-success)](https://github.com/mhamp1/DOMAINFLIPPER)
 [![AI Accuracy](https://img.shields.io/badge/AI%20Accuracy-98.2%25-brightgreen)](src/lib/valuation/godTierValuation.ts)
 
-![DomainFlipper Vault Dashboard](https://github.com/user-attachments/assets/5c605530-1ea1-4897-8477-04ecbfd0d199)
+![DomainFlipper Vault Dashboard](https://github.com/user-attachments/assets/78294d33-1104-4a6b-a6e0-d23dd60d3ccf)
 
 ---
 
