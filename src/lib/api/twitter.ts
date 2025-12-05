@@ -380,24 +380,25 @@ export class TwitterAPI {
   /**
    * Get geo places using Twitter v1.1 API (fallback for precise places)
    * 
-   * ⚠️ IMPORTANT: This method requires OAuth 1.0a authentication, not Bearer token.
-   * Current implementation will fail as v1.1 API does not accept Bearer tokens.
+   * ⚠️ NOT IMPLEMENTED: This method requires OAuth 1.0a authentication, not Bearer token.
+   * v1.1 API does not accept Bearer tokens used by v2 API.
    * 
    * To use this method in production:
    * 1. Implement OAuth 1.0a signing (similar to GoDaddy HMAC implementation)
    * 2. Or use v2 place expansions instead: expansions=geo.place_id
-   * 3. Or use third-party geocoding services
+   * 3. Or use third-party geocoding services (Google Maps, Mapbox)
    * 
    * @param query - Place name to search
-   * @returns Array of places with WOEID (currently returns empty array)
+   * @returns Empty array (method not implemented without OAuth 1.0a)
+   * @throws Warning logged to console explaining limitation
    */
   async getGeoPlaces(query: string): Promise<GeoPlace[]> {
     // Not implemented: v1.1 requires OAuth 1.0a, not Bearer token
-    // For now, return empty array and log warning
     console.warn(
-      'Twitter v1.1 geo/search requires OAuth 1.0a authentication. ' +
-      'Use v2 place expansions or third-party geocoding instead. ' +
-      `Query was: ${query}`
+      '[Twitter API] getGeoPlaces() not implemented: v1.1 geo/search requires OAuth 1.0a authentication. ' +
+      'Bearer tokens are not supported. ' +
+      'Use v2 place expansions (expansions=geo.place_id) or third-party geocoding instead. ' +
+      `Query: "${query}"`
     )
     return []
   }
