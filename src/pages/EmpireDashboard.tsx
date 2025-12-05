@@ -55,7 +55,7 @@ import { formatCurrency } from '@/lib/utils'
 import { toast } from 'sonner'
 
 // Tab types
-type TabType = 'empire' | 'intelligence' | 'portfolio' | 'revenue' | 'risk' | 'finance' | 'swarm' | 'config'
+type TabType = 'empire' | 'vault' | 'strategies' | 'intelligence' | 'portfolio' | 'revenue' | 'risk' | 'finance' | 'swarm' | 'config'
 
 // Bot thinking state
 interface BotThought {
@@ -262,6 +262,11 @@ export default function EmpireDashboard() {
               { id: 'vault', label: 'Vault', icon: Wallet },
               { id: 'strategies', label: 'Strategies', icon: Target },
               { id: 'intelligence', label: 'Intel', icon: Brain },
+              { id: 'portfolio', label: 'Portfolio', icon: ChartPie },
+              { id: 'revenue', label: 'Revenue', icon: Coins },
+              { id: 'risk', label: 'Risk', icon: Shield },
+              { id: 'finance', label: 'Finance', icon: CurrencyDollar },
+              { id: 'swarm', label: 'Swarm', icon: Robot },
               { id: 'config', label: 'Config', icon: Gear },
             ].map(tab => (
               <button
@@ -532,6 +537,190 @@ export default function EmpireDashboard() {
                   ))}
                 </div>
               </Card>
+            </motion.div>
+          )}
+
+          {/* ===== VAULT TAB ===== */}
+          {activeTab === 'vault' && (
+            <motion.div
+              key="vault"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-6"
+            >
+              {/* Vault Header */}
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold gold-gradient-text mb-1" style={{ fontFamily: "'Orbitron', sans-serif" }}>Domain Vault</h2>
+                <p className="text-sm text-yellow-600/50">Your portfolio of owned domains</p>
+              </div>
+
+              {/* Vault Stats */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card className="card-obsidian-premium p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Package size={18} className="text-yellow-500" />
+                    <span className="text-xs text-yellow-600/60 uppercase tracking-wider">Total Domains</span>
+                  </div>
+                  <div className="text-3xl font-bold value-gold value-display">{stats.domainsOwned}</div>
+                  <div className="text-xs text-yellow-600/40 mt-1">In portfolio</div>
+                </Card>
+                <Card className="card-obsidian-premium p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CheckCircle size={18} className="text-green-500" />
+                    <span className="text-xs text-yellow-600/60 uppercase tracking-wider">Domains Sold</span>
+                  </div>
+                  <div className="text-3xl font-bold value-green value-display">{stats.domainsSold}</div>
+                  <div className="text-xs text-green-500/60 mt-1">Successfully flipped</div>
+                </Card>
+                <Card className="card-obsidian-premium p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <TrendUp size={18} className="text-yellow-500" />
+                    <span className="text-xs text-yellow-600/60 uppercase tracking-wider">Portfolio Value</span>
+                  </div>
+                  <div className="text-3xl font-bold value-gold value-display">{formatCurrency(stats.domainsOwned * 2500)}</div>
+                  <div className="text-xs text-yellow-600/40 mt-1">Estimated total</div>
+                </Card>
+                <Card className="card-obsidian-premium p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Lightning size={18} className="text-green-500" />
+                    <span className="text-xs text-yellow-600/60 uppercase tracking-wider">Avg ROI</span>
+                  </div>
+                  <div className="text-3xl font-bold value-green value-display">{stats.roi.toFixed(0)}%</div>
+                  <div className="text-xs text-green-500/60 mt-1">Per flip</div>
+                </Card>
+              </div>
+
+              {/* Owned Domains List */}
+              <Card className="card-obsidian-premium p-6">
+                <h3 className="text-lg font-semibold section-header mb-4">Owned Domains</h3>
+                {stats.domainsOwned > 0 ? (
+                  <div className="space-y-3">
+                    <div className="text-center py-8 text-yellow-600/40">
+                      <Package size={32} className="mx-auto mb-2 opacity-50" />
+                      <p>Domain list will appear here when you acquire domains</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-yellow-600/40">
+                    <Wallet size={32} className="mx-auto mb-2 opacity-50" />
+                    <p>No domains owned yet</p>
+                    <p className="text-xs mt-1">Launch the empire to start acquiring domains</p>
+                  </div>
+                )}
+              </Card>
+
+              {/* Recent Sales */}
+              <Card className="card-obsidian-premium p-6">
+                <h3 className="text-lg font-semibold section-header mb-4">Recent Sales</h3>
+                {stats.domainsSold > 0 ? (
+                  <div className="space-y-3">
+                    <div className="text-center py-8 text-yellow-600/40">
+                      <CheckCircle size={32} className="mx-auto mb-2 opacity-50" />
+                      <p>Sales history will appear here</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-yellow-600/40">
+                    <Coins size={32} className="mx-auto mb-2 opacity-50" />
+                    <p>No sales yet</p>
+                    <p className="text-xs mt-1">Flip domains to see your sales history</p>
+                  </div>
+                )}
+              </Card>
+            </motion.div>
+          )}
+
+          {/* ===== STRATEGIES TAB ===== */}
+          {activeTab === 'strategies' && (
+            <motion.div
+              key="strategies"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-6"
+            >
+              {/* Strategies Header */}
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold gold-gradient-text mb-1" style={{ fontFamily: "'Orbitron', sans-serif" }}>Strategies</h2>
+                <p className="text-sm text-yellow-600/50">Domain acquisition strategies</p>
+              </div>
+
+              {/* Strategy Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="card-obsidian-premium p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Lightning size={18} className="text-yellow-500" />
+                    <span className="text-xs text-yellow-600/60 uppercase tracking-wider">Active</span>
+                  </div>
+                  <div className="text-3xl font-bold value-gold value-display">7/10</div>
+                  <div className="text-xs text-yellow-600/40 mt-1">Strategies running</div>
+                </Card>
+                <Card className="card-obsidian-premium p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <TrendUp size={18} className="text-green-500" />
+                    <span className="text-xs text-yellow-600/60 uppercase tracking-wider">Success Rate</span>
+                  </div>
+                  <div className="text-3xl font-bold value-green value-display">83.8%</div>
+                  <div className="text-xs text-green-500/60 mt-1">Average across all</div>
+                </Card>
+                <Card className="card-obsidian-premium p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Coins size={18} className="text-yellow-500" />
+                    <span className="text-xs text-yellow-600/60 uppercase tracking-wider">Total Profit</span>
+                  </div>
+                  <div className="text-3xl font-bold value-gold value-display">{formatCurrency(compoundStats.totalProfit)}</div>
+                  <div className="text-xs text-yellow-600/40 mt-1">From all strategies</div>
+                </Card>
+              </div>
+
+              {/* Strategy Cards */}
+              <div className="space-y-4">
+                {[
+                  { name: 'Expired Domain Hunter', desc: 'Scan 120k+ expired domains daily for hidden gems with existing backlinks and traffic', roi: '12x', success: '87%', profit: 0, active: true },
+                  { name: 'Trademark Sniper', desc: 'Monitor USPTO filings and secure domains before trademark registration completes', roi: '15x', success: '92%', profit: 0, active: true },
+                  { name: 'Trend Rider', desc: 'Analyze Google Trends, Twitter, and Reddit for emerging keywords and brands', roi: '20x', success: '78%', profit: 0, active: true },
+                  { name: 'Premium .com Hunter', desc: 'Target short, brandable .com domains under $1000 with 10x+ potential', roi: '10x', success: '85%', profit: 0, active: true },
+                  { name: 'Crypto Domain Sniper', desc: 'Find domains related to new crypto projects, DeFi protocols, and Web3 brands', roi: '25x', success: '72%', profit: 0, active: true },
+                  { name: 'AI Name Generator', desc: 'Use AI to predict valuable domain names before they become trends', roi: '18x', success: '81%', profit: 0, active: true },
+                  { name: 'Startup Name Sniper', desc: 'Monitor YC, TechCrunch, and Product Hunt for emerging startup names', roi: '30x', success: '68%', profit: 0, active: true },
+                  { name: 'Geographic Domain Hunter', desc: 'Target city, region, and country-specific domains with local value', roi: '8x', success: '89%', profit: 0, active: false },
+                  { name: 'Industry Keyword Sniper', desc: 'Focus on high-CPC industry keywords with proven commercial intent', roi: '15x', success: '82%', profit: 0, active: false },
+                  { name: 'Typo Domain Finder', desc: 'Find common misspellings of popular brands and websites', roi: '5x', success: '95%', profit: 0, active: false },
+                ].map((strategy, i) => (
+                  <Card key={i} className="card-obsidian-premium p-6">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <CheckCircle size={20} weight="fill" className={strategy.active ? 'text-green-500' : 'text-yellow-600/30'} />
+                        <div>
+                          <h3 className="font-semibold text-yellow-600">{strategy.name}</h3>
+                          <p className="text-sm text-yellow-600/50 mt-1">{strategy.desc}</p>
+                        </div>
+                      </div>
+                      <div className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors ${strategy.active ? 'bg-yellow-600' : 'bg-yellow-600/20'}`}>
+                        <div className={`w-4 h-4 rounded-full bg-black transition-transform ${strategy.active ? 'translate-x-6' : 'translate-x-0'}`} />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="p-3 rounded-lg bg-black/30 border border-yellow-600/10">
+                        <div className="text-xs text-yellow-600/50 uppercase mb-1">ROI Target</div>
+                        <div className="text-lg font-bold text-yellow-600">{strategy.roi}</div>
+                      </div>
+                      <div className="p-3 rounded-lg bg-black/30 border border-yellow-600/10">
+                        <div className="text-xs text-yellow-600/50 uppercase mb-1">Success</div>
+                        <div className="text-lg font-bold text-green-500">{strategy.success}</div>
+                      </div>
+                      <div className="p-3 rounded-lg bg-black/30 border border-yellow-600/10">
+                        <div className="text-xs text-yellow-600/50 uppercase mb-1">Profit</div>
+                        <div className="text-lg font-bold text-yellow-600">{formatCurrency(strategy.profit)}</div>
+                      </div>
+                    </div>
+                    <div className={`mt-4 py-2 px-4 rounded-lg text-xs font-semibold ${strategy.active ? 'badge-active' : 'bg-yellow-600/10 text-yellow-600/50'}`}>
+                      {strategy.active ? '● ACTIVE' : '○ PAUSED'}
+                    </div>
+                  </Card>
+                ))}
+              </div>
             </motion.div>
           )}
 
