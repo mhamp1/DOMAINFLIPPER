@@ -10,10 +10,9 @@ import {
   Play, 
   Pause, 
   CurrencyDollar, 
-  TrendingUp, 
+  TrendUp, 
   Package, 
   Target,
-  Activity,
   CheckCircle,
   Clock,
   ArrowRight
@@ -228,7 +227,7 @@ export default function EmpireLaunch() {
           <Card className="obsidian-glass border border-yellow-600/20 p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="p-2 bg-green-500/10 rounded-lg">
-                <TrendingUp size={24} weight="duotone" className="text-green-500" />
+                <TrendUp size={24} weight="duotone" className="text-green-500" />
               </div>
               <Badge variant="outline" className="text-xs">Today</Badge>
             </div>
@@ -277,7 +276,7 @@ export default function EmpireLaunch() {
         {isLaunched && (
           <Card className="obsidian-glass border border-yellow-600/20 p-6 mb-12">
             <div className="flex items-center gap-3 mb-4">
-              <Activity size={20} weight="duotone" className="text-green-500" />
+              <CheckCircle size={20} weight="duotone" className="text-green-500" />
               <h3 className="text-lg font-semibold text-yellow-600">System Status</h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

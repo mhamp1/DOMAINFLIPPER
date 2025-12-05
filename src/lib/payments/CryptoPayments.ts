@@ -37,7 +37,7 @@ interface PaymentStatus {
 
 export class CryptoPayments {
   private activePayments: Map<string, PaymentRequest> = new Map()
-  private watchedAddresses: Map<string, number> = new Map()
+  private watchedAddresses: Map<string, ReturnType<typeof setInterval>> = new Map()
 
   /**
    * Calculate cryptocurrency prices based on USD amount
