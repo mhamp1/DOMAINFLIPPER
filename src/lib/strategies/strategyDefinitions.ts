@@ -241,18 +241,43 @@ export const STRATEGIES: Strategy[] = [
 
 /**
  * Get strategies appropriate for a given budget
+ * If runAll is true, returns ALL enabled strategies regardless of budget
  */
-export function getStrategiesForBudget(capital: number): Strategy[] {
-  if (capital < 500) {
-    // Only low budget strategies
-    return STRATEGIES.filter(s => s.budgetPerDomain <= 50 && s.enabled)
-  } else if (capital < 2000) {
-    // Low and medium budget
-    return STRATEGIES.filter(s => s.budgetPerDomain <= 200 && s.enabled)
-  } else {
-    // All strategies
+export function getStrategiesForBudget(capital: number, runAll: boolean = true): Strategy[] {
+  // Default: Run ALL strategies simultaneously
+  if (runAll) {
     return STRATEGIES.filter(s => s.enabled)
   }
+  
+  // Budget-filtered mode (optional)
+  if (capital < 500) {
+    return STRATEGIES.filter(s => s.budgetPerDomain <= 50 && s.enabled)
+  } else if (capital < 2000) {
+    return STRATEGIES.filter(s => s.budgetPerDomain <= 200 && s.enabled)
+  } else {
+    return STRATEGIES.filter(s => s.enabled)
+  }
+}
+
+/**
+ * Get ALL enabled strategies (for running all at once)
+ */
+export function getAllEnabledStrategies(): Strategy[] {
+  return STRATEGIES.filter(s => s.enabled)
+}
+
+/**
+ * Enable all strategies
+ */
+export function enableAllStrategies(): void {
+  STRATEGIES.forEach(s => s.enabled = true)
+}
+
+/**
+ * Get strategy by ID
+ */
+export function getStrategyById(id: string): Strategy | undefined {
+  return STRATEGIES.find(s => s.id === id)
 }
 
 /**

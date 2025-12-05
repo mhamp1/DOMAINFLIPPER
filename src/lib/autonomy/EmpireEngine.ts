@@ -14,6 +14,7 @@ import { autoSeller } from '@/lib/empire/AutoSeller'
 import { marketplaceLister } from '@/lib/marketplace/autoList'
 import { aiPricingEngine } from '@/lib/pricing/AIPricingEngine'
 import { learningEngine } from '@/lib/learning/LearningEngine'
+import { enableAllStrategies, getAllEnabledStrategies } from '@/lib/strategies/strategyDefinitions'
 import type { Domain } from '@/types/domain'
 
 interface EmpireConfig {
@@ -83,6 +84,7 @@ export class EmpireEngine {
   /**
    * START THE EMPIRE - This runs forever
    * The most important function - launches autonomous operations
+   * ALL STRATEGIES run simultaneously
    */
   async runForever(): Promise<void> {
     if (this.isRunning) {
@@ -95,8 +97,15 @@ export class EmpireEngine {
     this.isRunning = true
     this.startTime = new Date()
 
-    toast.success('🚀 EMPIRE LAUNCHED — AUTONOMOUS MODE ACTIVATED', {
-      description: `Budget: $${this.config.dailyBudget.toLocaleString()}/day • Target: $${this.config.profitTarget.toLocaleString()}`,
+    // Enable ALL strategies to run simultaneously
+    enableAllStrategies()
+    const activeStrategies = getAllEnabledStrategies()
+    
+    console.log(`🎯 Empire launching with ${activeStrategies.length} strategies:`)
+    activeStrategies.forEach(s => console.log(`   ✓ ${s.name}`))
+
+    toast.success('🚀 EMPIRE LAUNCHED — ALL STRATEGIES ACTIVE', {
+      description: `${activeStrategies.length} strategies running | Budget: $${this.config.dailyBudget.toLocaleString()}/day`,
       duration: 5000,
       icon: '👑',
     })

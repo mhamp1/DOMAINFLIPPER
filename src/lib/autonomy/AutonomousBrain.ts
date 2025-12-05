@@ -15,7 +15,7 @@
 import { toast } from 'sonner'
 import type { Domain, Strategy } from '@/types/domain'
 import { valuationEngine } from '@/lib/ai/valuationEngine'
-import { STRATEGIES } from '@/lib/strategies/strategyDefinitions'
+import { STRATEGIES, getAllEnabledStrategies, enableAllStrategies } from '@/lib/strategies/strategyDefinitions'
 
 // ============================================================================
 // CONFIGURATION — The brain's parameters
@@ -206,6 +206,7 @@ export class AutonomousBrain {
   /**
    * START THE AUTONOMOUS BRAIN
    * Once started, it runs forever making intelligent decisions
+   * ALL STRATEGIES run simultaneously
    */
   async start(): Promise<void> {
     if (this.isRunning) {
@@ -215,17 +216,24 @@ export class AutonomousBrain {
     
     this.isRunning = true
     
+    // Enable ALL strategies to run simultaneously
+    enableAllStrategies()
+    const activeStrategies = getAllEnabledStrategies()
+    
     toast.success('🧠 AUTONOMOUS BRAIN ACTIVATED', {
-      description: `Capital: $${this.stats.capital.toLocaleString()} | Daily Budget: $${this.getDailyBudget().toLocaleString()}`,
+      description: `${activeStrategies.length} strategies running | Capital: $${this.stats.capital.toLocaleString()}`,
       duration: 5000,
     })
+    
+    console.log(`🎯 Running ${activeStrategies.length} strategies simultaneously:`)
+    activeStrategies.forEach(s => console.log(`   - ${s.name} (budget: $${s.budgetPerDomain})`))
     
     // Start all autonomous loops
     this.startScanningLoop()
     this.startPricingLoop()
     this.startDailyResetLoop()
     
-    console.log('🧠 Autonomous Brain is now running...')
+    console.log('🧠 Autonomous Brain is now running with ALL strategies...')
   }
   
   /**
@@ -751,16 +759,18 @@ export class AutonomousBrain {
     return Math.round(days)
   }
   
-  private matchStrategy(domain: Partial<Domain>): { strategy: Strategy | undefined; score: number } {
+  private matchStrategy(domain: Partial<Domain>): { strategy: Strategy | undefined; score: number; allMatches: Array<{ strategy: Strategy; score: number }> } {
     let bestMatch: Strategy | undefined
     let bestScore = 0
+    const allMatches: Array<{ strategy: Strategy; score: number }> = []
     
     const name = domain.name?.replace(/\.[^.]+$/, '') || ''
     const tld = domain.tld || '.com'
     
-    for (const strategy of STRATEGIES) {
-      if (!strategy.enabled) continue
-      
+    // Check against ALL strategies (not just enabled - we enable all at start)
+    const allStrategies = getAllEnabledStrategies()
+    
+    for (const strategy of allStrategies) {
       let score = 0
       
       // Check TLD match
@@ -789,13 +799,26 @@ export class AutonomousBrain {
         }
       }
       
+      // Check traffic for traffic-based strategies
+      if (strategy.minTraffic && domain.traffic && domain.traffic >= strategy.minTraffic) {
+        score += 35
+      }
+      
+      // Store all matches for multi-strategy opportunities
+      if (score > 0) {
+        allMatches.push({ strategy, score })
+      }
+      
       if (score > bestScore) {
         bestScore = score
         bestMatch = strategy
       }
     }
     
-    return { strategy: bestMatch, score: bestScore }
+    // Sort all matches by score
+    allMatches.sort((a, b) => b.score - a.score)
+    
+    return { strategy: bestMatch, score: bestScore, allMatches }
   }
   
   private async checkTrademarkRisk(domainName: string): Promise<boolean> {

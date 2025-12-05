@@ -13,7 +13,7 @@ import { createGoDaddySniper } from '@/lib/auctions/godaddySniper'
 import { createMarketplaceClient } from '@/lib/api/marketplaces'
 import { scanAllSources } from '@/lib/scanner/multiSourceScanner'
 import { snipeDomainMultiRegistrar } from '@/lib/buy/multiRegistrarSniper'
-import { STRATEGIES } from '@/lib/strategies/strategyDefinitions'
+import { STRATEGIES, enableAllStrategies, getAllEnabledStrategies } from '@/lib/strategies/strategyDefinitions'
 import { generateId, sleep } from '@/lib/utils'
 import { soundEngine } from '@/lib/sounds/soundEffects'
 
@@ -87,6 +87,7 @@ export class AutonomousEngine {
 
   /**
    * Start the autonomous empire
+   * ALL STRATEGIES run simultaneously
    */
   async start() {
     if (this.isRunning) {
@@ -95,7 +96,14 @@ export class AutonomousEngine {
     }
 
     this.isRunning = true
+    
+    // Enable ALL strategies to run at once
+    enableAllStrategies()
+    const activeStrategies = getAllEnabledStrategies()
+    
     console.log('🚀 AUTONOMOUS EMPIRE STARTED')
+    console.log(`🎯 Running ${activeStrategies.length} strategies simultaneously:`)
+    activeStrategies.forEach(s => console.log(`   ✓ ${s.name} (budget: $${s.budgetPerDomain})`))
 
     // Start continuous scanning
     this.startContinuousScanning()
@@ -255,6 +263,7 @@ export class AutonomousEngine {
 
   /**
    * Decide if we should buy a domain
+   * Checks against ALL enabled strategies
    */
   private shouldBuy(domain: Domain): boolean {
     // Only buy if AI confidence is high (must have aiScore)
@@ -268,9 +277,22 @@ export class AutonomousEngine {
     const roi = (domain.estimatedValue - currentBid) / currentBid
     if (roi < this.config.minROI) return false
 
-    // Check if matches any enabled strategy
-    const strategy = STRATEGIES.find(s => s.id === domain.strategyId && s.enabled)
-    if (!strategy) return false
+    // Check if matches any enabled strategy (ALL strategies are enabled)
+    const allStrategies = getAllEnabledStrategies()
+    const strategy = allStrategies.find(s => s.id === domain.strategyId)
+    if (!strategy) {
+      // Try to match by other criteria if no exact strategyId match
+      const matchedStrategy = allStrategies.find(s => {
+        const name = domain.name.replace(/\.[^.]+$/, '').toLowerCase()
+        // Check keywords
+        if (s.keywords?.some(kw => name.includes(kw))) return true
+        // Check TLD
+        if (s.targetTLD === domain.tld) return true
+        if (s.targetTLDs?.includes(domain.tld)) return true
+        return false
+      })
+      if (!matchedStrategy) return false
+    }
 
     // Check budget
     if (currentBid > strategy.budgetPerDomain) return false
