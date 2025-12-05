@@ -90,7 +90,7 @@ interface Place {
   geo?: {
     type: string
     bbox?: number[]
-    properties?: Record<string, any>
+    properties?: Record<string, unknown>
   }
   place_type?: string
 }
@@ -135,9 +135,9 @@ export class TwitterAPI {
   private async request(
     method: string,
     url: string,
-    params?: any,
+    params?: Record<string, unknown>,
     retries = this.retryCount
-  ): Promise<any> {
+  ): Promise<unknown> {
     // Respect rate limit
     await rateLimiter.waitIfNeeded('twitter')
 
@@ -148,7 +148,7 @@ export class TwitterAPI {
 
     try {
       const response = await axios({
-        method: method.toLowerCase() as any,
+        method: method.toLowerCase() as 'get' | 'post' | 'put' | 'delete',
         url,
         headers,
         params,
@@ -156,16 +156,17 @@ export class TwitterAPI {
       })
 
       return response.data
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Retry on rate limit or server errors
-      if (retries > 0 && (error.response?.status === 429 || error.response?.status >= 500)) {
-        const delay = error.response?.status === 429 ? 1000 : this.retryDelay
+      const axiosError = error as { response?: { status?: number; data?: { detail?: string } }; message?: string }
+      if (retries > 0 && (axiosError.response?.status === 429 || (axiosError.response?.status || 0) >= 500)) {
+        const delay = axiosError.response?.status === 429 ? 1000 : this.retryDelay
         await new Promise(resolve => setTimeout(resolve, delay))
         return this.request(method, url, params, retries - 1)
       }
 
       throw new Error(
-        `Twitter API Error: ${error.response?.status || 'Network'} - ${error.response?.data?.detail || error.message}`
+        `Twitter API Error: ${axiosError.response?.status || 'Network'} - ${axiosError.response?.data?.detail || axiosError.message || 'Unknown error'}`
       )
     }
   }
@@ -177,7 +178,7 @@ export class TwitterAPI {
    */
   async getTwitterTrends(woeid: number = 1): Promise<TrendItem[]> {
     const url = `${this.baseUrl}/trends`
-    const data: TwitterTrendsResponse = await this.request('GET', url, { id: woeid })
+    const data = await this.request('GET', url, { id: woeid }) as TwitterTrendsResponse
     
     // Handle different response formats
     if (data.data && Array.isArray(data.data) && data.data[0]?.trends) {
@@ -219,7 +220,7 @@ export class TwitterAPI {
   ): Promise<Tweet[]> {
     const url = `${this.baseUrl}/tweets/search/recent`
     
-    const params: any = {
+    const params: Record<string, string | number> = {
       query,
       max_results: Math.min(options.limit || 10, 100), // Max 100 per request
       tweet_fields: 'created_at,public_metrics,geo,context_annotations,lang',
@@ -246,7 +247,7 @@ export class TwitterAPI {
       params.sort_order = options.sortOrder
     }
 
-    const data: SemanticSearchResponse = await this.request('GET', url, params)
+    const data = await this.request('GET', url, params) as SemanticSearchResponse
     return data.data || []
   }
 
@@ -277,7 +278,7 @@ export class TwitterAPI {
     
     const url = `${this.baseUrl}/tweets/search/recent`
     
-    const params: any = {
+    const params: Record<string, string | number> = {
       query: geoQuery,
       max_results: Math.min(options.limit || 10, 100),
       tweet_fields: 'created_at,public_metrics,geo,context_annotations,lang',
@@ -294,7 +295,7 @@ export class TwitterAPI {
       params.end_time = options.endTime
     }
 
-    const data: SemanticSearchResponse = await this.request('GET', url, params)
+    const data = await this.request('GET', url, params) as SemanticSearchResponse
     return data.data || []
   }
 
@@ -335,7 +336,7 @@ export class TwitterAPI {
     // This is a placeholder for the pattern - actual implementation would need OAuth 1.0a
     try {
       const url = `${this.v1BaseUrl}/geo/search.json`
-      const data = await this.request('GET', url, { query })
+      const data = await this.request('GET', url, { query }) as { result?: { places?: GeoPlace[] } }
       return data.result?.places || []
     } catch (error) {
       // Fallback: return empty array if v1.1 not configured
