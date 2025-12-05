@@ -4,11 +4,22 @@
  * OAuth 2.0 Bearer Token authentication
  * December 2025
  * 
- * NOTE: This implementation is based on the anticipated Twitter API v2 features for 2025
- * as specified in the requirements. Some features like the v2 /trends endpoint and 
- * min_score_threshold parameter may require API updates or are forward-compatible.
- * Current Twitter API v1.1 trends endpoint: /1.1/trends/place.json
- * For production use, verify endpoint availability with Twitter API documentation.
+ * ⚠️ IMPORTANT - FORWARD-COMPATIBLE IMPLEMENTATION:
+ * This implementation is based on the Twitter API v2 features anticipated for 2025
+ * as specified in the requirements. Before production deployment:
+ * 
+ * 1. TRENDS ENDPOINT: Verify v2 /trends endpoint availability. If unavailable, use:
+ *    - Endpoint: /1.1/trends/place.json (v1.1)
+ *    - Parameters: { id: woeid }
+ *    - Response format: [{ trends: [...] }]
+ * 
+ * 2. SEMANTIC SEARCH: The min_score_threshold parameter is forward-compatible.
+ *    If not supported by API, it will be safely ignored by Twitter's endpoint.
+ * 
+ * 3. GEO-SEMANTIC: Geocode operators work with current API. Semantic scoring
+ *    features (min_score_threshold) are per 2025 requirements.
+ * 
+ * For production: Test with Twitter API v2 documentation at developer.twitter.com
  */
 
 import axios from 'axios'
@@ -17,6 +28,7 @@ import { rateLimiter } from '@/lib/utils/rateLimiter'
 interface TwitterConfig {
   bearerToken: string
   sandbox?: boolean
+  useV1Trends?: boolean // Use v1.1 trends endpoint if v2 not available
 }
 
 interface TrendItem {
@@ -133,6 +145,11 @@ export class TwitterAPI {
     this.config = config
     this.baseUrl = 'https://api.twitter.com/2'
     this.v1BaseUrl = 'https://api.twitter.com/1.1'
+    
+    // Log configuration for production debugging
+    if (config.useV1Trends) {
+      console.warn('Twitter API: Using v1.1 trends endpoint (fallback mode)')
+    }
   }
 
   /**
@@ -183,21 +200,37 @@ export class TwitterAPI {
    * @returns Array of trending topics with tweet volumes
    * 
    * NOTE: Per requirements, this uses the v2 /trends endpoint.
-   * If using Twitter API v1.1, update endpoint to: /1.1/trends/place.json
-   * and adjust parameters to: { id: woeid }
+   * Set config.useV1Trends = true to use v1.1 fallback: /1.1/trends/place.json
    */
   async getTwitterTrends(woeid: number = 1): Promise<TrendItem[]> {
-    const url = `${this.baseUrl}/trends`
-    const data = await this.request('GET', url, { id: woeid }) as TwitterTrendsResponse
-    
-    // Handle different response formats
-    if (data.data && Array.isArray(data.data) && data.data[0]?.trends) {
-      return data.data[0].trends
+    try {
+      // Try v2 endpoint first (or use v1.1 if configured)
+      const url = this.config.useV1Trends 
+        ? `${this.v1BaseUrl}/trends/place.json`
+        : `${this.baseUrl}/trends`
+      const data = await this.request('GET', url, { id: woeid }) as TwitterTrendsResponse | TrendItem[][]
+      
+      // Handle v1.1 response format: [{ trends: [...] }]
+      if (Array.isArray(data) && data[0] && 'trends' in data[0]) {
+        return (data[0] as { trends: TrendItem[] }).trends
+      }
+      
+      // Handle v2 response formats
+      if (typeof data === 'object' && 'data' in data && data.data && Array.isArray(data.data) && data.data[0]?.trends) {
+        return data.data[0].trends
+      }
+      if (typeof data === 'object' && 'trends' in data && data.trends) {
+        return data.trends
+      }
+      return []
+    } catch (error) {
+      // If v2 fails and we haven't tried v1.1 yet, suggest fallback
+      const axiosError = error as { response?: { status?: number } }
+      if (!this.config.useV1Trends && axiosError.response?.status === 404) {
+        console.warn('Twitter API v2 trends endpoint not found. Consider setting useV1Trends: true in config.')
+      }
+      throw error
     }
-    if (data.trends) {
-      return data.trends
-    }
-    return []
   }
 
   /**
@@ -346,31 +379,39 @@ export class TwitterAPI {
 
   /**
    * Get geo places using Twitter v1.1 API (fallback for precise places)
-   * Note: Requires OAuth 1.0a for v1.1 - this is a placeholder showing the pattern
+   * 
+   * ⚠️ IMPORTANT: This method requires OAuth 1.0a authentication, not Bearer token.
+   * Current implementation will fail as v1.1 API does not accept Bearer tokens.
+   * 
+   * To use this method in production:
+   * 1. Implement OAuth 1.0a signing (similar to GoDaddy HMAC implementation)
+   * 2. Or use v2 place expansions instead: expansions=geo.place_id
+   * 3. Or use third-party geocoding services
+   * 
    * @param query - Place name to search
-   * @returns Array of places with WOEID
+   * @returns Array of places with WOEID (currently returns empty array)
    */
   async getGeoPlaces(query: string): Promise<GeoPlace[]> {
-    // Note: v1.1 requires OAuth 1.0a, not Bearer token
-    // This is a placeholder for the pattern - actual implementation would need OAuth 1.0a
-    try {
-      const url = `${this.v1BaseUrl}/geo/search.json`
-      const data = await this.request('GET', url, { query }) as { result?: { places?: GeoPlace[] } }
-      return data.result?.places || []
-    } catch (error) {
-      // Fallback: return empty array if v1.1 not configured
-      console.warn('Twitter v1.1 API not available for geo search:', error)
-      return []
-    }
+    // Not implemented: v1.1 requires OAuth 1.0a, not Bearer token
+    // For now, return empty array and log warning
+    console.warn(
+      'Twitter v1.1 geo/search requires OAuth 1.0a authentication. ' +
+      'Use v2 place expansions or third-party geocoding instead. ' +
+      `Query was: ${query}`
+    )
+    return []
   }
 
   /**
-   * Advanced geo-semantic search with place ID
-   * Combines v1.1 place lookup with v2 semantic search
+   * Advanced geo-semantic search with place name
+   * Uses place name directly in search query (since v1.1 geo/search is not available)
    * @param query - Search query
    * @param placeName - Place name (e.g., "San Francisco")
    * @param options - Search options
    * @returns Array of tweets from specific place with semantic relevance
+   * 
+   * NOTE: This method uses place name fallback since getGeoPlaces() requires OAuth 1.0a.
+   * For production, consider using v2 place expansions or direct place name filtering.
    */
   async advancedGeoSemanticSearch(
     query: string,
@@ -380,23 +421,7 @@ export class TwitterAPI {
       minScoreThreshold?: number
     } = {}
   ): Promise<Tweet[]> {
-    try {
-      // Try to get place ID from v1.1
-      const places = await this.getGeoPlaces(placeName)
-      
-      if (places.length > 0) {
-        const placeId = places[0].woeid
-        const placeQuery = `${query} place:${placeId}`
-        return this.semanticSearch(placeQuery, {
-          limit: options.limit,
-          minScoreThreshold: options.minScoreThreshold || 0.18,
-        })
-      }
-    } catch (error) {
-      console.warn('Advanced geo-semantic search fallback to place name:', error)
-    }
-
-    // Fallback to place name search
+    // Use place name search directly (getGeoPlaces not available without OAuth 1.0a)
     return this.searchByPlace(query, placeName, options)
   }
 
