@@ -51,7 +51,8 @@ export default function PersonalVault() {
     return () => {
       dropSniper.stopDropSniper()
     }
-  }, [handleStartDropSniper])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div className="min-h-screen bg-black text-yellow-600 font-['Inter']">
