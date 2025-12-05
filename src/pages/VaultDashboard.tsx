@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Crown, Sparkle, Play, Pause, ShieldCheck, Settings } from '@phosphor-icons/react'
+import { Crown, Sparkle, Play, Pause, ShieldCheck, Gear } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { StatsOverview } from '@/components/vault/StatsOverview'
 import { StrategyEmpire } from '@/components/vault/StrategyEmpire'
@@ -323,7 +323,7 @@ export function VaultDashboard() {
               size="lg"
               onClick={() => setShowAPISetup(!showAPISetup)}
             >
-              <Settings size={20} weight="bold" className="mr-2" />
+              <Gear size={20} weight="bold" className="mr-2" />
               API Setup
             </Button>
 

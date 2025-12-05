@@ -9,11 +9,13 @@ import axios from 'axios'
 interface TrademarkResult {
   hasTrademark: boolean
   owner?: string
-  status?: string
+  status: string
   valueBoost: number
   serialNumber?: string
   markIdentification?: string
   liveCount?: number
+  exactMatch?: boolean
+  multiplier?: number
 }
 
 interface USPTOConfig {
@@ -78,6 +80,7 @@ export class USPTOValuation {
       } else {
         result = {
           hasTrademark: false,
+          status: 'NOT_FOUND',
           valueBoost: 1.0,
         }
       }
@@ -92,6 +95,7 @@ export class USPTOValuation {
       // Return safe default on error
       return {
         hasTrademark: false,
+        status: 'ERROR',
         valueBoost: 1.0,
       }
     }
@@ -166,3 +170,9 @@ export class USPTOValuation {
 
 export const usptoValuation = new USPTOValuation()
 
+
+// Export convenience function
+export async function checkTrademarkValue(domain: string): Promise<TrademarkResult> {
+  const client = new USPTOValuation()
+  return client.checkTrademarkValue(domain)
+}

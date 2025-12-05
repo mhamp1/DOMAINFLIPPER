@@ -53,6 +53,20 @@ export class SupabaseDB {
   }
 
   /**
+   * Get underlying Supabase client for direct access
+   */
+  getClient() {
+    return this.client
+  }
+
+  /**
+   * Shorthand for direct table access (for backward compatibility)
+   */
+  from(table: string) {
+    return this.client.from(table)
+  }
+
+  /**
    * Save owned domain
    */
   async saveOwnedDomain(domain: Domain, purchasePrice: number, userId: string): Promise<OwnedDomain> {
@@ -68,12 +82,12 @@ export class SupabaseDB {
         strategy_id: domain.strategyId,
         listed: false,
         sold: false,
-      })
+      } as any)
       .select()
       .single()
 
     if (error) throw error
-    return data
+    return data as OwnedDomain
   }
 
   /**
@@ -95,7 +109,8 @@ export class SupabaseDB {
   async updateDomainValue(domainId: string, currentValue: number): Promise<void> {
     const { error } = await this.client
       .from('owned_domains')
-      .update({ current_value: currentValue, updated_at: new Date().toISOString() })
+      // @ts-ignore - Supabase type inference issue
+      .update({ current_value: currentValue, updated_at: new Date().toISOString() } as any)
       .eq('id', domainId)
 
     if (error) throw error
@@ -123,7 +138,8 @@ export class SupabaseDB {
 
     const { error } = await this.client
       .from('owned_domains')
-      .update({ listed: true, updated_at: new Date().toISOString() })
+      // @ts-ignore - Supabase type inference issue
+      .update({ listed: true, updated_at: new Date().toISOString() } as any)
       .eq('id', domainId)
 
     if (error) throw error
@@ -162,12 +178,13 @@ export class SupabaseDB {
 
     const { error } = await this.client
       .from('owned_domains')
+      // @ts-ignore - Supabase type inference issue
       .update({
         sold: true,
         sale_price: salePrice,
         sale_date: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-      })
+      } as any)
       .eq('id', domainId)
 
     if (error) throw error
@@ -192,12 +209,12 @@ export class SupabaseDB {
       .insert({
         ...transaction,
         user_id: userId,
-      })
+      } as any)
       .select()
       .single()
 
     if (error) throw error
-    return data
+    return data as Transaction
   }
 
   /**
@@ -231,14 +248,15 @@ export class SupabaseDB {
 
     if (ownedError) throw ownedError
 
-    const totalSpent = owned.reduce((sum, d) => sum + (d.purchase_price || 0), 0)
-    const totalValue = owned.reduce((sum, d) => sum + (d.current_value || 0), 0)
-    const totalEarned = owned
-      .filter(d => d.sold)
-      .reduce((sum, d) => sum + (d.sale_price || 0), 0)
+    const ownedDomains = (owned || []) as any[]
+    const totalSpent = ownedDomains.reduce((sum: number, d: any) => sum + (d.purchase_price || 0), 0)
+    const totalValue = ownedDomains.reduce((sum: number, d: any) => sum + (d.current_value || 0), 0)
+    const totalEarned = ownedDomains
+      .filter((d: any) => d.sold)
+      .reduce((sum: number, d: any) => sum + (d.sale_price || 0), 0)
     const totalProfit = totalEarned + totalValue - totalSpent
-    const domainsOwned = owned.length
-    const domainsSold = owned.filter(d => d.sold).length
+    const domainsOwned = ownedDomains.length
+    const domainsSold = ownedDomains.filter((d: any) => d.sold).length
 
     return {
       totalSpent,
@@ -256,4 +274,7 @@ export const supabaseDB = new SupabaseDB({
   url: import.meta.env.VITE_SUPABASE_URL || '',
   anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || '',
 })
+
+// Export client for direct access if needed
+export const supabaseClient = supabaseDB
 
