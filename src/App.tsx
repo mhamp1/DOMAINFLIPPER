@@ -4,7 +4,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import EmpireDashboard from './pages/EmpireDashboard'
 import SetupWizard from './components/setup/SetupWizard'
 import LoginGate from './components/auth/LoginGate'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { ownerAuth } from './lib/auth/OwnerAuth'
+import { logger } from './lib/utils/logger'
+import { healthMonitor } from './lib/health/HealthMonitor'
 
 // Create a client
 const queryClient = new QueryClient({
@@ -22,6 +25,10 @@ function App() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
+    // Initialize systems
+    logger.info('APP', 'DomainFlipper Empire starting up...', { version: '2.0.0' })
+    healthMonitor.startMonitoring(60000) // Check health every minute
+
     // Check authentication first
     const authenticated = ownerAuth.isAuthenticated()
     setIsAuthenticated(authenticated)
@@ -35,9 +42,16 @@ function App() {
       if (!setupComplete && !hasCredentials) {
         setShowSetupWizard(true)
       }
+      
+      logger.info('APP', 'User authenticated successfully')
     }
     
     setIsLoading(false)
+
+    // Cleanup
+    return () => {
+      healthMonitor.stopMonitoring()
+    }
   }, [])
 
   const handleAuthenticated = () => {
@@ -71,29 +85,35 @@ function App() {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      {!isAuthenticated ? (
-        <LoginGate onAuthenticated={handleAuthenticated} />
-      ) : showSetupWizard ? (
-        <SetupWizard 
-          onComplete={handleSetupComplete} 
-          onSkip={handleSkipSetup}
+    <ErrorBoundary level="critical" showDetails={import.meta.env.DEV}>
+      <QueryClientProvider client={queryClient}>
+        {!isAuthenticated ? (
+          <LoginGate onAuthenticated={handleAuthenticated} />
+        ) : showSetupWizard ? (
+          <ErrorBoundary level="page">
+            <SetupWizard 
+              onComplete={handleSetupComplete} 
+              onSkip={handleSkipSetup}
+            />
+          </ErrorBoundary>
+        ) : (
+          <ErrorBoundary level="page">
+            <EmpireDashboard />
+          </ErrorBoundary>
+        )}
+        <Toaster 
+          theme="dark"
+          position="top-right"
+          toastOptions={{
+            style: {
+              background: '#000000',
+              border: '1px solid rgba(212, 175, 55, 0.3)',
+              color: '#D4AF37',
+            },
+          }}
         />
-      ) : (
-        <EmpireDashboard />
-      )}
-      <Toaster 
-        theme="dark"
-        position="top-right"
-        toastOptions={{
-          style: {
-            background: '#000000',
-            border: '1px solid rgba(212, 175, 55, 0.3)',
-            color: '#D4AF37',
-          },
-        }}
-      />
-    </QueryClientProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   )
 }
 
