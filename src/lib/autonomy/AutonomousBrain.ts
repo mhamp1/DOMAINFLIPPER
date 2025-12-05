@@ -19,6 +19,12 @@ import { STRATEGIES, getAllEnabledStrategies, enableAllStrategies } from '@/lib/
 import { snipeDomainMultiRegistrar } from '@/lib/buy/multiRegistrarSniper'
 import { marketplaceLister } from '@/lib/marketplace/autoList'
 import { domainScanner } from '@/lib/auctions/domainScanner'
+import { godScoreEngine } from '@/lib/valuation/GodScore'
+import { whoisEngine } from '@/lib/whois/WhoisEngine'
+import { typoGenerator } from '@/lib/typo/TypoGenerator'
+import { leadScanner } from '@/lib/intelligence/LeadScanner'
+import { web3DomainSniper } from '@/lib/web3/Web3DomainSniper'
+import { logger } from '@/lib/utils/logger'
 
 // ============================================================================
 // CONFIGURATION — The brain's parameters
@@ -229,19 +235,25 @@ export class AutonomousBrain {
     const activeStrategies = getAllEnabledStrategies()
     
     toast.success('🧠 AUTONOMOUS BRAIN ACTIVATED', {
-      description: `${activeStrategies.length} strategies running | Capital: $${this.stats.capital.toLocaleString()}`,
+      description: `${activeStrategies.length} strategies + GodScore + Web3 + Lead Scanner`,
       duration: 5000,
     })
     
-    console.log(`🎯 Running ${activeStrategies.length} strategies simultaneously:`)
-    activeStrategies.forEach(s => console.log(`   - ${s.name} (budget: $${s.budgetPerDomain})`))
+    logger.info('BRAIN', `Starting with ${activeStrategies.length} strategies`, {
+      capital: this.stats.capital,
+      strategies: activeStrategies.map(s => s.name),
+    })
     
     // Start all autonomous loops
     this.startScanningLoop()
     this.startPricingLoop()
     this.startDailyResetLoop()
     
-    console.log('🧠 Autonomous Brain is now running with ALL strategies...')
+    // Start new intelligence systems
+    leadScanner.startScanning(5 * 60 * 1000) // Every 5 minutes
+    web3DomainSniper.startSniping(30 * 1000) // Every 30 seconds
+    
+    logger.info('BRAIN', 'Autonomous Brain fully activated with all systems')
   }
   
   /**
@@ -269,6 +281,12 @@ export class AutonomousBrain {
     // Clear running state
     localStorage.removeItem('domainFlipper_botRunning')
     localStorage.removeItem('domainFlipper_botStartTime')
+    
+    // Stop all intelligence systems
+    leadScanner.stopScanning()
+    web3DomainSniper.stopSniping()
+    
+    logger.info('BRAIN', 'Autonomous Brain stopped')
     
     if (this.scanLoop) clearInterval(this.scanLoop)
     if (this.priceLoop) clearInterval(this.priceLoop)
