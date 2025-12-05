@@ -66,10 +66,13 @@ export default function Vault() {
 
   useEffect(() => {
     if (stats) {
+      // Update local state from query results
+      // Note: This is intentional for confetti trigger logic
       setProfit(stats.profit)
       setToday(stats.today)
       setOwned(stats.owned)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stats])
 
   // Trigger confetti on profit increase
