@@ -27,31 +27,30 @@ export default function Vault() {
       const today = new Date().toISOString().split('T')[0]
       
       // Optimized query: Only get sold domains with sale_price
-      const { data: soldData, error: soldError } = await (supabaseClient
+      const { data: soldData, error: soldError } = await supabaseClient
         .from('owned_domains')
-        .select('purchase_price, sale_price, sale_date') as any)
+        .select('purchase_price, sale_price, sale_date')
+        .not('sale_price', 'is', null)
       
       if (soldError) throw soldError
       
       const soldDataTyped = (soldData || []) as any[]
-      // Filter out domains without sale price (not sold)
-      const soldOnly = soldDataTyped.filter((d: any) => d.sale_price != null)
-      const totalProfit = soldOnly
-        .reduce((sum: number, d: any) => sum + (d.sale_price - d.purchase_price), 0)
+      const totalProfit = soldDataTyped
+        .reduce((sum: number, d: any) => sum + (d.sale_price! - d.purchase_price), 0)
       
       // Optimized: Filter by date in query instead of in-memory
-      const todayProfit = soldOnly
+      const todayProfit = soldDataTyped
         .filter((d: any) => {
           if (!d.sale_date) return false
           const saleDate = new Date(d.sale_date).toISOString().split('T')[0]
           return saleDate === today
         })
-        .reduce((sum: number, d: any) => sum + (d.sale_price - d.purchase_price), 0)
+        .reduce((sum: number, d: any) => sum + (d.sale_price! - d.purchase_price), 0)
 
       // Get total owned count (separate lightweight query)
-      const { count, error: countError } = await (supabaseClient
+      const { count, error: countError } = await supabaseClient
         .from('owned_domains')
-        .select('*', { count: 'exact', head: true }) as any)
+        .select('*', { count: 'exact', head: true })
       
       if (countError) throw countError
 
@@ -66,13 +65,10 @@ export default function Vault() {
 
   useEffect(() => {
     if (stats) {
-      // Update local state from query results
-      // Note: This is intentional for confetti trigger logic
       setProfit(stats.profit)
       setToday(stats.today)
       setOwned(stats.owned)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stats])
 
   // Trigger confetti on profit increase

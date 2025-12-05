@@ -25,7 +25,6 @@ export function VaultDashboard() {
   const [isScanning, setIsScanning] = useState(false)
   const [showAPISetup, setShowAPISetup] = useState(false)
   const [ownedDomains, setOwnedDomains] = useState<any[]>([])
-  const [shouldStartScanning, setShouldStartScanning] = useState(true)
   
   const [stats, setStats] = useState<UserStats>({
     balance: 124567,
@@ -39,37 +38,11 @@ export function VaultDashboard() {
     successRate: 94,
   })
 
-  // Function defined before use
-  const handleStartScanning = async () => {
-    if (isScanning) return
-    
-    setIsScanning(true)
-    soundEngine.notification()
-    
-    toast.success('Scanner Active', {
-      description: 'Monitoring GoDaddy, Namecheap, and DropCatch',
-    })
-
-    domainScanner.startScanning((domains) => {
-      setLiveDrops(domains)
-      soundEngine.goldShimmer()
-    }, 30000)
-
-    const initialDomains = await domainScanner.scan()
-    setLiveDrops(initialDomains)
-  }
-
-  // Start scanning on mount
   useEffect(() => {
-    if (shouldStartScanning) {
-      handleStartScanning()
-      setShouldStartScanning(false)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shouldStartScanning])
-  
-  // Update stats from autonomous engine
-  useEffect(() => {
+    // Start scanning on mount
+    handleStartScanning()
+    
+    // Update stats from autonomous engine
     const interval = setInterval(() => {
       if (autonomousMode) {
         const dailyStats = autonomousEngine.getDailyStats()
@@ -107,16 +80,29 @@ export function VaultDashboard() {
     }, 5000)
     
     return () => {
+      domainScanner.stopScanning()
       clearInterval(interval)
     }
   }, [autonomousMode])
-  
-  // Stop scanning on unmount
-  useEffect(() => {
-    return () => {
-      domainScanner.stopScanning()
-    }
-  }, [])
+
+  const handleStartScanning = async () => {
+    if (isScanning) return
+    
+    setIsScanning(true)
+    soundEngine.notification()
+    
+    toast.success('Scanner Active', {
+      description: 'Monitoring GoDaddy, Namecheap, and DropCatch',
+    })
+
+    domainScanner.startScanning((domains) => {
+      setLiveDrops(domains)
+      soundEngine.goldShimmer()
+    }, 30000)
+
+    const initialDomains = await domainScanner.scan()
+    setLiveDrops(initialDomains)
+  }
 
   const handleToggleAutonomousMode = () => {
     const newMode = !autonomousMode

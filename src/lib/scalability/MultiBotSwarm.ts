@@ -140,19 +140,13 @@ export class MultiBotSwarm {
       },
     }
 
-    const defaults = strategyDefaults[params.strategy]
     const bot: BotConfig = {
       id,
       name: params.name,
       strategy: params.strategy,
       status: 'paused',
-      capitalAllocation: defaults.capitalAllocation ?? 10,
-      maxDailyBudget: defaults.maxDailyBudget ?? 100,
-      targetROI: defaults.targetROI ?? 100,
-      riskLevel: defaults.riskLevel ?? 'balanced',
-      tldFocus: defaults.tldFocus ?? ['.com'],
-      priceRange: defaults.priceRange ?? { min: 10, max: 1000 },
       autoScaling: true,
+      ...strategyDefaults[params.strategy],
       ...params,
     }
 
