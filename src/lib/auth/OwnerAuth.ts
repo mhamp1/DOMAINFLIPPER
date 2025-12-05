@@ -103,6 +103,7 @@ class OwnerAuth {
   
   /**
    * Logout and clear session
+   * NOTE: This only logs out the UI - the bot keeps running autonomously!
    */
   logout(): void {
     this.state = {
@@ -114,8 +115,9 @@ class OwnerAuth {
     
     localStorage.removeItem('domainFlipper_ownerSession')
     
-    toast.info('Logged Out', {
-      description: 'Session ended. See you soon, Emperor.',
+    toast.info('Logged Out — Bot Still Running', {
+      description: 'Your empire continues autonomously. Login anytime to check progress.',
+      duration: 5000,
     })
   }
   

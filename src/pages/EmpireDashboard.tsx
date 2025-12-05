@@ -100,6 +100,16 @@ export default function EmpireDashboard() {
   // Bot thoughts for display
   const [botThoughts, setBotThoughts] = useState<BotThought[]>([])
 
+  // Auto-resume bot if it was running before logout
+  useEffect(() => {
+    const wasRunning = autonomousBrain.wasRunning()
+    if (wasRunning && !isLaunched) {
+      console.log('🔄 Auto-resuming bot (was running before logout)...')
+      // Resume the bot
+      handleLaunchEmpire()
+    }
+  }, []) // Only run once on mount
+
   // Update all stats every second
   useEffect(() => {
     const interval = setInterval(() => {
@@ -266,14 +276,16 @@ export default function EmpireDashboard() {
                 <div className="text-lg font-bold value-gold value-display">{formatCurrency(fundingStats.capital)}</div>
                 <div className="text-xs text-yellow-600/50">Capital</div>
               </div>
-              {/* Logout Button */}
+              {/* Logout Button - Bot keeps running! */}
               <button
                 onClick={() => {
+                  // Only logout UI access - bot keeps running in background
                   ownerAuth.logout()
+                  // Reload to show login screen (bot continues autonomously)
                   window.location.reload()
                 }}
-                className="p-2 rounded-lg text-yellow-600/40 hover:text-red-400 hover:bg-red-500/10 transition-all duration-300"
-                title="Logout"
+                className="p-2 rounded-lg text-yellow-600/40 hover:text-yellow-600 hover:bg-yellow-600/10 transition-all duration-300"
+                title="Logout (bot keeps running)"
               >
                 <SignOut size={20} />
               </button>

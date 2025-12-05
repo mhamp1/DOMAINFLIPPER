@@ -210,6 +210,7 @@ export class AutonomousBrain {
    * START THE AUTONOMOUS BRAIN
    * Once started, it runs forever making intelligent decisions
    * ALL STRATEGIES run simultaneously
+   * Bot persists across logout - only stops when explicitly stopped
    */
   async start(): Promise<void> {
     if (this.isRunning) {
@@ -218,6 +219,10 @@ export class AutonomousBrain {
     }
     
     this.isRunning = true
+    
+    // Save running state - bot keeps running even after logout
+    localStorage.setItem('domainFlipper_botRunning', 'true')
+    localStorage.setItem('domainFlipper_botStartTime', new Date().toISOString())
     
     // Enable ALL strategies to run simultaneously
     enableAllStrategies()
@@ -240,17 +245,38 @@ export class AutonomousBrain {
   }
   
   /**
-   * EMERGENCY STOP
+   * Check if bot was running before (for auto-resume after login)
+   */
+  wasRunning(): boolean {
+    return localStorage.getItem('domainFlipper_botRunning') === 'true'
+  }
+  
+  /**
+   * Get bot start time (for uptime calculation)
+   */
+  getStartTime(): Date | null {
+    const startTime = localStorage.getItem('domainFlipper_botStartTime')
+    return startTime ? new Date(startTime) : null
+  }
+  
+  /**
+   * EMERGENCY STOP - Only way to stop the bot
+   * Logout does NOT stop the bot - this does
    */
   stop(): void {
     this.isRunning = false
+    
+    // Clear running state
+    localStorage.removeItem('domainFlipper_botRunning')
+    localStorage.removeItem('domainFlipper_botStartTime')
     
     if (this.scanLoop) clearInterval(this.scanLoop)
     if (this.priceLoop) clearInterval(this.priceLoop)
     if (this.dailyResetLoop) clearInterval(this.dailyResetLoop)
     
-    toast.info('Brain Stopped', {
+    toast.warning('🛑 BOT STOPPED', {
       description: `Portfolio: ${this.stats.domainsOwned} domains | Profit: $${this.stats.totalProfit.toLocaleString()}`,
+      duration: 5000,
     })
   }
   
