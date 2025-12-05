@@ -1,8 +1,14 @@
 /**
  * Twitter/X API v2 Integration (2025)
  * Implements Twitter Trends API and Semantic Search with Geo-Semantic capabilities
- * Real API client with OAuth 2.0 Bearer Token authentication
+ * OAuth 2.0 Bearer Token authentication
  * December 2025
+ * 
+ * NOTE: This implementation is based on the anticipated Twitter API v2 features for 2025
+ * as specified in the requirements. Some features like the v2 /trends endpoint and 
+ * min_score_threshold parameter may require API updates or are forward-compatible.
+ * Current Twitter API v1.1 trends endpoint: /1.1/trends/place.json
+ * For production use, verify endpoint availability with Twitter API documentation.
  */
 
 import axios from 'axios'
@@ -175,6 +181,10 @@ export class TwitterAPI {
    * Get Twitter Trends by WOEID (World ID)
    * @param woeid - WOEID location (1 = worldwide, 23424977 = US, etc.)
    * @returns Array of trending topics with tweet volumes
+   * 
+   * NOTE: Per requirements, this uses the v2 /trends endpoint.
+   * If using Twitter API v1.1, update endpoint to: /1.1/trends/place.json
+   * and adjust parameters to: { id: woeid }
    */
   async getTwitterTrends(woeid: number = 1): Promise<TrendItem[]> {
     const url = `${this.baseUrl}/trends`
@@ -207,6 +217,11 @@ export class TwitterAPI {
    * @param query - Search query
    * @param options - Search options (limit, start/end time, etc.)
    * @returns Array of semantically relevant tweets
+   * 
+   * NOTE: Per requirements, this implements semantic search with min_score_threshold.
+   * Current Twitter API v2 performs keyword-based search at /2/tweets/search/recent.
+   * The semantic/BERT-like features and min_score_threshold are anticipated features
+   * for 2025 as described in the requirements.
    */
   async semanticSearch(
     query: string,
@@ -230,6 +245,7 @@ export class TwitterAPI {
     }
 
     // Semantic relevance threshold (0-1, default 0.18)
+    // NOTE: This parameter is per requirements for 2025 semantic search features
     if (options.minScoreThreshold !== undefined) {
       params.min_score_threshold = options.minScoreThreshold
     }
@@ -260,6 +276,9 @@ export class TwitterAPI {
    * @param radius - Radius in km (default: 5km)
    * @param options - Additional search options
    * @returns Array of geo-relevant + semantically similar tweets
+   * 
+   * NOTE: Uses geocode operator which is available in current Twitter API.
+   * The min_score_threshold for semantic filtering is per 2025 requirements.
    */
   async geoSemanticSearch(
     query: string,

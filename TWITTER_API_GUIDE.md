@@ -4,6 +4,8 @@
 
 This guide covers the Twitter/X API v2 integration in DOMAINFLIPPER, including Twitter Trends API and Semantic Search with advanced Geo-Semantic capabilities.
 
+**⚠️ Important Note**: This implementation is based on the anticipated Twitter API v2 features for 2025 as specified in the requirements. Some features like the v2 `/trends` endpoint and `min_score_threshold` parameter represent forward-compatible functionality. For production deployment, verify endpoint availability with the [official Twitter API documentation](https://developer.twitter.com/en/docs/twitter-api) and adjust endpoints as needed (e.g., use v1.1 `/trends/place.json` for trends if v2 endpoint is not yet available).
+
 ## Features
 
 ### ✅ Twitter Trends API (v2)
