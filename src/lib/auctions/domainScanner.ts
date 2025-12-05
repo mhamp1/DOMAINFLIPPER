@@ -1,155 +1,157 @@
 import type { Domain } from '@/types/domain'
-import { generateId } from '@/lib/utils'
+import { createGoDaddyClient } from '@/lib/api/godaddy'
+import { createNamecheapClient } from '@/lib/api/namecheapReal'
 import { valuationEngine } from '@/lib/ai/valuationEngine'
-import { STRATEGIES } from '@/lib/strategies/strategyDefinitions'
+import { STRATEGIES, getAllEnabledStrategies } from '@/lib/strategies/strategyDefinitions'
 
 /**
  * Multi-source domain scanner
- * Scans GoDaddy, Namecheap, DropCatch for opportunities
+ * Scans GoDaddy, Namecheap, DropCatch for REAL opportunities
+ * NO MOCK DATA - Returns empty until APIs are connected
  */
 export class DomainScanner {
   private scanInterval: number | null = null
   private isScanning: boolean = false
+  private godaddyClient: ReturnType<typeof createGoDaddyClient> | null = null
+  private namecheapClient: ReturnType<typeof createNamecheapClient> | null = null
 
-  /**
-   * Mock domain generation for demo
-   * In production, this would connect to real APIs
-   */
-  private generateMockDomains(): Domain[] {
-    const mockDomains: Domain[] = []
+  constructor() {
+    // Initialize API clients if credentials exist
+    this.initializeClients()
+  }
+
+  private initializeClients() {
+    const godaddyKey = import.meta.env.VITE_GODADDY_KEY
+    const godaddySecret = import.meta.env.VITE_GODADDY_SECRET
     
-    // Brandable domains
-    const brandableNames = ['nexus', 'quantum', 'vortex', 'apex', 'zenith', 'fusion', 'pulse', 'vertex']
-    brandableNames.forEach(name => {
-      mockDomains.push({
-        id: generateId(),
-        name: `${name}.com`,
-        tld: '.com',
-        length: name.length,
-        age: Math.floor(Math.random() * 15) + 3,
-        backlinks: Math.floor(Math.random() * 5000) + 500,
-        traffic: Math.floor(Math.random() * 2000) + 100,
-        brandScore: Math.floor(Math.random() * 20) + 80,
-        estimatedValue: 0,
-        aiScore: 0,
-        strategyId: 'brandable',
-        status: 'auction',
-        currentBid: Math.floor(Math.random() * 20000) + 5000,
-        registrar: ['GoDaddy', 'Namecheap', 'DropCatch'][Math.floor(Math.random() * 3)],
-        timeLeft: `00:${String(Math.floor(Math.random() * 60)).padStart(2, '0')}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')}`,
+    if (godaddyKey && godaddySecret) {
+      this.godaddyClient = createGoDaddyClient({
+        apiKey: godaddyKey,
+        apiSecret: godaddySecret,
       })
-    })
+      console.log('✅ GoDaddy API client initialized')
+    } else {
+      console.warn('⚠️ GoDaddy API not configured - add VITE_GODADDY_KEY and VITE_GODADDY_SECRET')
+    }
 
-    // AI domains
-    const aiNames = ['aivault', 'neuralcore', 'gptforge', 'agentai', 'mlops', 'quantumai']
-    aiNames.forEach(name => {
-      mockDomains.push({
-        id: generateId(),
-        name: `${name}.${Math.random() > 0.5 ? 'com' : 'ai'}`,
-        tld: Math.random() > 0.5 ? '.com' : '.ai',
-        length: name.length,
-        age: Math.floor(Math.random() * 5) + 1,
-        backlinks: Math.floor(Math.random() * 3000) + 200,
-        brandScore: Math.floor(Math.random() * 15) + 85,
-        estimatedValue: 0,
-        aiScore: 0,
-        strategyId: 'ai',
-        status: 'auction',
-        currentBid: Math.floor(Math.random() * 30000) + 10000,
-        registrar: ['GoDaddy', 'Namecheap'][Math.floor(Math.random() * 2)],
-        timeLeft: `00:${String(Math.floor(Math.random() * 60)).padStart(2, '0')}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')}`,
+    const ncUser = import.meta.env.VITE_NAMECHEAP_API_USER
+    const ncKey = import.meta.env.VITE_NAMECHEAP_API_KEY
+    const ncIp = import.meta.env.VITE_NAMECHEAP_CLIENT_IP
+    
+    if (ncUser && ncKey && ncIp) {
+      this.namecheapClient = createNamecheapClient({
+        apiUser: ncUser,
+        apiKey: ncKey,
+        clientIp: ncIp,
       })
-    })
-
-    // Crypto domains
-    const cryptoNames = ['bonkcoin', 'pepetoken', 'shibnft', 'memecoin', 'cryptoape']
-    cryptoNames.forEach(name => {
-      mockDomains.push({
-        id: generateId(),
-        name: `${name}.com`,
-        tld: '.com',
-        length: name.length,
-        age: Math.floor(Math.random() * 3) + 1,
-        backlinks: Math.floor(Math.random() * 1000) + 50,
-        brandScore: Math.floor(Math.random() * 15) + 75,
-        estimatedValue: 0,
-        aiScore: 0,
-        strategyId: 'crypto',
-        status: 'auction',
-        currentBid: Math.floor(Math.random() * 25000) + 5000,
-        registrar: ['GoDaddy', 'DropCatch'][Math.floor(Math.random() * 2)],
-        timeLeft: `00:${String(Math.floor(Math.random() * 60)).padStart(2, '0')}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')}`,
-      })
-    })
-
-    // 3-letter domains
-    const lllNames = ['xyz', 'abc', 'def', 'ghi', 'jkl']
-    lllNames.forEach(name => {
-      mockDomains.push({
-        id: generateId(),
-        name: `${name}.com`,
-        tld: '.com',
-        length: 3,
-        age: Math.floor(Math.random() * 20) + 5,
-        backlinks: Math.floor(Math.random() * 10000) + 1000,
-        brandScore: 95,
-        estimatedValue: 0,
-        aiScore: 0,
-        strategyId: 'lll',
-        status: 'auction',
-        currentBid: Math.floor(Math.random() * 100000) + 50000,
-        registrar: 'GoDaddy',
-        timeLeft: `00:${String(Math.floor(Math.random() * 60)).padStart(2, '0')}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')}`,
-      })
-    })
-
-    // Number domains
-    const numberNames = ['888', '777', '999', '365', '247']
-    numberNames.forEach(name => {
-      mockDomains.push({
-        id: generateId(),
-        name: `${name}.${['io', 'com', 'ai'][Math.floor(Math.random() * 3)]}`,
-        tld: ['io', 'com', 'ai'][Math.floor(Math.random() * 3)] as any,
-        length: 3,
-        age: Math.floor(Math.random() * 10) + 2,
-        backlinks: Math.floor(Math.random() * 5000) + 500,
-        brandScore: 90,
-        estimatedValue: 0,
-        aiScore: 0,
-        strategyId: 'numbers',
-        status: 'auction',
-        currentBid: Math.floor(Math.random() * 50000) + 20000,
-        registrar: ['GoDaddy', 'Namecheap'][Math.floor(Math.random() * 2)],
-        timeLeft: `00:${String(Math.floor(Math.random() * 60)).padStart(2, '0')}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')}`,
-      })
-    })
-
-    return mockDomains
+      console.log('✅ Namecheap API client initialized')
+    } else {
+      console.warn('⚠️ Namecheap API not configured - add VITE_NAMECHEAP_API_USER, VITE_NAMECHEAP_API_KEY, VITE_NAMECHEAP_CLIENT_IP')
+    }
   }
 
   /**
-   * Scan for domains matching active strategies
+   * Scan GoDaddy Auctions for real domains
+   */
+  private async scanGoDaddy(): Promise<Domain[]> {
+    if (!this.godaddyClient) {
+      console.log('⏭️ Skipping GoDaddy scan - API not configured')
+      return []
+    }
+
+    try {
+      console.log('🔍 Scanning GoDaddy Auctions...')
+      
+      // Get expiring auctions (most profitable)
+      const auctions = await this.godaddyClient.searchExpiringDomains({ limit: 100 })
+      
+      const domains: Domain[] = auctions.map((auction: any) => ({
+        id: auction.auctionId || auction.domain,
+        name: auction.domain,
+        tld: '.' + auction.domain.split('.').pop(),
+        length: auction.domain.split('.')[0].length,
+        currentBid: auction.price || auction.currentBid || 0,
+        estimatedValue: 0,
+        aiScore: 0,
+        strategyId: '',
+        status: 'auction' as const,
+        registrar: 'GoDaddy',
+        expiresAt: auction.auctionEndTime ? new Date(auction.auctionEndTime) : undefined,
+        timeLeft: auction.timeLeft || '',
+      }))
+      
+      console.log(`✅ Found ${domains.length} domains on GoDaddy`)
+      return domains
+    } catch (error) {
+      console.error('❌ GoDaddy scan error:', error)
+      return []
+    }
+  }
+
+  /**
+   * Scan Namecheap for real domains
+   */
+  private async scanNamecheap(): Promise<Domain[]> {
+    if (!this.namecheapClient) {
+      console.log('⏭️ Skipping Namecheap scan - API not configured')
+      return []
+    }
+
+    try {
+      console.log('🔍 Scanning Namecheap...')
+      // Namecheap doesn't have a direct auction API like GoDaddy
+      // This would need to integrate with their marketplace
+      return []
+    } catch (error) {
+      console.error('❌ Namecheap scan error:', error)
+      return []
+    }
+  }
+
+  /**
+   * Scan for domains from all configured sources
+   * Returns EMPTY array if no APIs are configured
    */
   async scan(): Promise<Domain[]> {
-    // In production, this would fetch from real APIs
-    const domains = this.generateMockDomains()
+    console.log('🔍 Starting domain scan...')
+    
+    // Scan all sources in parallel
+    const [godaddyDomains, namecheapDomains] = await Promise.all([
+      this.scanGoDaddy(),
+      this.scanNamecheap(),
+    ])
 
-    // Valuate all domains
+    // Combine all domains
+    const allDomains = [...godaddyDomains, ...namecheapDomains]
+
+    if (allDomains.length === 0) {
+      console.log('📭 No domains found - ensure APIs are configured in Setup Wizard')
+      return []
+    }
+
+    // Valuate all domains with AI
+    console.log(`🧠 Valuating ${allDomains.length} domains...`)
     const valuatedDomains = await Promise.all(
-      domains.map(async (domain) => {
-        const valuation = await valuationEngine.predictValue(domain)
-        return {
-          ...domain,
-          estimatedValue: valuation.value,
-          aiScore: valuation.score,
+      allDomains.map(async (domain) => {
+        try {
+          const valuation = await valuationEngine.predictValue(domain)
+          return {
+            ...domain,
+            estimatedValue: valuation.value,
+            aiScore: valuation.score,
+            strategyId: this.matchToStrategy(domain, valuation),
+          }
+        } catch (error) {
+          return domain
         }
       })
     )
 
     // Filter by strategy requirements
-    return valuatedDomains.filter(domain => {
-      const strategy = STRATEGIES.find(s => s.id === domain.strategyId)
-      if (!strategy || !strategy.enabled) return false
+    const activeStrategies = getAllEnabledStrategies()
+    const filteredDomains = valuatedDomains.filter(domain => {
+      const strategy = activeStrategies.find(s => s.id === domain.strategyId)
+      if (!strategy) return false
 
       // Only show domains where current bid is significantly below estimated value
       if (domain.currentBid && domain.estimatedValue) {
@@ -158,6 +160,39 @@ export class DomainScanner {
 
       return domain.aiScore >= 70
     })
+
+    console.log(`✅ Scan complete: ${filteredDomains.length} opportunities found`)
+    return filteredDomains
+  }
+
+  /**
+   * Match domain to best strategy
+   */
+  private matchToStrategy(domain: Domain, valuation: any): string {
+    const name = domain.name.split('.')[0].toLowerCase()
+    const tld = domain.tld
+    const strategies = getAllEnabledStrategies()
+    
+    let bestMatch = ''
+    let bestScore = 0
+    
+    for (const strategy of strategies) {
+      let score = 0
+      
+      if (strategy.targetTLD === tld) score += 30
+      if (strategy.targetTLDs?.includes(tld)) score += 25
+      if (strategy.keywords?.some(kw => name.includes(kw))) score += 40
+      if (strategy.pattern?.test(domain.name)) score += 50
+      if (strategy.minLength && name.length >= strategy.minLength) score += 10
+      if (strategy.maxLength && name.length <= strategy.maxLength) score += 10
+      
+      if (score > bestScore) {
+        bestScore = score
+        bestMatch = strategy.id
+      }
+    }
+    
+    return bestMatch
   }
 
   /**
@@ -167,6 +202,7 @@ export class DomainScanner {
     if (this.isScanning) return
 
     this.isScanning = true
+    console.log(`🔄 Starting continuous scanning every ${intervalMs / 1000}s`)
 
     // Initial scan
     this.scan().then(callback)
@@ -187,6 +223,7 @@ export class DomainScanner {
       this.scanInterval = null
     }
     this.isScanning = false
+    console.log('⏹️ Domain scanning stopped')
   }
 
   /**
@@ -194,6 +231,13 @@ export class DomainScanner {
    */
   isActive(): boolean {
     return this.isScanning
+  }
+
+  /**
+   * Check if APIs are configured
+   */
+  hasConfiguredAPIs(): boolean {
+    return this.godaddyClient !== null || this.namecheapClient !== null
   }
 }
 

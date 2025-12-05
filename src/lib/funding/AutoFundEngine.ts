@@ -144,11 +144,9 @@ export class AutoFundEngine {
       return data.success === true
     } catch (error) {
       console.error('Stripe charge error:', error)
-      // For demo/development, simulate success
-      if (import.meta.env.DEV) {
-        console.log('[DEV] Simulating successful charge')
-        return true
-      }
+      toast.error('Stripe Not Configured', {
+        description: 'Set up Stripe in the Config tab to enable auto-funding',
+      })
       return false
     }
   }

@@ -16,6 +16,9 @@ import { toast } from 'sonner'
 import type { Domain, Strategy } from '@/types/domain'
 import { valuationEngine } from '@/lib/ai/valuationEngine'
 import { STRATEGIES, getAllEnabledStrategies, enableAllStrategies } from '@/lib/strategies/strategyDefinitions'
+import { snipeDomainMultiRegistrar } from '@/lib/buy/multiRegistrarSniper'
+import { marketplaceLister } from '@/lib/marketplace/autoList'
+import { domainScanner } from '@/lib/auctions/domainScanner'
 
 // ============================================================================
 // CONFIGURATION — The brain's parameters
@@ -491,15 +494,22 @@ export class AutonomousBrain {
   }
   
   /**
-   * Execute a purchase
+   * Execute a purchase using REAL multi-registrar sniper
+   * NO MOCK DATA - Actually attempts to acquire the domain
    */
   private async executeBuy(intel: DomainIntelligence, maxBid: number): Promise<boolean> {
     try {
-      // In production, this would call the actual sniper
-      // const result = await sniper.snipe(intel.domain, maxBid)
+      console.log(`🎯 Attempting to acquire: ${intel.domain} (max bid: $${maxBid})`)
       
-      // For now, simulate success
-      const purchasePrice = intel.currentBid || maxBid * 0.8
+      // Use the REAL multi-registrar sniper
+      const result = await snipeDomainMultiRegistrar(intel.domain, maxBid)
+      
+      if (!result || !result.success) {
+        console.log(`❌ Failed to acquire ${intel.domain}`)
+        return false
+      }
+      
+      const purchasePrice = result.bidAmount
       
       // Add to portfolio
       const owned: OwnedDomain = {
@@ -536,17 +546,24 @@ export class AutonomousBrain {
         daysToSell: null,
       })
       
-      toast.success('💎 DOMAIN ACQUIRED', {
-        description: `${intel.domain} for $${purchasePrice.toFixed(2)} | Listed at $${owned.currentListingPrice.toLocaleString()}`,
+      // Auto-list on configured marketplaces
+      console.log(`📢 Auto-listing ${intel.domain} on marketplaces...`)
+      await marketplaceLister.listOnAllMarketplaces(intel.domain, owned.currentListingPrice)
+      
+      toast.success('💎 DOMAIN ACQUIRED & LISTED', {
+        description: `${intel.domain} via ${result.registrar} for $${purchasePrice.toFixed(2)}`,
         duration: 5000,
       })
       
-      console.log(`✅ Bought: ${intel.domain} for $${purchasePrice} (est. value: $${intel.estimatedValue})`)
+      console.log(`✅ Bought: ${intel.domain} for $${purchasePrice} via ${result.registrar}`)
       
       return true
       
     } catch (error) {
       console.error('Buy execution error:', error)
+      toast.error('Purchase Failed', {
+        description: `Could not acquire ${intel.domain}: ${error}`,
+      })
       return false
     }
   }
@@ -862,9 +879,15 @@ export class AutonomousBrain {
   }
   
   private async fetchAvailableDomains(): Promise<Partial<Domain>[]> {
-    // In production, this would call the multi-source scanner
-    // For now, return empty array (the real scanner will be connected)
-    return []
+    // Use the REAL domain scanner (no mock data)
+    // Returns empty if APIs are not configured
+    try {
+      const domains = await domainScanner.scan()
+      return domains
+    } catch (error) {
+      console.error('Failed to fetch domains:', error)
+      return []
+    }
   }
   
   // ==========================================================================
