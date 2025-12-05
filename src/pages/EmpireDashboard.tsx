@@ -35,6 +35,7 @@ import {
   Coins,
   ArrowsClockwise,
   Sparkle,
+  Rocket,
 } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -1283,10 +1284,49 @@ export default function EmpireDashboard() {
               </Card>
 
               {/* Save Button */}
-              <Button className="w-full bg-yellow-600 hover:bg-yellow-500 text-black font-bold">
+              <Button className="w-full bg-yellow-600 hover:bg-yellow-500 text-black font-bold mb-4">
                 <Gear size={20} className="mr-2" />
                 Save Configuration
               </Button>
+
+              {/* Re-run Setup Wizard */}
+              <Card className="card-obsidian-premium p-6">
+                <h3 className="text-lg font-semibold section-header mb-4">Setup Wizard</h3>
+                <p className="text-sm text-yellow-600/60 mb-4">
+                  Run the setup wizard again to reconfigure your API connections and settings.
+                </p>
+                <Button 
+                  variant="outline"
+                  className="w-full border-yellow-600/30 text-yellow-600 hover:bg-yellow-600/10"
+                  onClick={() => {
+                    localStorage.removeItem('domainFlipper_setupComplete')
+                    window.location.reload()
+                  }}
+                >
+                  <Rocket size={20} className="mr-2" />
+                  Re-run Setup Wizard
+                </Button>
+              </Card>
+
+              {/* Reset All Data */}
+              <Card className="bg-red-500/10 border border-red-500/30 p-6">
+                <h3 className="text-lg font-semibold text-red-400 mb-4">Danger Zone</h3>
+                <p className="text-sm text-red-400/60 mb-4">
+                  Clear all saved credentials and settings. This will reset the app to its initial state.
+                </p>
+                <Button 
+                  variant="outline"
+                  className="w-full border-red-500/30 text-red-400 hover:bg-red-500/10"
+                  onClick={() => {
+                    if (confirm('Are you sure? This will clear all your saved credentials and settings.')) {
+                      localStorage.clear()
+                      window.location.reload()
+                    }
+                  }}
+                >
+                  Reset All Data
+                </Button>
+              </Card>
             </motion.div>
           )}
         </AnimatePresence>
