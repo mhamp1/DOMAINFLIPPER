@@ -13,12 +13,12 @@ interface BotConfig {
   name: string
   strategy: 'quick-flip' | 'premium-hold' | 'trend-rider' | 'lease-focus' | 'auction-sniper' | 'affiliate'
   status: 'active' | 'paused' | 'stopped' | 'error'
-  capitalAllocation: number // percentage of total capital
-  maxDailyBudget: number
-  targetROI: number
-  riskLevel: 'conservative' | 'balanced' | 'aggressive'
-  tldFocus: string[]
-  priceRange: { min: number; max: number }
+  capitalAllocation?: number // percentage of total capital (optional, uses strategy default)
+  maxDailyBudget?: number
+  targetROI?: number
+  riskLevel?: 'conservative' | 'balanced' | 'aggressive'
+  tldFocus?: string[]
+  priceRange?: { min: number; max: number }
   autoScaling: boolean
 }
 

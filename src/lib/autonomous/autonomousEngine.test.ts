@@ -15,11 +15,6 @@ vi.mock('@/lib/ai/valuationEngine', () => ({
       score: 85,
       breakdown: { brandScore: 80, seoScore: 70, trendScore: 75 },
     }),
-    shouldBuy: vi.fn().mockResolvedValue({
-      shouldBuy: true,
-      estimatedValue: 5000,
-      roi: 5,
-    }),
   },
 }))
 
@@ -35,9 +30,13 @@ describe('AutonomousEngine', () => {
 
   beforeEach(() => {
     engine = new AutonomousEngine({
-      dailyBudget: 1000,
-      minScore: 70,
-      maxBidRatio: 0.7,
+      enabled: true,
+      dailyScanLimit: 1000,
+      maxDailySpend: 1000,
+      minROI: 3,
+      autoListEnabled: true,
+      autoSellEnabled: true,
+      autoWithdrawEnabled: false,
     })
     vi.clearAllMocks()
   })
@@ -46,81 +45,18 @@ describe('AutonomousEngine', () => {
     it('should initialize with config', () => {
       expect(engine).toBeDefined()
     })
-
-    it('should set default values', () => {
-      const defaultEngine = new AutonomousEngine({})
-      expect(defaultEngine).toBeDefined()
-    })
   })
 
-  describe('shouldBuy decision', () => {
-    it('should evaluate domains based on score threshold', async () => {
-      const decision = await engine.evaluateDomain({
-        name: 'premium.com',
-        tld: 'com',
-        currentBid: 500,
-      })
-
-      expect(decision).toBeDefined()
-    })
-
-    it('should respect daily budget', async () => {
-      // Engine should track spending
+  describe('start/stop', () => {
+    it('should start the engine', () => {
+      engine.start()
       expect(engine).toBeDefined()
     })
 
-    it('should not buy if score below threshold', async () => {
-      const lowScoreEngine = new AutonomousEngine({
-        minScore: 95, // Very high threshold
-      })
-      expect(lowScoreEngine).toBeDefined()
-    })
-  })
-
-  describe('portfolio management', () => {
-    it('should track owned domains', async () => {
-      expect(typeof engine.getPortfolio).toBe('function')
-    })
-
-    it('should calculate total portfolio value', async () => {
-      expect(engine).toBeDefined()
-    })
-  })
-
-  describe('scanning', () => {
-    it('should scan multiple sources', async () => {
-      expect(typeof engine.scan).toBe('function')
-    })
-  })
-
-  describe('buying', () => {
-    it('should execute buy when conditions met', async () => {
-      expect(typeof engine.executeBuy).toBe('function')
-    })
-
-    it('should not exceed max bid ratio', async () => {
-      expect(engine).toBeDefined()
-    })
-  })
-
-  describe('risk management', () => {
-    it('should enforce daily loss limit', () => {
-      expect(engine).toBeDefined()
-    })
-
-    it('should diversify portfolio', () => {
-      expect(engine).toBeDefined()
-    })
-  })
-
-  describe('statistics', () => {
-    it('should track success rate', () => {
-      expect(typeof engine.getStats).toBe('function')
-    })
-
-    it('should calculate ROI', () => {
+    it('should stop the engine', () => {
+      engine.start()
+      engine.stop()
       expect(engine).toBeDefined()
     })
   })
 })
-

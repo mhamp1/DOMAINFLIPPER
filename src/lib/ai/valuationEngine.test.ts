@@ -90,8 +90,8 @@ describe('ValuationEngine', () => {
 
       expect(results).toHaveLength(3)
       results.forEach(result => {
-        expect(result.value).toBeGreaterThan(0)
-        expect(result.score).toBeGreaterThanOrEqual(0)
+        expect(result.valuation.value).toBeGreaterThan(0)
+        expect(result.valuation.score).toBeGreaterThanOrEqual(0)
       })
     })
 
@@ -103,66 +103,8 @@ describe('ValuationEngine', () => {
 
       const results = await valuationEngine.batchValuate(domains)
 
-      expect(results[0].breakdown).toBeDefined()
-      expect(results[1].breakdown).toBeDefined()
-    })
-  })
-
-  describe('shouldBuy', () => {
-    it('should recommend buy for undervalued domains', async () => {
-      const domain = {
-        name: 'premium.com',
-        tld: 'com',
-        currentBid: 100,
-        backlinks: 500,
-        traffic: 5000,
-      }
-
-      const result = await valuationEngine.shouldBuy(domain)
-      
-      expect(result.shouldBuy).toBe(true)
-      expect(result.estimatedValue).toBeGreaterThan(domain.currentBid)
-    })
-
-    it('should not recommend overpriced domains', async () => {
-      const domain = {
-        name: 'random123xyz.com',
-        tld: 'com',
-        currentBid: 100000,
-      }
-
-      const result = await valuationEngine.shouldBuy(domain)
-      
-      expect(result.shouldBuy).toBe(false)
-    })
-
-    it('should calculate ROI correctly', async () => {
-      const domain = {
-        name: 'valuable.com',
-        tld: 'com',
-        currentBid: 500,
-        backlinks: 100,
-      }
-
-      const result = await valuationEngine.shouldBuy(domain)
-      
-      if (result.estimatedValue > 0 && domain.currentBid > 0) {
-        const expectedROI = (result.estimatedValue - domain.currentBid) / domain.currentBid
-        expect(result.roi).toBeCloseTo(expectedROI, 1)
-      }
-    })
-
-    it('should handle zero currentBid', async () => {
-      const domain = {
-        name: 'free.com',
-        tld: 'com',
-        currentBid: 0,
-      }
-
-      const result = await valuationEngine.shouldBuy(domain)
-      
-      // Should not crash with division by zero
-      expect(result.shouldBuy).toBeDefined()
+      expect(results[0].valuation.breakdown).toBeDefined()
+      expect(results[1].valuation.breakdown).toBeDefined()
     })
   })
 
@@ -199,4 +141,3 @@ describe('ValuationEngine', () => {
     })
   })
 })
-

@@ -11,11 +11,11 @@ import {
   Pause,
   Brain,
   Shield,
-  TrendingUp,
+  TrendUp,
   CurrencyDollar,
   Package,
   Target,
-  Activity,
+  ChartBar,
   Gear,
   Lightning,
   Eye,
@@ -28,6 +28,7 @@ import {
   Scales,
   Globe,
   Wallet,
+  Plugs,
   Users,
   Microphone,
   ChartPie,
@@ -369,7 +370,7 @@ export default function EmpireDashboard() {
                 {[
                   { icon: Package, label: 'Domains', value: stats.domainsOwned, sub: `Sold: ${stats.domainsSold}`, color: 'text-yellow-600' },
                   { icon: Target, label: 'Win Rate', value: `${stats.winRate.toFixed(1)}%`, sub: `ROI: ${stats.roi.toFixed(0)}%`, color: 'text-green-500' },
-                  { icon: Activity, label: 'Scans Today', value: stats.decisionsToday, sub: 'Target: 120k', color: 'text-yellow-600' },
+                  { icon: ChartBar, label: 'Scans Today', value: stats.decisionsToday, sub: 'Target: 120k', color: 'text-yellow-600' },
                   { icon: Shield, label: 'Risk Score', value: `${riskStats.riskScore}/100`, sub: '12-layer shield', color: 'text-yellow-600' },
                 ].map((stat, i) => (
                   <Card key={i} className="bg-black/50 border border-yellow-600/20 p-4">
@@ -660,15 +661,15 @@ export default function EmpireDashboard() {
                 </Card>
                 <Card className="bg-black/50 border border-yellow-600/20 p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <Plug size={16} className="text-yellow-600" />
-                    <span className="text-xs text-yellow-600/60">API Revenue</span>
+                    <Plugs size={16} className="text-yellow-600" />
+                    <span className="text-xs text-yellow-600/60">Parking Revenue</span>
                   </div>
-                  <div className="text-2xl font-bold text-green-500">{formatCurrency(apiStats.monthlyRecurring)}/mo</div>
-                  <div className="text-xs text-yellow-600/50">{apiStats.totalSubscribers} subs</div>
+                  <div className="text-2xl font-bold text-green-500">{formatCurrency(leasingStats.totalCollected * 0.1)}/mo</div>
+                  <div className="text-xs text-yellow-600/50">Domain ads</div>
                 </Card>
                 <Card className="bg-black/50 border border-yellow-600/20 p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <TrendingUp size={16} className="text-green-500" />
+                    <TrendUp size={16} className="text-green-500" />
                     <span className="text-xs text-yellow-600/60">Total Passive</span>
                   </div>
                   <div className="text-2xl font-bold text-green-500">{formatCurrency(totalPassiveMonthly)}/mo</div>

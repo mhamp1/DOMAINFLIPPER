@@ -64,38 +64,15 @@ describe('GoDaddyAPI', () => {
     })
   })
 
-  describe('HMAC signing', () => {
-    it('should generate valid signature', () => {
-      // The signRequest method is private, but we can test it indirectly
-      // by making a request and checking the headers are set
-      expect(api).toBeDefined()
-    })
-  })
-
-  describe('checkAvailability', () => {
-    it('should check domain availability', async () => {
-      // Mock implementation would go here in a real integration test
-      expect(typeof api.checkAvailability).toBe('function')
-    })
-  })
-
   describe('searchAuctions', () => {
-    it('should search auctions by keyword', async () => {
+    it('should be a function', () => {
       expect(typeof api.searchAuctions).toBe('function')
     })
   })
 
   describe('placeBid', () => {
-    it('should place bid on auction', async () => {
+    it('should be a function', () => {
       expect(typeof api.placeBid).toBe('function')
     })
   })
-
-  describe('error handling', () => {
-    it('should retry failed requests', async () => {
-      // Test retry logic
-      expect(api).toBeDefined()
-    })
-  })
 })
-

@@ -12,7 +12,7 @@ import { Card } from '@/components/ui/card'
 import confetti from 'canvas-confetti'
 import { formatCurrency } from '@/lib/utils'
 import { useQuery } from '@tanstack/react-query'
-import { supabaseClient } from '@/lib/database/supabase'
+import { supabaseDB } from '@/lib/database/supabase'
 
 export default function Vault() {
   const [profit, setProfit] = useState(0)
@@ -20,44 +20,34 @@ export default function Vault() {
   const [owned, setOwned] = useState(0)
   const [activeSnipes, setActiveSnipes] = useState(0)
 
-  // Fetch real portfolio stats (optimized queries)
+  // Fetch real portfolio stats (using supabaseDB methods)
   const { data: stats } = useQuery({
     queryKey: ['portfolio-stats'],
     queryFn: async () => {
-      const today = new Date().toISOString().split('T')[0]
+      const todayDate = new Date().toISOString().split('T')[0]
       
-      // Optimized query: Only get sold domains with sale_price
-      const { data: soldData, error: soldError } = await supabaseClient
-        .from('owned_domains')
-        .select('purchase_price, sale_price, sale_date')
-        .not('sale_price', 'is', null)
+      // Use supabaseDB methods which handle demo mode gracefully
+      const ownedDomains = await supabaseDB.getOwnedDomains()
       
-      if (soldError) throw soldError
+      // Calculate total profit from sold domains
+      const soldDomains = ownedDomains.filter(d => d.sold && d.sale_price)
+      const totalProfit = soldDomains.reduce((sum, d) => {
+        return sum + ((d.sale_price || 0) - d.purchase_price)
+      }, 0)
       
-      const soldDataTyped = (soldData || []) as any[]
-      const totalProfit = soldDataTyped
-        .reduce((sum: number, d: any) => sum + (d.sale_price! - d.purchase_price), 0)
-      
-      // Optimized: Filter by date in query instead of in-memory
-      const todayProfit = soldDataTyped
-        .filter((d: any) => {
+      // Calculate today's profit
+      const todayProfit = soldDomains
+        .filter(d => {
           if (!d.sale_date) return false
           const saleDate = new Date(d.sale_date).toISOString().split('T')[0]
-          return saleDate === today
+          return saleDate === todayDate
         })
-        .reduce((sum: number, d: any) => sum + (d.sale_price! - d.purchase_price), 0)
-
-      // Get total owned count (separate lightweight query)
-      const { count, error: countError } = await supabaseClient
-        .from('owned_domains')
-        .select('*', { count: 'exact', head: true })
-      
-      if (countError) throw countError
+        .reduce((sum, d) => sum + ((d.sale_price || 0) - d.purchase_price), 0)
 
       return {
         profit: totalProfit,
         today: todayProfit,
-        owned: count || 0,
+        owned: ownedDomains.length,
       }
     },
     refetchInterval: 5000, // Update every 5 seconds
