@@ -105,7 +105,7 @@ Thank you for your business!
 
 export class AutoSeller {
   private isRunning: boolean = false
-  private monitoringLoop: number | null = null
+  private monitoringLoop: ReturnType<typeof setInterval> | null = null
   private activeNegotiations: Map<string, NegotiationState> = new Map()
   private inquiries: Map<string, Inquiry> = new Map()
   private salesCount: number = 0

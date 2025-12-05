@@ -46,9 +46,9 @@ export class EmpireEngine {
   private config: EmpireConfig
   private stats: EmpireStats
   private isRunning: boolean = false
-  private scanLoop: number | null = null
-  private learningLoop: number | null = null
-  private pricingLoop: number | null = null
+  private scanLoop: ReturnType<typeof setInterval> | null = null
+  private learningLoop: ReturnType<typeof setInterval> | null = null
+  private pricingLoop: ReturnType<typeof setInterval> | null = null
   private portfolio: Map<string, Domain> = new Map()
   private startTime: Date = new Date()
 
@@ -375,7 +375,8 @@ export class EmpireEngine {
         // AutoSeller handles all marketplace inquiries automatically
         // This just ensures it's running and processing offers
         for (const [domainName, domain] of this.portfolio.entries()) {
-          if (domain.status === 'sold') continue
+          // Skip domains that have been sold (have soldAt date)
+          if (domain.soldAt) continue
 
           // AutoSeller will handle negotiations automatically
           // We just need to ensure it's monitoring
