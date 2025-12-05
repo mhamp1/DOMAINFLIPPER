@@ -53,11 +53,14 @@ import { affiliateEngine } from '@/lib/revenue/AffiliateEngine'
 import { aiNarrator } from '@/lib/ai/AINarrator'
 import { multiCurrencyEngine } from '@/lib/finance/MultiCurrencyEngine'
 import { multiBotSwarm } from '@/lib/scalability/MultiBotSwarm'
+import { empireBrain, type EmpireStats, type EmpireThought } from '@/lib/empire/EmpireBrain'
+import { leadScanner } from '@/lib/intelligence/LeadScanner'
+import { godScoreEngine } from '@/lib/valuation/GodScore'
 import { formatCurrency } from '@/lib/utils'
 import { toast } from 'sonner'
 import { STRATEGIES, getStrategiesForBudget } from '@/lib/strategies/strategyDefinitions'
 import { ownerAuth } from '@/lib/auth/OwnerAuth'
-import { SignOut } from '@phosphor-icons/react'
+import { SignOut, Crown, Fire, Cpu, WifiHigh, Heartbeat } from '@phosphor-icons/react'
 
 // Tab types
 type TabType = 'empire' | 'vault' | 'strategies' | 'intelligence' | 'portfolio' | 'revenue' | 'risk' | 'finance' | 'swarm' | 'config'
@@ -99,16 +102,41 @@ export default function EmpireDashboard() {
   
   // Bot thoughts for display
   const [botThoughts, setBotThoughts] = useState<BotThought[]>([])
+  
+  // Empire Brain stats
+  const [empireStats, setEmpireStats] = useState<EmpireStats | null>(null)
 
   // Auto-resume bot if it was running before logout
   useEffect(() => {
-    const wasRunning = autonomousBrain.wasRunning()
+    const wasRunning = empireBrain.wasRunning()
     if (wasRunning && !isLaunched) {
-      console.log('🔄 Auto-resuming bot (was running before logout)...')
-      // Resume the bot
+      console.log('🔄 Auto-resuming Empire (was running before logout)...')
       handleLaunchEmpire()
     }
   }, []) // Only run once on mount
+
+  // Subscribe to Empire Brain updates
+  useEffect(() => {
+    const unsubscribe = empireBrain.subscribe((stats) => {
+      setEmpireStats(stats)
+      setIsLaunched(stats.isRunning)
+      // Update thoughts from empire brain
+      if (stats.thoughts.length > 0) {
+        setBotThoughts(stats.thoughts.map(t => ({
+          id: t.id,
+          timestamp: t.timestamp,
+          type: t.type as BotThought['type'],
+          message: t.message,
+          emotion: t.type === 'buy' ? 'excited' : t.type === 'alert' ? 'cautious' : 'analytical',
+        })))
+      }
+    })
+    
+    // Get initial stats
+    setEmpireStats(empireBrain.getStats())
+    
+    return () => unsubscribe()
+  }, [])
 
   // Update all stats every second
   useEffect(() => {
@@ -178,8 +206,10 @@ export default function EmpireDashboard() {
     if (isLaunched) {
       setIsLoading(true)
       
-      // Stop all autonomous systems
-      autonomousBrain.stop()
+      // Stop the unified Empire Brain (stops everything)
+      empireBrain.stop()
+      
+      // Also stop legacy systems
       empireEngine.stop()
       autoFundEngine.stopAutoFundLoop()
       compoundEngine.stopCompoundLoop()
@@ -190,28 +220,29 @@ export default function EmpireDashboard() {
       setIsLaunched(false)
       setIsLoading(false)
       setBotThoughts([])
-      aiNarrator.narrateWarning('Empire paused — all autonomous operations stopped', 'info')
-      toast.info('Empire Paused', { description: 'All systems on standby' })
+      toast.warning('🛑 Empire Paused', { description: 'All systems on standby' })
     } else {
       setIsLoading(true)
       try {
-        // Start the Autonomous Brain (THE CORE)
-        await autonomousBrain.start()
+        // LAUNCH THE UNIFIED EMPIRE BRAIN — One button starts EVERYTHING
+        await empireBrain.launch({
+          initialCapital: fundingStats.capital || 500,
+        })
         
-        // Start supporting systems
-        await empireEngine.runForever()
+        // Empire Brain now starts all systems automatically:
+        // - Autonomous Brain (scanning, buying)
+        // - Lead Scanner (GitHub, ProductHunt, USPTO, YC, Reddit)
+        // - Web3 Sniper (.eth, .sol, .btc, Handshake)
+        // - GodScore Engine (15-layer valuation)
+        // - Health Monitoring
+        
+        // Start additional legacy systems
         autoFundEngine.startAutoFundLoop()
         compoundEngine.startCompoundLoop()
-        await marketIntelEngine.startMonitoring()
         leasingEngine.startAutoRenewalMonitoring()
         multiBotSwarm.startSwarm()
         
         setIsLaunched(true)
-        aiNarrator.narrateInsight('Empire Launched', 'Autonomous Brain activated — making smart decisions 24/7', 'high')
-        toast.success('🧠 AUTONOMOUS BRAIN ACTIVATED', { 
-          description: 'Bot will now buy, list, and sell domains automatically',
-          duration: 7000,
-        })
       } catch (error) {
         toast.error('Launch Failed', { description: 'Check configuration' })
       } finally {
