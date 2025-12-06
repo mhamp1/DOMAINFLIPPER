@@ -197,16 +197,147 @@ const STORAGE_KEY = 'domainFlipper_masterConfig'
 class MasterConfig {
   private config: MasterConfigData
   private listeners: Array<(config: MasterConfigData) => void> = []
+  private initialized = false
 
   constructor() {
     this.config = this.loadConfig()
+    this.ensureAllCredentials() // ALWAYS ensure credentials are present
+    this.initialized = true
     
-    // Log what we loaded
-    console.log('🔧 MasterConfig loaded:', {
-      hasGoDaddy: !!this.config.godaddy.apiKey,
-      hasNamecheap: !!this.config.namecheap.apiKey,
-      capital: this.config.empire.totalCapital,
+    // Log what we loaded - should ALWAYS show true for all APIs
+    console.log('🔧 MasterConfig INITIALIZED — All APIs Ready:', {
+      '1. GoDaddy': this.isGoDaddyConfigured() ? '✅ READY' : '❌ MISSING',
+      '2. Namecheap': this.isNamecheapConfigured() ? '✅ READY' : '❌ MISSING',
+      '3. Supabase': this.isSupabaseConfigured() ? '✅ READY' : '❌ MISSING',
+      '4. Google': this.isGoogleConfigured() ? '✅ READY' : '❌ MISSING',
+      '5. Twitter/X': this.isTwitterConfigured() ? '✅ READY' : '❌ MISSING',
+      '6. USPTO': this.isUSPTOConfigured() ? '✅ READY' : '❌ MISSING',
+      '7. Stripe': this.isStripeConfigured() ? '✅ READY' : '❌ MISSING',
+      '8. Infura': this.isInfuraConfigured() ? '✅ READY' : '❌ MISSING',
+      '9. Alchemy': this.isAlchemyConfigured() ? '✅ READY' : '❌ MISSING',
+      'Capital': `$${this.config.empire.totalCapital}`,
     })
+  }
+
+  /**
+   * ENSURES ALL OWNER CREDENTIALS ARE ALWAYS PRESENT
+   * Called on every load and can be called manually to force refresh
+   */
+  private ensureAllCredentials(): void {
+    // 1. GoDaddy - PRIMARY
+    if (!this.config.godaddy?.apiKey) {
+      this.config.godaddy = { 
+        apiKey: OWNER_CREDENTIALS.godaddy.apiKey,
+        apiSecret: OWNER_CREDENTIALS.godaddy.apiSecret,
+        sandbox: false 
+      }
+    }
+    if (!this.config.godaddy.apiSecret) {
+      this.config.godaddy.apiSecret = OWNER_CREDENTIALS.godaddy.apiSecret
+    }
+
+    // 2. Namecheap
+    if (!this.config.namecheap?.apiKey) {
+      this.config.namecheap = {
+        apiUser: OWNER_CREDENTIALS.namecheap.apiUser,
+        apiKey: OWNER_CREDENTIALS.namecheap.apiKey,
+        clientIp: OWNER_CREDENTIALS.namecheap.clientIp,
+      }
+    }
+
+    // 3. Supabase
+    if (!this.config.supabase?.url || !this.config.supabase?.anonKey) {
+      this.config.supabase = {
+        url: OWNER_CREDENTIALS.supabase.url,
+        anonKey: OWNER_CREDENTIALS.supabase.anonKey,
+      }
+    }
+
+    // 4. Google Trends
+    if (!this.config.google?.apiKey) {
+      this.config.google = { apiKey: OWNER_CREDENTIALS.google.apiKey }
+    }
+
+    // 5. Twitter/X
+    if (!this.config.twitter?.bearerToken) {
+      this.config.twitter = { bearerToken: OWNER_CREDENTIALS.twitter.bearerToken }
+    }
+
+    // 6. USPTO
+    if (!this.config.uspto?.apiKey) {
+      this.config.uspto = { apiKey: OWNER_CREDENTIALS.uspto.apiKey }
+    }
+
+    // 7. Stripe
+    if (!this.config.stripe?.publishableKey || !this.config.stripe?.secretKey) {
+      this.config.stripe = {
+        publishableKey: OWNER_CREDENTIALS.stripe.publishableKey,
+        secretKey: OWNER_CREDENTIALS.stripe.secretKey,
+      }
+    }
+
+    // 8. Infura
+    if (!this.config.infura?.projectId) {
+      this.config.infura = {
+        projectId: OWNER_CREDENTIALS.infura.projectId,
+        mainnetUrl: OWNER_CREDENTIALS.infura.mainnetUrl,
+      }
+    }
+
+    // 9. Alchemy (Web3/Solana/NFT)
+    if (!this.config.alchemy?.apiKey) {
+      this.config.alchemy = {
+        apiKey: OWNER_CREDENTIALS.alchemy.apiKey,
+        ethMainnet: OWNER_CREDENTIALS.alchemy.ethMainnet,
+        solanaMainnet: OWNER_CREDENTIALS.alchemy.solanaMainnet,
+        nftApi: OWNER_CREDENTIALS.alchemy.nftApi,
+      }
+    }
+
+    // Save to localStorage so they persist
+    this.saveConfig()
+  }
+
+  /**
+   * Force refresh all credentials from hardcoded values
+   * Call this if anything ever seems wrong
+   */
+  forceRefreshCredentials(): void {
+    console.log('🔄 Force refreshing ALL credentials from hardcoded values...')
+    this.config.godaddy = { 
+      apiKey: OWNER_CREDENTIALS.godaddy.apiKey,
+      apiSecret: OWNER_CREDENTIALS.godaddy.apiSecret,
+      sandbox: false 
+    }
+    this.config.namecheap = {
+      apiUser: OWNER_CREDENTIALS.namecheap.apiUser,
+      apiKey: OWNER_CREDENTIALS.namecheap.apiKey,
+      clientIp: OWNER_CREDENTIALS.namecheap.clientIp,
+    }
+    this.config.supabase = {
+      url: OWNER_CREDENTIALS.supabase.url,
+      anonKey: OWNER_CREDENTIALS.supabase.anonKey,
+    }
+    this.config.google = { apiKey: OWNER_CREDENTIALS.google.apiKey }
+    this.config.twitter = { bearerToken: OWNER_CREDENTIALS.twitter.bearerToken }
+    this.config.uspto = { apiKey: OWNER_CREDENTIALS.uspto.apiKey }
+    this.config.stripe = {
+      publishableKey: OWNER_CREDENTIALS.stripe.publishableKey,
+      secretKey: OWNER_CREDENTIALS.stripe.secretKey,
+    }
+    this.config.infura = {
+      projectId: OWNER_CREDENTIALS.infura.projectId,
+      mainnetUrl: OWNER_CREDENTIALS.infura.mainnetUrl,
+    }
+    this.config.alchemy = {
+      apiKey: OWNER_CREDENTIALS.alchemy.apiKey,
+      ethMainnet: OWNER_CREDENTIALS.alchemy.ethMainnet,
+      solanaMainnet: OWNER_CREDENTIALS.alchemy.solanaMainnet,
+      nftApi: OWNER_CREDENTIALS.alchemy.nftApi,
+    }
+    this.saveConfig()
+    console.log('✅ All 9 API credentials refreshed and saved!')
+    toast.success('All APIs Restored', { description: 'All 9 API credentials are now active' })
   }
 
   private loadConfig(): MasterConfigData {
@@ -214,25 +345,8 @@ class MasterConfig {
       const saved = localStorage.getItem(STORAGE_KEY)
       if (saved) {
         const parsed = JSON.parse(saved)
-        // Merge with defaults - BUT ALWAYS use hardcoded credentials if localStorage has empty values
+        // Merge saved settings with defaults
         const merged = this.deepMerge(DEFAULT_CONFIG, parsed)
-        
-        // CRITICAL: Ensure owner credentials are ALWAYS present
-        // If localStorage has empty API keys, use the hardcoded ones
-        if (!merged.godaddy.apiKey) merged.godaddy.apiKey = OWNER_CREDENTIALS.godaddy.apiKey
-        if (!merged.godaddy.apiSecret) merged.godaddy.apiSecret = OWNER_CREDENTIALS.godaddy.apiSecret
-        if (!merged.supabase.url) merged.supabase.url = OWNER_CREDENTIALS.supabase.url
-        if (!merged.supabase.anonKey) merged.supabase.anonKey = OWNER_CREDENTIALS.supabase.anonKey
-        if (!merged.namecheap.apiUser) merged.namecheap.apiUser = OWNER_CREDENTIALS.namecheap.apiUser
-        if (!merged.namecheap.apiKey) merged.namecheap.apiKey = OWNER_CREDENTIALS.namecheap.apiKey
-        if (!merged.namecheap.clientIp) merged.namecheap.clientIp = OWNER_CREDENTIALS.namecheap.clientIp
-        if (!merged.google.apiKey) merged.google.apiKey = OWNER_CREDENTIALS.google.apiKey
-        if (!merged.twitter.bearerToken) merged.twitter.bearerToken = OWNER_CREDENTIALS.twitter.bearerToken
-        if (!merged.uspto.apiKey) merged.uspto.apiKey = OWNER_CREDENTIALS.uspto.apiKey
-        if (!merged.stripe?.publishableKey) merged.stripe = { ...OWNER_CREDENTIALS.stripe }
-        if (!merged.infura?.projectId) merged.infura = { ...OWNER_CREDENTIALS.infura }
-        if (!merged.alchemy?.apiKey) merged.alchemy = { ...OWNER_CREDENTIALS.alchemy }
-        
         return merged
       }
     } catch (e) {
@@ -466,6 +580,9 @@ class MasterConfig {
     return this.isGoDaddyConfigured() || this.isNamecheapConfigured()
   }
 
+  /**
+   * Returns count of configured APIs - should ALWAYS be 9/9 for owner
+   */
   getConfiguredCount(): number {
     let count = 0
     if (this.isGoDaddyConfigured()) count++
@@ -478,6 +595,66 @@ class MasterConfig {
     if (this.isInfuraConfigured()) count++
     if (this.isAlchemyConfigured()) count++
     return count
+  }
+
+  /**
+   * Get all API statuses at once for display
+   */
+  getAllAPIStatuses(): Record<string, { name: string; configured: boolean; key: string }> {
+    return {
+      godaddy: { 
+        name: 'GoDaddy (Primary)', 
+        configured: this.isGoDaddyConfigured(),
+        key: this.config.godaddy.apiKey ? `${this.config.godaddy.apiKey.slice(0, 8)}...` : 'Not set'
+      },
+      namecheap: { 
+        name: 'Namecheap', 
+        configured: this.isNamecheapConfigured(),
+        key: this.config.namecheap.apiUser || 'Not set'
+      },
+      supabase: { 
+        name: 'Supabase (Database)', 
+        configured: this.isSupabaseConfigured(),
+        key: this.config.supabase.url ? 'Connected' : 'Not set'
+      },
+      google: { 
+        name: 'Google Trends', 
+        configured: this.isGoogleConfigured(),
+        key: this.config.google.apiKey ? `${this.config.google.apiKey.slice(0, 8)}...` : 'Not set'
+      },
+      twitter: { 
+        name: 'Twitter/X', 
+        configured: this.isTwitterConfigured(),
+        key: this.config.twitter.bearerToken ? 'Bearer Token Set' : 'Not set'
+      },
+      uspto: { 
+        name: 'USPTO (Trademark)', 
+        configured: this.isUSPTOConfigured(),
+        key: this.config.uspto.apiKey ? `${this.config.uspto.apiKey.slice(0, 8)}...` : 'Not set'
+      },
+      stripe: { 
+        name: 'Stripe (Payments)', 
+        configured: this.isStripeConfigured(),
+        key: this.config.stripe?.publishableKey ? 'Live Keys Set' : 'Not set'
+      },
+      infura: { 
+        name: 'Infura (Web3)', 
+        configured: this.isInfuraConfigured(),
+        key: this.config.infura?.projectId ? `${this.config.infura.projectId.slice(0, 8)}...` : 'Not set'
+      },
+      alchemy: { 
+        name: 'Alchemy (Solana/NFT)', 
+        configured: this.isAlchemyConfigured(),
+        key: this.config.alchemy?.apiKey ? `${this.config.alchemy.apiKey.slice(0, 8)}...` : 'Not set'
+      },
+    }
+  }
+
+  /**
+   * Total number of API integrations available
+   */
+  getTotalAPICount(): number {
+    return 9 // GoDaddy, Namecheap, Supabase, Google, Twitter, USPTO, Stripe, Infura, Alchemy
   }
 
   // ==================== SUBSCRIPTIONS ====================

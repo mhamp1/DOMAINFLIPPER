@@ -241,9 +241,14 @@ class EmpireBrain {
   /**
    * THE CORE INTELLIGENCE CYCLE — REAL SCANNING & SNIPING
    * This is where the magic happens — every 30 seconds
+   * NOW WITH DETAILED DECISION LOGGING
    */
   private async runIntelligenceCycle(): Promise<void> {
     if (!this.isRunning) return
+
+    const dailyBudget = empireSettings.get('dailyBudget')
+    const minROI = empireSettings.get('minROI')
+    const availableCapital = empireSettings.getAvailableCapital()
 
     try {
       this.stats.currentAction = 'Scanning markets...'
@@ -251,17 +256,24 @@ class EmpireBrain {
 
       // ==================== PHASE 1: SCAN REAL AUCTIONS ====================
       
-      this.addThought('scan', 'Scanning GoDaddy & Namecheap for opportunities...')
+      this.addThought('scan', `🔍 SCANNING: GoDaddy & Namecheap auctions (max price: $${dailyBudget}, capital: $${availableCapital.toLocaleString()})`)
 
       const scanResult = await realDomainScanner.scan({
         maxResults: 50,
-        maxPrice: empireSettings.get('dailyBudget'),
+        maxPrice: dailyBudget,
       })
 
       this.stats.domainsScanned += scanResult.totalScanned
       
+      // Report scan results
+      if (scanResult.domains.length > 0) {
+        this.addThought('scan', `📊 FOUND ${scanResult.domains.length} domains from ${scanResult.sources.join(', ')} within budget`)
+      } else {
+        this.addThought('think', `⏳ No domains found under $${dailyBudget} — waiting for opportunities...`)
+      }
+      
       if (scanResult.errors.length > 0) {
-        scanResult.errors.forEach(e => this.addThought('alert', e))
+        scanResult.errors.forEach(e => this.addThought('alert', `⚠️ API Issue: ${e}`))
       }
 
       // ==================== PHASE 2: EVALUATE & VALUE DOMAINS ====================
@@ -269,31 +281,73 @@ class EmpireBrain {
       this.stats.currentAction = 'Evaluating opportunities...'
       this.notifyListeners()
 
-      const minROI = empireSettings.get('minROI')
-      const opportunities: Array<ScannedDomain & { estimatedValue: number; score: number }> = []
+      const opportunities: Array<ScannedDomain & { estimatedValue: number; score: number; breakdown?: any }> = []
+      let evaluated = 0
+      let rejected = 0
 
       for (const domain of scanResult.domains.slice(0, 20)) {
         try {
+          evaluated++
           // Get AI valuation
           const [name, tld] = domain.domain.split('.')
           const valuation = await valuationEngine.predictValue({ name: domain.domain, tld: `.${tld}` })
           
           const roi = valuation.value / domain.price
           
-          if (roi >= minROI && valuation.score >= 70) {
+          // DETAILED DECISION LOGIC
+          const reasons: string[] = []
+          let decision: 'BUY' | 'SKIP' | 'WATCH' = 'SKIP'
+          
+          // Check ROI requirement
+          if (roi < minROI) {
+            reasons.push(`ROI ${roi.toFixed(1)}x < ${minROI}x minimum`)
+          }
+          
+          // Check AI score
+          if (valuation.score < 70) {
+            reasons.push(`Score ${valuation.score} < 70 threshold`)
+          }
+          
+          // Check price vs capital
+          if (domain.price > availableCapital) {
+            reasons.push(`Price $${domain.price} > $${availableCapital} available`)
+          }
+          
+          // Check if it's a good opportunity
+          if (roi >= minROI && valuation.score >= 70 && domain.price <= availableCapital) {
+            decision = 'BUY'
             opportunities.push({
               ...domain,
               estimatedValue: valuation.value,
               score: valuation.score,
+              breakdown: valuation.breakdown,
             })
             
+            // DETAILED APPROVAL MESSAGE
             this.addThought('evaluate', 
-              `${domain.domain}: $${domain.price} → Est. $${valuation.value.toLocaleString()} (${roi.toFixed(1)}x ROI, Score: ${valuation.score})`
+              `✅ ${domain.domain} APPROVED | Price: $${domain.price} → Value: $${valuation.value.toLocaleString()} | ROI: ${roi.toFixed(1)}x | Score: ${valuation.score}/100 | Brand: ${valuation.breakdown?.brandScore || 0} | SEO: ${valuation.breakdown?.seoScore || 0} | Trend: ${valuation.breakdown?.trendScore || 0}`
+            )
+          } else if (roi >= minROI * 0.7) {
+            // Close but not quite - watching
+            decision = 'WATCH'
+            this.addThought('think', 
+              `👁️ ${domain.domain} WATCHING | Price: $${domain.price} | Almost meets criteria: ${reasons.join(', ')}`
+            )
+          } else {
+            // DETAILED REJECTION MESSAGE
+            rejected++
+            this.addThought('think', 
+              `❌ ${domain.domain} REJECTED | Price: $${domain.price} | Reasons: ${reasons.join(' | ')}`
             )
           }
-        } catch (e) {
-          // Skip domains we can't value
+        } catch (e: any) {
+          this.addThought('alert', `⚠️ Could not value ${domain.domain}: ${e.message || 'Unknown error'}`)
         }
+      }
+
+      // Summary of evaluation
+      if (evaluated > 0) {
+        this.addThought('evaluate', `📈 EVALUATION COMPLETE: ${opportunities.length} approved, ${rejected} rejected out of ${evaluated} analyzed`)
       }
 
       // Sort by ROI
@@ -301,39 +355,64 @@ class EmpireBrain {
 
       // ==================== PHASE 3: SNIPE TOP OPPORTUNITIES ====================
 
+      if (opportunities.length === 0) {
+        this.addThought('think', `🔄 No opportunities met criteria this cycle. Min ROI: ${minROI}x, Min Score: 70. Continuing to scan...`)
+        this.stats.currentAction = 'Monitoring markets...'
+        this.notifyListeners()
+        return
+      }
+
       this.stats.currentAction = 'Sniping opportunities...'
       this.notifyListeners()
+      
+      this.addThought('buy', `🎯 EXECUTING: Attempting to acquire top ${Math.min(3, opportunities.length)} opportunities...`)
 
       for (const opp of opportunities.slice(0, 3)) { // Top 3 only
         const roi = opp.estimatedValue / opp.price
+        const profit = opp.estimatedValue - opp.price
         
-        this.addThought('buy', `🎯 SNIPING: ${opp.domain} for $${opp.price} (${roi.toFixed(1)}x ROI potential)`)
+        this.addThought('buy', 
+          `🎯 BIDDING: ${opp.domain} | Bid: $${opp.price} | Est. Value: $${opp.estimatedValue.toLocaleString()} | Potential Profit: $${profit.toLocaleString()} (${roi.toFixed(1)}x ROI) | Source: ${opp.source}`
+        )
         
         const result = await realSniper.snipe(opp)
         
         if (result.success) {
           this.stats.domainsOwned++
           this.stats.availableCapital -= result.price
-          this.addThought('buy', `✅ ACQUIRED: ${result.domain} for $${result.price}`)
+          this.addThought('buy', 
+            `💰 ACQUIRED: ${result.domain} for $${result.price} via ${result.source} | Order: ${result.orderId || 'pending'} | Remaining Capital: $${(availableCapital - result.price).toLocaleString()}`
+          )
           
           // ==================== AUTO-LIST FOR SALE ====================
-          // List at 5-10x purchase price based on AI valuation
           const listPrice = Math.round(opp.estimatedValue * 0.8) // 80% of estimated value
-          this.addThought('sell', `📋 AUTO-LISTING: ${result.domain} for $${listPrice.toLocaleString()}`)
+          const expectedProfit = listPrice - result.price
+          
+          this.addThought('sell', 
+            `📋 LISTING: ${result.domain} at $${listPrice.toLocaleString()} (80% of $${opp.estimatedValue.toLocaleString()} est.) | Expected Profit: $${expectedProfit.toLocaleString()}`
+          )
           
           try {
             const listings = await marketplaceLister.listOnAllMarketplaces(result.domain, listPrice)
             const successCount = listings.filter(l => l.status === 'active').length
+            const failedCount = listings.filter(l => l.status === 'failed' || l.status === 'not_configured').length
             this.stats.activeListings += successCount
             
             if (successCount > 0) {
-              this.addThought('sell', `✅ Listed on ${successCount} marketplaces at $${listPrice.toLocaleString()}`)
+              const marketplaces = listings.filter(l => l.status === 'active').map(l => l.marketplace).join(', ')
+              this.addThought('sell', `✅ LISTED on ${successCount} marketplaces (${marketplaces}) at $${listPrice.toLocaleString()} — now waiting for buyers`)
             }
-          } catch (listError) {
-            logger.warn('EMPIRE', 'Auto-list failed, will retry later', listError)
+            if (failedCount > 0) {
+              this.addThought('alert', `⚠️ ${failedCount} marketplaces unavailable — domain still listed on ${successCount} active ones`)
+            }
+          } catch (listError: any) {
+            this.addThought('alert', `⚠️ Auto-list error: ${listError.message || 'Unknown'} — will retry later`)
           }
         } else {
-          this.addThought('think', `Skipped ${opp.domain}: ${result.message}`)
+          // DETAILED REJECTION REASON
+          this.addThought('think', 
+            `⏸️ DID NOT ACQUIRE ${opp.domain} | Reason: ${result.message} | Will try next opportunity...`
+          )
         }
       }
 
@@ -343,9 +422,9 @@ class EmpireBrain {
       this.stats.currentAction = 'Monitoring markets...'
       this.notifyListeners()
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('EMPIRE', 'Intelligence cycle error', error as Error)
-      this.addThought('alert', `Error in intelligence cycle — auto-recovering...`)
+      this.addThought('alert', `🔴 SYSTEM ERROR: ${error.message || 'Unknown'} — auto-recovering in 30 seconds...`)
       // Self-healing: continue running
     }
   }
@@ -355,20 +434,26 @@ class EmpireBrain {
     this.thoughtLoop = setInterval(() => {
       if (!this.isRunning) return
 
-      // Generate periodic thoughts
-      const thoughts = [
-        'Scanning for undervalued gems...',
-        'Analyzing market trends...',
-        'Monitoring competitor pricing...',
-        'Checking expiring domains...',
-        'Evaluating Web3 opportunities...',
-        'Processing lead intelligence...',
-        'Optimizing portfolio...',
-        'Calculating optimal bid strategies...',
+      // Generate contextual status updates based on current state
+      const capital = empireSettings.getAvailableCapital()
+      const budget = empireSettings.get('dailyBudget')
+      const minROI = empireSettings.get('minROI')
+      const owned = this.stats.domainsOwned
+      const scanned = this.stats.domainsScanned
+      
+      const statusUpdates = [
+        `💰 Capital: $${capital.toLocaleString()} available | Daily Budget: $${budget} | Min ROI: ${minROI}x`,
+        `📊 Session Stats: ${scanned.toLocaleString()} domains scanned | ${owned} owned | ${this.stats.activeListings} listed`,
+        `🔍 Criteria: Looking for domains under $${budget} with ${minROI}x+ ROI potential and 70+ AI score`,
+        `⏱️ Next scan in ~30 seconds | Checking GoDaddy auctions, Namecheap, and drop lists`,
+        `🎯 Strategy: Buy low, value high, auto-list immediately, maximize ROI`,
+        `📈 Targeting: .com, .io, .ai TLDs | Short names | Trending keywords | High brandability`,
+        `🛡️ Risk Filters: Trademark check | Price validation | Capital protection | Quality scoring`,
+        `🤖 AI Analysis: Brand score + SEO potential + Trend matching + TLD value + Length optimization`,
       ]
 
-      const randomThought = thoughts[Math.floor(Math.random() * thoughts.length)]
-      this.addThought('think', randomThought)
+      const randomUpdate = statusUpdates[Math.floor(Math.random() * statusUpdates.length)]
+      this.addThought('think', randomUpdate)
 
       // Update uptime
       if (this.startTime) {
