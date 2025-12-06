@@ -71,7 +71,7 @@ export class LegalScanner {
     wipoEnabled?: boolean
     gdprConfig?: Partial<GDPRConfig>
   }) {
-    // Use HARDCODED USPTO key (NEVER empty)
+    // Use HARDCODED credentials
     this.usptoApiKey = config?.usptoApiKey || import.meta.env.VITE_USPTO_API_KEY || 'xqdufhsmpwfxsmdtsmvlmzqmgyxukr'
     this.wipoEnabled = config?.wipoEnabled ?? true
     this.gdprConfig = {
