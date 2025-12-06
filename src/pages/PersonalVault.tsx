@@ -4,6 +4,7 @@ import { Crown, Diamond, Wallet, Lightning, Shield, Sparkle } from '@phosphor-ic
 import { Card } from '@/components/ui/card'
 import { dropSniper } from '@/lib/dropcatch/DropSniper'
 import { soundEngine } from '@/lib/sounds/soundEffects'
+import { empireSettings } from '@/lib/config/EmpireSettings'
 
 // Profit calculation constant
 const FLIP_PROFIT_MULTIPLIER = 5 // Expected 5x profit on flipped domains
@@ -13,11 +14,13 @@ const FLIP_PROFIT_MULTIPLIER = 5 // Expected 5x profit on flipped domains
  * No tiers, no subscriptions, pure profit
  */
 export default function PersonalVault() {
+  // Load REAL stats from empireSettings - NO MOCK DATA
+  const settings = empireSettings.getAll()
   const [stats, setStats] = useState({
-    domainsOwned: 89,
-    totalProfit: 2345671,
-    todayProfit: 45678,
-    bestFlip: 'quantum.ai → $425,000',
+    domainsOwned: settings.domainsAcquired,
+    totalProfit: settings.totalProfit,
+    todayProfit: 0, // Tracked daily
+    bestFlip: 'None yet',
     dropsSniped: 0,
   })
 

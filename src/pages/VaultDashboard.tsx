@@ -17,6 +17,7 @@ import { soundEngine } from '@/lib/sounds/soundEffects'
 import { formatCurrency } from '@/lib/utils'
 import { toast } from 'sonner'
 import confetti from 'canvas-confetti'
+import { empireSettings } from '@/lib/config/EmpireSettings'
 
 export function VaultDashboard() {
   const [godMode, setGodMode] = useState(false)
@@ -26,16 +27,18 @@ export function VaultDashboard() {
   const [showAPISetup, setShowAPISetup] = useState(false)
   const [ownedDomains, setOwnedDomains] = useState<any[]>([])
   
+  // Load REAL stats from empireSettings - NO MOCK DATA
+  const settings = empireSettings.getAll()
   const [stats, setStats] = useState<UserStats>({
-    balance: 124567,
-    domainsOwned: 42,
-    totalProfit: 892341,
-    todayProfit: 18420,
-    monthlyProfit: 156000,
-    avgROI: 842,
-    totalInvested: 105000,
+    balance: settings.totalCapital,
+    domainsOwned: settings.domainsAcquired,
+    totalProfit: settings.totalProfit,
+    todayProfit: 0, // Calculated daily
+    monthlyProfit: 0, // Calculated monthly
+    avgROI: empireSettings.getROI(),
+    totalInvested: settings.totalSpent,
     activeSnipes: 0,
-    successRate: 94,
+    successRate: empireSettings.getWinRate(),
   })
 
   useEffect(() => {

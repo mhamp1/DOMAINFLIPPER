@@ -134,6 +134,7 @@ class GoDaddyRealAPI {
 
   /**
    * Search GoDaddy Auctions — REAL AUCTION DATA
+   * NOTE: GoDaddy API has CORS restrictions - in production, use a backend proxy
    */
   async searchAuctions(params: {
     limit?: number
@@ -143,7 +144,10 @@ class GoDaddyRealAPI {
   } = {}): Promise<GoDaddyAuction[]> {
     if (!this.client) {
       this.initClient()
-      if (!this.client) throw new Error('GoDaddy API not configured')
+      if (!this.client) {
+        logger.warn('GODADDY', 'API not configured')
+        return []
+      }
     }
 
     try {
@@ -172,13 +176,20 @@ class GoDaddyRealAPI {
       return auctions
 
     } catch (error: any) {
+      // Handle CORS/Network errors gracefully
+      if (error.message === 'Network Error' || error.code === 'ERR_NETWORK') {
+        logger.warn('GODADDY', 'Network Error (CORS) - GoDaddy API requires backend proxy in production')
+        return [] // Return empty instead of crashing
+      }
+      
       // If auctions API not available, try expiring domains
       if (error.response?.status === 404 || error.response?.status === 403) {
         logger.warn('GODADDY', 'Auctions API requires Pro account, trying domains API')
         return this.getExpiringDomains(params.limit || 50)
       }
+      
       logger.error('GODADDY', 'Auction search failed', error)
-      throw error
+      return [] // Return empty instead of throwing
     }
   }
 

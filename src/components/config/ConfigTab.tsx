@@ -147,11 +147,27 @@ export default function ConfigTab() {
   const [saving, setSaving] = useState(false)
   const [healthStatus, setHealthStatus] = useState(apiConfigManager.getHealthStatus())
   
-  // Empire Settings State
-  const [capital, setCapital] = useState(empireSettings.get('totalCapital'))
-  const [minROI, setMinROI] = useState(empireSettings.get('minROI'))
-  const [dailyBudget, setDailyBudget] = useState(empireSettings.get('dailyBudget'))
+  // Empire Settings State - Auto-saves on change
+  const [capital, setCapitalState] = useState(empireSettings.get('totalCapital'))
+  const [minROI, setMinROIState] = useState(empireSettings.get('minROI'))
+  const [dailyBudget, setDailyBudgetState] = useState(empireSettings.get('dailyBudget'))
   const [allStrategies, setAllStrategies] = useState(empireSettings.get('allStrategiesActive'))
+  
+  // Auto-save handlers
+  const setCapital = (value: number) => {
+    setCapitalState(value)
+    empireSettings.setCapital(value)
+  }
+  
+  const setMinROI = (value: number) => {
+    setMinROIState(value)
+    empireSettings.setMinROI(value)
+  }
+  
+  const setDailyBudget = (value: number) => {
+    setDailyBudgetState(value)
+    empireSettings.set('dailyBudget', value)
+  }
 
   // Load saved config on mount
   useEffect(() => {
@@ -170,21 +186,19 @@ export default function ConfigTab() {
     setConfig(formattedConfig)
     setHealthStatus(apiConfigManager.getHealthStatus())
     
-    // Load empire settings
-    setCapital(empireSettings.get('totalCapital'))
-    setMinROI(empireSettings.get('minROI'))
-    setDailyBudget(empireSettings.get('dailyBudget'))
+    // Load empire settings (just set state, don't trigger save)
+    setCapitalState(empireSettings.get('totalCapital'))
+    setMinROIState(empireSettings.get('minROI'))
+    setDailyBudgetState(empireSettings.get('dailyBudget'))
     setAllStrategies(empireSettings.get('allStrategiesActive'))
   }, [])
   
   const saveEmpireSettings = () => {
-    empireSettings.setCapital(capital)
-    empireSettings.setMinROI(minROI)
-    empireSettings.set('dailyBudget', dailyBudget)
+    // Values auto-save now, but this button confirms and enables all strategies
     if (allStrategies) {
       empireSettings.enableAllStrategies()
     }
-    toast.success('Empire Settings Saved!', { 
+    toast.success('Empire Settings Confirmed!', { 
       description: `Capital: $${capital} | Min ROI: ${minROI}x | Daily Budget: $${dailyBudget}` 
     })
   }
