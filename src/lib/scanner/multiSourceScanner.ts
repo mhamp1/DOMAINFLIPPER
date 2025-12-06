@@ -134,10 +134,11 @@ async function scanNamecheapExpired(options: { limit: number; tlds: string[] }):
   try {
     await rateLimiter.waitIfNeeded('namecheap')
 
+    // Use HARDCODED credentials (NEVER empty)
     const namecheap = createNamecheapClient({
-      apiUser: import.meta.env.VITE_NAMECHEAP_API_USER || '',
-      apiKey: import.meta.env.VITE_NAMECHEAP_API_KEY || '',
-      clientIp: import.meta.env.VITE_NAMECHEAP_CLIENT_IP || '',
+      apiUser: import.meta.env.VITE_NAMECHEAP_API_USER || 'mhamp1',
+      apiKey: import.meta.env.VITE_NAMECHEAP_API_KEY || 'c2cd72c359c74ac49b15e32bb98b4143',
+      clientIp: import.meta.env.VITE_NAMECHEAP_CLIENT_IP || '68.106.44.20',
     })
 
     const expired = await namecheap.searchExpiringDomains({

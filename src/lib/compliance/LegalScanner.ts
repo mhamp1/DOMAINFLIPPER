@@ -71,7 +71,8 @@ export class LegalScanner {
     wipoEnabled?: boolean
     gdprConfig?: Partial<GDPRConfig>
   }) {
-    this.usptoApiKey = config?.usptoApiKey || import.meta.env.VITE_USPTO_API_KEY || ''
+    // Use HARDCODED USPTO key (NEVER empty)
+    this.usptoApiKey = config?.usptoApiKey || import.meta.env.VITE_USPTO_API_KEY || 'xqdufhsmpwfxsmdtsmvlmzqmgyxukr'
     this.wipoEnabled = config?.wipoEnabled ?? true
     this.gdprConfig = {
       whoisMasking: true,

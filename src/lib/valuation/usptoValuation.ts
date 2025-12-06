@@ -31,7 +31,8 @@ export class USPTOValuation {
 
   constructor(config: USPTOConfig = {}) {
     this.config = {
-      apiKey: config.apiKey || import.meta.env.VITE_USPTO_API_KEY || '',
+      // Use HARDCODED USPTO key (NEVER empty)
+      apiKey: config.apiKey || import.meta.env.VITE_USPTO_API_KEY || 'xqdufhsmpwfxsmdtsmvlmzqmgyxukr',
       baseUrl: config.baseUrl || 'https://tsdrapi.uspto.gov/ts/cd/public/v1',
     }
   }
