@@ -248,12 +248,11 @@ class HealthMonitor {
 
   private async checkScanner(): Promise<{ healthy: boolean; latency: number; error?: string }> {
     const start = Date.now()
-    // Check if at least one registrar is configured
-    const hasRegistrar = apiConfigManager.isConfigured('godaddy') || 
-                         apiConfigManager.isConfigured('namecheap')
+    // Check if at least one registrar/marketplace is configured
+    const hasRegistrar = apiConfigManager.hasMinimumConfig()
     
     if (!hasRegistrar) {
-      return { healthy: false, latency: 0, error: 'No registrar configured' }
+      return { healthy: false, latency: 0, error: 'No registrar configured - try FREE Afternic or Namecheap Beast Mode' }
     }
     
     return { healthy: true, latency: Date.now() - start }
@@ -262,11 +261,10 @@ class HealthMonitor {
   private async checkMarketplace(): Promise<{ healthy: boolean; latency: number; error?: string }> {
     const start = Date.now()
     // Marketplace depends on at least one registrar
-    const hasRegistrar = apiConfigManager.isConfigured('godaddy') || 
-                         apiConfigManager.isConfigured('namecheap')
+    const hasRegistrar = apiConfigManager.hasMinimumConfig()
     
     if (!hasRegistrar) {
-      return { healthy: false, latency: 0, error: 'No registrar configured' }
+      return { healthy: false, latency: 0, error: 'No marketplace configured' }
     }
     
     return { healthy: true, latency: Date.now() - start }

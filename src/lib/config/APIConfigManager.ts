@@ -27,9 +27,20 @@ export interface APIConfig {
     apiKey: string
     clientIp: string
   }
+  // FREE ALTERNATIVE: Namecheap Beast Mode ($99/mo - full auctions API)
+  namecheapBeast: {
+    apiUser: string
+    apiKey: string
+    clientIp: string
+  }
   dropcatch: {
     apiKey: string
     apiSecret: string
+  }
+  // FREE: Afternic (GoDaddy's marketplace) - free API for listing/bidding
+  afternic: {
+    accountId: string
+    apiKey: string
   }
   
   // Intelligence APIs
@@ -182,8 +193,15 @@ class APIConfigManager {
         name: 'GoDaddy',
         key: 'godaddy',
         configured: this.isConfigured('godaddy'),
-        required: true,
+        required: false, // Not required if using alternatives
         description: 'Domain auctions and registration',
+      },
+      {
+        name: 'Afternic (FREE)',
+        key: 'afternic',
+        configured: this.isConfigured('afternic'),
+        required: false,
+        description: 'FREE - GoDaddy marketplace for listing/bidding',
       },
       {
         name: 'Namecheap',
@@ -191,6 +209,13 @@ class APIConfigManager {
         configured: this.isConfigured('namecheap'),
         required: false,
         description: 'Alternative registrar for sniping',
+      },
+      {
+        name: 'Namecheap Beast Mode',
+        key: 'namecheapBeast',
+        configured: this.isConfigured('namecheapBeast'),
+        required: false,
+        description: '$99/mo - Full auctions API without upgrade',
       },
       {
         name: 'DropCatch',
@@ -252,7 +277,9 @@ class APIConfigManager {
       supabase: 'Supabase',
       godaddy: 'GoDaddy',
       namecheap: 'Namecheap',
+      namecheapBeast: 'Namecheap Beast Mode',
       dropcatch: 'DropCatch',
+      afternic: 'Afternic (FREE)',
       uspto: 'USPTO',
       google: 'Google',
       twitter: 'Twitter/X',
@@ -364,8 +391,14 @@ class APIConfigManager {
    * Check if minimum required APIs are configured
    */
   hasMinimumConfig(): boolean {
-    // At minimum, need GoDaddy OR Namecheap to function
-    return this.isConfigured('godaddy') || this.isConfigured('namecheap')
+    // At minimum, need ONE auction/registrar API to function
+    return (
+      this.isConfigured('godaddy') || 
+      this.isConfigured('namecheap') ||
+      this.isConfigured('afternic') ||       // FREE option
+      this.isConfigured('namecheapBeast') || // $99/mo option
+      this.isConfigured('dropcatch')
+    )
   }
 
   /**

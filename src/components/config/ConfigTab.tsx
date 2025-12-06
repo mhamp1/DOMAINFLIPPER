@@ -45,11 +45,36 @@ interface APISection {
 }
 
 const API_SECTIONS: APISection[] = [
+  // ===== FREE OPTIONS FIRST =====
+  {
+    name: '🆓 Afternic (FREE)',
+    configKey: 'afternic',
+    description: "GoDaddy's marketplace — FREE API for listing/bidding (no paid upgrade needed)",
+    required: false,
+    helpUrl: 'https://www.afternic.com/sell-domains',
+    fields: [
+      { key: 'accountId', label: 'Account ID', placeholder: 'Your Afternic Account ID', type: 'text' },
+      { key: 'apiKey', label: 'API Key', placeholder: 'Enter Afternic API Key', type: 'password' },
+    ],
+  },
+  {
+    name: '💰 Namecheap Beast Mode ($99/mo)',
+    configKey: 'namecheapBeast',
+    description: 'Full auctions API without upgrade — best value for serious flippers',
+    required: false,
+    helpUrl: 'https://www.namecheap.com/domains/marketplace/beast-mode/',
+    fields: [
+      { key: 'apiUser', label: 'API Username', placeholder: 'Your Namecheap username', type: 'text' },
+      { key: 'apiKey', label: 'Beast Mode API Key', placeholder: 'Enter Beast Mode API Key', type: 'password' },
+      { key: 'clientIp', label: 'Whitelisted IP', placeholder: 'Your whitelisted IP address', type: 'text' },
+    ],
+  },
+  // ===== PREMIUM OPTIONS =====
   {
     name: 'GoDaddy',
     configKey: 'godaddy',
-    description: 'Domain auctions and registration',
-    required: true,
+    description: 'Domain auctions and registration (requires paid API access)',
+    required: false,
     helpUrl: 'https://developer.godaddy.com/keys',
     fields: [
       { key: 'apiKey', label: 'API Key', placeholder: 'Enter GoDaddy API Key', type: 'password' },
