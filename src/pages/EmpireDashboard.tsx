@@ -363,7 +363,7 @@ export default function EmpireDashboard() {
   const taxSummary = taxTracker.getTaxSummary()
 
   // Calculate total passive income
-  const totalPassiveMonthly = leasingStats.monthlyRecurring + affiliateStats.monthlyCommission
+  const totalPassiveMonthly = leasingStats.monthlyRecurring + affiliateStats.monthlyRecurringRevenue
 
   return (
     <div className="min-h-screen bg-black text-yellow-600">
@@ -1124,7 +1124,7 @@ export default function EmpireDashboard() {
                     <Globe size={16} className="text-yellow-600" />
                     <span className="text-xs text-yellow-600/60">Affiliates</span>
                   </div>
-                  <div className="text-2xl font-bold text-green-500">{formatCurrency(affiliateStats.monthlyCommission)}/mo</div>
+                  <div className="text-2xl font-bold text-green-500">{formatCurrency(affiliateStats.monthlyRecurringRevenue)}/mo</div>
                   <div className="text-xs text-yellow-600/50">{affiliateStats.conversionRate.toFixed(1)}% CVR</div>
                 </Card>
                 <Card className="bg-black/50 border border-yellow-600/20 p-4">
@@ -1364,11 +1364,11 @@ export default function EmpireDashboard() {
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-yellow-600">Multi-Bot Swarm</h3>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => multiBotSwarm.createBalancedSwarm()}>
-                      Deploy Balanced
+                    <Button variant="outline" size="sm" onClick={() => multiBotSwarm.createGodSwarm()}>
+                      Deploy Swarm
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => multiBotSwarm.createAggressiveSwarm()}>
-                      Deploy Aggressive
+                    <Button variant="outline" size="sm" onClick={() => multiBotSwarm.toggleSwarm()}>
+                      {swarmStats.isPaused ? 'Resume' : 'Pause'} Swarm
                     </Button>
                   </div>
                 </div>
