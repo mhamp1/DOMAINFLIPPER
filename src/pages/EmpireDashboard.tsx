@@ -69,6 +69,37 @@ import ConfigTab from '@/components/config/ConfigTab'
 // Tab types
 type TabType = 'empire' | 'vault' | 'strategies' | 'intelligence' | 'portfolio' | 'revenue' | 'risk' | 'finance' | 'swarm' | 'config'
 
+// API Status Bar Component - Updates automatically
+function APIStatusBar() {
+  const [gdReady, setGdReady] = useState(godaddyAPI.isReady())
+  const [ncReady, setNcReady] = useState(namecheapAPI.isReady())
+  
+  // Check API status every 2 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setGdReady(godaddyAPI.isReady())
+      setNcReady(namecheapAPI.isReady())
+    }, 2000)
+    return () => clearInterval(interval)
+  }, [])
+  
+  return (
+    <div className="flex gap-2 mb-4 p-2 bg-black/30 rounded-lg border border-yellow-600/10">
+      <div className={`flex items-center gap-1 px-2 py-1 rounded text-xs ${gdReady ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+        <div className={`w-2 h-2 rounded-full ${gdReady ? 'bg-green-500' : 'bg-red-500'}`} />
+        GoDaddy {gdReady ? '✓' : '✗'}
+      </div>
+      <div className={`flex items-center gap-1 px-2 py-1 rounded text-xs ${ncReady ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+        <div className={`w-2 h-2 rounded-full ${ncReady ? 'bg-green-500' : 'bg-red-500'}`} />
+        Namecheap {ncReady ? '✓' : '✗'}
+      </div>
+      {!gdReady && !ncReady && (
+        <span className="text-xs text-yellow-500 ml-2">⚠️ Configure APIs in Config tab</span>
+      )}
+    </div>
+  )
+}
+
 // Bot thinking state
 interface BotThought {
   id: string
@@ -614,20 +645,8 @@ export default function EmpireDashboard() {
                   )}
                 </div>
                 
-                {/* API STATUS BAR */}
-                <div className="flex gap-2 mb-4 p-2 bg-black/30 rounded-lg border border-yellow-600/10">
-                  <div className={`flex items-center gap-1 px-2 py-1 rounded text-xs ${godaddyAPI.isReady() ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                    <div className={`w-2 h-2 rounded-full ${godaddyAPI.isReady() ? 'bg-green-500' : 'bg-red-500'}`} />
-                    GoDaddy {godaddyAPI.isReady() ? '✓' : '✗'}
-                  </div>
-                  <div className={`flex items-center gap-1 px-2 py-1 rounded text-xs ${namecheapAPI.isReady() ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                    <div className={`w-2 h-2 rounded-full ${namecheapAPI.isReady() ? 'bg-green-500' : 'bg-red-500'}`} />
-                    Namecheap {namecheapAPI.isReady() ? '✓' : '✗'}
-                  </div>
-                  {!godaddyAPI.isReady() && !namecheapAPI.isReady() && (
-                    <span className="text-xs text-yellow-500 ml-2">⚠️ Configure APIs in Config tab</span>
-                  )}
-                </div>
+                {/* API STATUS BAR - Auto-updates */}
+                <APIStatusBar />
 
                 {isLaunched ? (
                   <div className="space-y-3 max-h-80 overflow-y-auto">

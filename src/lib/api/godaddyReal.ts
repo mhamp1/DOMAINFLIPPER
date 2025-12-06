@@ -42,17 +42,19 @@ export interface GoDaddyBidResult {
 class GoDaddyRealAPI {
   private client: AxiosInstance | null = null
   private isConfigured = false
+  private lastConfigCheck = 0
 
   constructor() {
-    this.initClient()
+    // Delay initial check to let localStorage load
+    setTimeout(() => this.initClient(), 100)
   }
 
   private initClient(): void {
     const config = apiConfigManager.get('godaddy')
     
     if (!config?.apiKey || !config?.apiSecret) {
-      logger.warn('GODADDY', 'API not configured - add keys in Config tab')
       this.isConfigured = false
+      this.client = null
       return
     }
 
@@ -81,9 +83,26 @@ class GoDaddyRealAPI {
   }
 
   /**
+   * Ensure client is ready - auto-reinit if needed
+   */
+  private ensureClient(): boolean {
+    // Check every 5 seconds max for config changes
+    const now = Date.now()
+    if (!this.isConfigured && now - this.lastConfigCheck > 5000) {
+      this.lastConfigCheck = now
+      this.initClient()
+    }
+    return this.isConfigured && this.client !== null
+  }
+
+  /**
    * Check if API is configured and ready
    */
   isReady(): boolean {
+    // Always try to init if not configured - credentials might have been added
+    if (!this.isConfigured) {
+      this.initClient()
+    }
     return this.isConfigured && this.client !== null
   }
 

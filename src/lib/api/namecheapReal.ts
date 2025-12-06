@@ -38,7 +38,8 @@ class NamecheapRealAPI {
   private useSandbox = false
 
   constructor() {
-    this.initConfig()
+    // Delay initial check to let localStorage load
+    setTimeout(() => this.initConfig(), 100)
   }
 
   private initConfig(): void {
@@ -49,7 +50,6 @@ class NamecheapRealAPI {
     }
 
     if (!config?.apiKey || !config?.apiUser) {
-      logger.warn('NAMECHEAP', 'API not configured - add keys in Config tab')
       this.isConfigured = false
       return
     }
@@ -70,9 +70,13 @@ class NamecheapRealAPI {
   }
 
   /**
-   * Check if API is configured
+   * Check if API is configured - auto-reinit if needed
    */
   isReady(): boolean {
+    // Always try to init if not configured - credentials might have been added
+    if (!this.isConfigured) {
+      this.initConfig()
+    }
     return this.isConfigured
   }
 
