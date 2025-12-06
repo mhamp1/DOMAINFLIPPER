@@ -1,10 +1,19 @@
 /**
  * EmpireSettings.ts — Persistent Empire Configuration
- * Saves capital, ROI targets, and all settings PERMANENTLY
+ * SYNCED WITH MASTERCONFIG — Single source of truth
  * December 2025
  */
 
 import { toast } from 'sonner'
+
+// Import MasterConfig lazily to avoid circular dependency
+let _masterConfig: any = null
+const getMasterConfig = () => {
+  if (!_masterConfig) {
+    _masterConfig = require('./MasterConfig').masterConfig
+  }
+  return _masterConfig
+}
 
 export interface EmpireSettingsData {
   // Capital & Budget
@@ -71,10 +80,35 @@ class EmpireSettings {
 
   private loadSettings(): EmpireSettingsData {
     try {
+      // First try to load from MasterConfig (single source of truth)
+      const mc = getMasterConfig()
+      if (mc) {
+        const empire = mc.getEmpire()
+        const stats = mc.getStats()
+        const bot = mc.getBotState()
+        
+        return {
+          ...DEFAULT_SETTINGS,
+          totalCapital: empire.totalCapital,
+          dailyBudget: empire.dailyBudget,
+          minROI: empire.minROI,
+          targetROI: empire.targetROI,
+          maxBidPercent: empire.maxBidPercent,
+          allStrategiesActive: empire.allStrategiesActive,
+          enabledStrategies: empire.enabledStrategies,
+          botRunning: bot.isRunning,
+          lastStartTime: bot.lastStartTime,
+          totalProfit: stats.totalProfit,
+          totalSpent: stats.totalSpent,
+          domainsAcquired: stats.domainsAcquired,
+          domainsSold: stats.domainsSold,
+        }
+      }
+      
+      // Fallback to localStorage
       const saved = localStorage.getItem(STORAGE_KEY)
       if (saved) {
         const parsed = JSON.parse(saved)
-        // Merge with defaults to ensure all fields exist
         return { ...DEFAULT_SETTINGS, ...parsed }
       }
     } catch (e) {
@@ -86,6 +120,16 @@ class EmpireSettings {
   private saveSettings(): void {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.settings))
+      
+      // Also sync to MasterConfig
+      const mc = getMasterConfig()
+      if (mc) {
+        // This will update MasterConfig's empire settings
+        mc.setCapital(this.settings.totalCapital)
+        mc.setDailyBudget(this.settings.dailyBudget)
+        mc.setMinROI(this.settings.minROI)
+      }
+      
       this.notifyListeners()
     } catch (e) {
       console.error('Failed to save empire settings:', e)
