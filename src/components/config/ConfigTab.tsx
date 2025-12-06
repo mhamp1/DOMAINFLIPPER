@@ -24,7 +24,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { apiConfigManager, type APIConfig } from '@/lib/config/APIConfigManager'
-import { empireSettings } from '@/lib/config/EmpireSettings'
+import { masterConfig } from '@/lib/config/MasterConfig'
 import { healthMonitor } from '@/lib/health/HealthMonitor'
 import { godaddyAPI } from '@/lib/api/godaddyReal'
 import { namecheapAPI } from '@/lib/api/namecheapReal'
@@ -147,26 +147,27 @@ export default function ConfigTab() {
   const [saving, setSaving] = useState(false)
   const [healthStatus, setHealthStatus] = useState(apiConfigManager.getHealthStatus())
   
-  // Empire Settings State - Auto-saves on change
-  const [capital, setCapitalState] = useState(empireSettings.get('totalCapital'))
-  const [minROI, setMinROIState] = useState(empireSettings.get('minROI'))
-  const [dailyBudget, setDailyBudgetState] = useState(empireSettings.get('dailyBudget'))
-  const [allStrategies, setAllStrategies] = useState(empireSettings.get('allStrategiesActive'))
+  // Empire Settings State - Auto-saves on change via MasterConfig
+  const empireData = masterConfig.getEmpire()
+  const [capital, setCapitalState] = useState(empireData.totalCapital)
+  const [minROI, setMinROIState] = useState(empireData.minROI)
+  const [dailyBudget, setDailyBudgetState] = useState(empireData.dailyBudget)
+  const [allStrategies, setAllStrategies] = useState(empireData.allStrategiesActive)
   
-  // Auto-save handlers
+  // Auto-save handlers - saves to MasterConfig (single source of truth)
   const setCapital = (value: number) => {
     setCapitalState(value)
-    empireSettings.setCapital(value)
+    masterConfig.setCapital(value)
   }
   
   const setMinROI = (value: number) => {
     setMinROIState(value)
-    empireSettings.setMinROI(value)
+    masterConfig.setMinROI(value)
   }
   
   const setDailyBudget = (value: number) => {
     setDailyBudgetState(value)
-    empireSettings.set('dailyBudget', value)
+    masterConfig.setDailyBudget(value)
   }
 
   // Load saved config on mount
@@ -186,18 +187,32 @@ export default function ConfigTab() {
     setConfig(formattedConfig)
     setHealthStatus(apiConfigManager.getHealthStatus())
     
-    // Load empire settings (just set state, don't trigger save)
-    setCapitalState(empireSettings.get('totalCapital'))
-    setMinROIState(empireSettings.get('minROI'))
-    setDailyBudgetState(empireSettings.get('dailyBudget'))
-    setAllStrategies(empireSettings.get('allStrategiesActive'))
+    // Load empire settings from MasterConfig (single source of truth)
+    const empireData = masterConfig.getEmpire()
+    setCapitalState(empireData.totalCapital)
+    setMinROIState(empireData.minROI)
+    setDailyBudgetState(empireData.dailyBudget)
+    setAllStrategies(empireData.allStrategiesActive)
+    
+    // Also load GoDaddy and Namecheap from MasterConfig
+    const gdConfig = masterConfig.getGoDaddy()
+    const ncConfig = masterConfig.getNamecheap()
+    
+    setConfig(prev => ({
+      ...prev,
+      godaddy: {
+        apiKey: gdConfig.apiKey || '',
+        apiSecret: gdConfig.apiSecret || '',
+      },
+      namecheap: {
+        apiUser: ncConfig.apiUser || '',
+        apiKey: ncConfig.apiKey || '',
+        clientIp: ncConfig.clientIp || '',
+      },
+    }))
   }, [])
   
   const saveEmpireSettings = () => {
-    // Values auto-save now, but this button confirms and enables all strategies
-    if (allStrategies) {
-      empireSettings.enableAllStrategies()
-    }
     toast.success('Empire Settings Confirmed!', { 
       description: `Capital: $${capital} | Min ROI: ${minROI}x | Daily Budget: $${dailyBudget}` 
     })
@@ -224,11 +239,22 @@ export default function ConfigTab() {
     setSaving(true)
     
     try {
-      // Save each section
+      // Save GoDaddy to MasterConfig (single source of truth)
+      const gdConfig = config['godaddy']
+      if (gdConfig?.apiKey && gdConfig?.apiSecret) {
+        masterConfig.setGoDaddy(gdConfig.apiKey, gdConfig.apiSecret)
+      }
+      
+      // Save Namecheap to MasterConfig
+      const ncConfig = config['namecheap']
+      if (ncConfig?.apiUser && ncConfig?.apiKey) {
+        masterConfig.setNamecheap(ncConfig.apiUser, ncConfig.apiKey, ncConfig.clientIp || '')
+      }
+      
+      // Also save to legacy APIConfigManager for compatibility
       API_SECTIONS.forEach(section => {
         const sectionConfig = config[section.configKey]
         if (sectionConfig && Object.values(sectionConfig).some(v => v)) {
-          // Only save if at least one field has a value
           apiConfigManager.set(section.configKey, sectionConfig as any)
         }
       })
@@ -244,11 +270,14 @@ export default function ConfigTab() {
       const gdReady = godaddyAPI.isReady()
       const ncReady = namecheapAPI.isReady()
       
+      console.log('✅ APIS SAVED:', { gdReady, ncReady, gdConfig, ncConfig })
+      
       toast.success('Configuration Saved!', {
         description: `APIs initialized: GoDaddy ${gdReady ? '✓' : '✗'} | Namecheap ${ncReady ? '✓' : '✗'}`,
         duration: 5000,
       })
     } catch (error) {
+      console.error('Save failed:', error)
       toast.error('Save Failed', { description: 'Please try again' })
     } finally {
       setSaving(false)
@@ -258,20 +287,23 @@ export default function ConfigTab() {
   const saveSectionConfig = (section: APISection) => {
     const sectionConfig = config[section.configKey]
     if (sectionConfig) {
-      apiConfigManager.set(section.configKey, sectionConfig as any)
-      
-      // Reinitialize the specific API that was saved
+      // Save to MasterConfig first (single source of truth)
       if (section.configKey === 'godaddy') {
+        masterConfig.setGoDaddy(sectionConfig.apiKey || '', sectionConfig.apiSecret || '')
         godaddyAPI.reinit()
         toast.success('GoDaddy API Saved', { 
           description: godaddyAPI.isReady() ? '✓ Connected and ready' : '✗ Check your credentials' 
         })
       } else if (section.configKey === 'namecheap' || section.configKey === 'namecheapBeast') {
+        masterConfig.setNamecheap(sectionConfig.apiUser || '', sectionConfig.apiKey || '', sectionConfig.clientIp || '')
         namecheapAPI.reinit()
         toast.success('Namecheap API Saved', { 
           description: namecheapAPI.isReady() ? '✓ Connected and ready' : '✗ Check your credentials' 
         })
       }
+      
+      // Also save to legacy APIConfigManager
+      apiConfigManager.set(section.configKey, sectionConfig as any)
       
       realDomainScanner.reinit()
       setHealthStatus(apiConfigManager.getHealthStatus())
@@ -384,9 +416,6 @@ export default function ConfigTab() {
           <button
             onClick={() => {
               setAllStrategies(!allStrategies)
-              if (!allStrategies) {
-                empireSettings.enableAllStrategies()
-              }
             }}
             className={`w-14 h-7 rounded-full transition-all duration-300 ${allStrategies ? 'bg-green-500' : 'bg-yellow-600/30'}`}
           >

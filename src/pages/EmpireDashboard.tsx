@@ -55,6 +55,7 @@ import { multiCurrencyEngine } from '@/lib/finance/MultiCurrencyEngine'
 import { multiBotSwarm } from '@/lib/scalability/MultiBotSwarm'
 import { empireBrain, type EmpireStats, type EmpireThought } from '@/lib/empire/EmpireBrain'
 import { empireSettings } from '@/lib/config/EmpireSettings'
+import { masterConfig } from '@/lib/config/MasterConfig'
 import { leadScanner } from '@/lib/intelligence/LeadScanner'
 import { godScoreEngine } from '@/lib/valuation/GodScore'
 import { formatCurrency } from '@/lib/utils'
@@ -70,16 +71,24 @@ import EmpireControlCenter from '@/pages/EmpireControlCenter'
 // Tab types
 type TabType = 'empire' | 'vault' | 'strategies' | 'intelligence' | 'portfolio' | 'revenue' | 'risk' | 'finance' | 'swarm' | 'control' | 'config'
 
-// API Status Bar Component - Updates automatically
+// API Status Bar Component - Updates automatically from MasterConfig
 function APIStatusBar() {
-  const [gdReady, setGdReady] = useState(godaddyAPI.isReady())
-  const [ncReady, setNcReady] = useState(namecheapAPI.isReady())
+  const [gdReady, setGdReady] = useState(masterConfig.isGoDaddyConfigured())
+  const [ncReady, setNcReady] = useState(masterConfig.isNamecheapConfigured())
   
   // Check API status every 2 seconds
   useEffect(() => {
     const interval = setInterval(() => {
-      setGdReady(godaddyAPI.isReady())
-      setNcReady(namecheapAPI.isReady())
+      // Check MasterConfig first (source of truth)
+      const gdConfigured = masterConfig.isGoDaddyConfigured()
+      const ncConfigured = masterConfig.isNamecheapConfigured()
+      
+      // Also reinit and check API clients
+      if (gdConfigured) godaddyAPI.reinit()
+      if (ncConfigured) namecheapAPI.reinit()
+      
+      setGdReady(gdConfigured && godaddyAPI.isReady())
+      setNcReady(ncConfigured && namecheapAPI.isReady())
     }, 2000)
     return () => clearInterval(interval)
   }, [])

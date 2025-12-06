@@ -6,7 +6,7 @@
 
 import axios from 'axios'
 import { parseStringPromise } from 'xml2js'
-import { apiConfigManager } from '@/lib/config/APIConfigManager'
+import { masterConfig } from '@/lib/config/MasterConfig'
 import { logger } from '@/lib/utils/logger'
 
 const NAMECHEAP_API_URL = 'https://api.namecheap.com/xml.response'
@@ -43,13 +43,9 @@ class NamecheapRealAPI {
   }
 
   private initConfig(): void {
-    // Try Beast Mode first, then regular Namecheap
-    let config = apiConfigManager.get('namecheapBeast')
-    if (!config?.apiKey) {
-      config = apiConfigManager.get('namecheap')
-    }
+    const config = masterConfig.getNamecheap()
 
-    if (!config?.apiKey || !config?.apiUser) {
+    if (!config.apiKey || !config.apiUser) {
       this.isConfigured = false
       return
     }
@@ -352,11 +348,11 @@ export function createNamecheapClient(config?: {
 }): NamecheapRealAPI {
   // Store config if provided
   if (config?.apiKey) {
-    apiConfigManager.set('namecheap', {
-      apiUser: config.apiUser || '',
-      apiKey: config.apiKey,
-      clientIp: config.clientIp || '127.0.0.1',
-    })
+    masterConfig.setNamecheap(
+      config.apiUser || '',
+      config.apiKey,
+      config.clientIp || '127.0.0.1'
+    )
   }
   namecheapAPI.reinit()
   return namecheapAPI

@@ -5,7 +5,7 @@
  */
 
 import axios, { type AxiosInstance } from 'axios'
-import { apiConfigManager } from '@/lib/config/APIConfigManager'
+import { masterConfig } from '@/lib/config/MasterConfig'
 import { logger } from '@/lib/utils/logger'
 
 const GODADDY_API_URL = 'https://api.godaddy.com'
@@ -50,9 +50,9 @@ class GoDaddyRealAPI {
   }
 
   private initClient(): void {
-    const config = apiConfigManager.get('godaddy')
+    const config = masterConfig.getGoDaddy()
     
-    if (!config?.apiKey || !config?.apiSecret) {
+    if (!config.apiKey || !config.apiSecret) {
       this.isConfigured = false
       this.client = null
       return
