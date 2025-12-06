@@ -16,6 +16,7 @@ import { valuationEngine } from '@/lib/ai/valuationEngine'
 import { realDomainScanner, type ScannedDomain } from '@/lib/scanner/RealDomainScanner'
 import { realSniper } from '@/lib/buy/RealSniper'
 import { empireSettings } from '@/lib/config/EmpireSettings'
+import { masterConfig } from '@/lib/config/MasterConfig'
 import { godaddyAPI } from '@/lib/api/godaddyReal'
 import { namecheapAPI } from '@/lib/api/namecheapReal'
 import { marketplaceLister } from '@/lib/marketplace/autoList'
@@ -246,9 +247,17 @@ class EmpireBrain {
   private async runIntelligenceCycle(): Promise<void> {
     if (!this.isRunning) return
 
-    const dailyBudget = empireSettings.get('dailyBudget')
-    const minROI = empireSettings.get('minROI')
-    const availableCapital = empireSettings.getAvailableCapital()
+    // READ FRESH VALUES FROM MASTERCONFIG EVERY CYCLE
+    // This ensures changes in the UI are picked up immediately
+    const empireConfig = masterConfig.getEmpire()
+    const dailyBudget = empireConfig.dailyBudget
+    const minROI = empireConfig.minROI
+    const totalCapital = empireConfig.totalCapital
+    const stats = masterConfig.getStats()
+    const availableCapital = totalCapital - stats.totalSpent + stats.totalProfit
+    
+    // Log current settings each cycle
+    console.log('🔄 Intelligence Cycle - Current Settings:', { dailyBudget, minROI, availableCapital, totalCapital })
 
     try {
       this.stats.currentAction = 'Scanning markets...'
@@ -434,10 +443,12 @@ class EmpireBrain {
     this.thoughtLoop = setInterval(() => {
       if (!this.isRunning) return
 
-      // Generate contextual status updates based on current state
-      const capital = empireSettings.getAvailableCapital()
-      const budget = empireSettings.get('dailyBudget')
-      const minROI = empireSettings.get('minROI')
+      // READ FRESH VALUES FROM MASTERCONFIG
+      const empireConfig = masterConfig.getEmpire()
+      const stats = masterConfig.getStats()
+      const capital = empireConfig.totalCapital - stats.totalSpent + stats.totalProfit
+      const budget = empireConfig.dailyBudget
+      const minROI = empireConfig.minROI
       const owned = this.stats.domainsOwned
       const scanned = this.stats.domainsScanned
       

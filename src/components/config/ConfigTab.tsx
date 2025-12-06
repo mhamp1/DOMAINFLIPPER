@@ -270,13 +270,16 @@ export default function ConfigTab() {
     setDailyBudgetState(empireData.dailyBudget)
     setAllStrategies(empireData.allStrategiesActive)
     
-    // Load ALL APIs from MasterConfig (single source of truth)
+    // Load ALL 9 APIs from MasterConfig (single source of truth)
     const gdConfig = masterConfig.getGoDaddy()
     const ncConfig = masterConfig.getNamecheap()
     const sbConfig = masterConfig.getSupabase()
     const googleConfig = masterConfig.getGoogle()
     const twitterConfig = masterConfig.getTwitter()
     const usptoConfig = masterConfig.getUSPTO()
+    const stripeConfig = masterConfig.getStripe()
+    const infuraConfig = masterConfig.getInfura()
+    const alchemyConfig = masterConfig.getAlchemy()
     
     setConfig(prev => ({
       ...prev,
@@ -301,6 +304,20 @@ export default function ConfigTab() {
       },
       uspto: {
         apiKey: usptoConfig.apiKey || '',
+      },
+      stripe: {
+        publishableKey: stripeConfig.publishableKey || '',
+        secretKey: stripeConfig.secretKey || '',
+      },
+      infura: {
+        projectId: infuraConfig.projectId || '',
+        mainnetUrl: infuraConfig.mainnetUrl || '',
+      },
+      alchemy: {
+        apiKey: alchemyConfig.apiKey || '',
+        ethMainnet: alchemyConfig.ethMainnet || '',
+        solanaMainnet: alchemyConfig.solanaMainnet || '',
+        nftApi: alchemyConfig.nftApi || '',
       },
     }))
   }, [])
@@ -359,6 +376,29 @@ export default function ConfigTab() {
       
       const usptoConfig = config['uspto']
       if (usptoConfig?.apiKey) masterConfig.setUSPTO(usptoConfig.apiKey)
+      
+      // Save Stripe to MasterConfig
+      const stripeConfig = config['stripe']
+      if (stripeConfig?.publishableKey && stripeConfig?.secretKey) {
+        masterConfig.setStripe(stripeConfig.publishableKey, stripeConfig.secretKey)
+      }
+      
+      // Save Infura to MasterConfig
+      const infuraConfig = config['infura']
+      if (infuraConfig?.projectId) {
+        masterConfig.setInfura(infuraConfig.projectId, infuraConfig.mainnetUrl || '')
+      }
+      
+      // Save Alchemy to MasterConfig
+      const alchemyConfig = config['alchemy']
+      if (alchemyConfig?.apiKey) {
+        masterConfig.setAlchemy(
+          alchemyConfig.apiKey,
+          alchemyConfig.ethMainnet || '',
+          alchemyConfig.solanaMainnet || '',
+          alchemyConfig.nftApi || ''
+        )
+      }
       
       // Also save to legacy APIConfigManager for compatibility
       API_SECTIONS.forEach(section => {

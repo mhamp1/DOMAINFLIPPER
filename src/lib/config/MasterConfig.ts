@@ -491,6 +491,34 @@ class MasterConfig {
     toast.success('USPTO API Saved')
   }
 
+  setStripe(publishableKey: string, secretKey: string): void {
+    this.config.stripe.publishableKey = publishableKey
+    this.config.stripe.secretKey = secretKey
+    this.saveConfig()
+    console.log('✅ Stripe API saved:', { hasPublishable: !!publishableKey, hasSecret: !!secretKey })
+    toast.success('Stripe API Saved', { 
+      description: publishableKey && secretKey ? '✓ Payment processing ready' : '✗ Missing credentials' 
+    })
+  }
+
+  setInfura(projectId: string, mainnetUrl: string): void {
+    this.config.infura.projectId = projectId
+    this.config.infura.mainnetUrl = mainnetUrl
+    this.saveConfig()
+    console.log('✅ Infura API saved:', { hasProjectId: !!projectId })
+    toast.success('Infura API Saved', { description: 'Web3/ENS enabled' })
+  }
+
+  setAlchemy(apiKey: string, ethMainnet: string, solanaMainnet: string, nftApi: string): void {
+    this.config.alchemy.apiKey = apiKey
+    this.config.alchemy.ethMainnet = ethMainnet
+    this.config.alchemy.solanaMainnet = solanaMainnet
+    this.config.alchemy.nftApi = nftApi
+    this.saveConfig()
+    console.log('✅ Alchemy API saved:', { hasApiKey: !!apiKey })
+    toast.success('Alchemy API Saved', { description: 'Solana/NFT domains enabled' })
+  }
+
   // ==================== EMPIRE SETTINGS SETTERS ====================
 
   setCapital(amount: number): void {
