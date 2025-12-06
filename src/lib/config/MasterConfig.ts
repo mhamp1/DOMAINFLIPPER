@@ -44,11 +44,16 @@ export interface MasterConfigData {
     secretKey: string
   }
   
-  // Web3/ENS/Solana - Infura
+  // Web3/ENS/Solana/NFT Domain Sniping
   infura: {
-    apiKey: string
+    projectId: string
     mainnetUrl: string
-    gasApiUrl: string
+  }
+  alchemy: {
+    apiKey: string
+    ethMainnet: string
+    solanaMainnet: string
+    nftApi: string
   }
   
   // Empire Settings
@@ -113,11 +118,16 @@ const OWNER_CREDENTIALS = {
     publishableKey: 'pk_live_51SYgQHGXpC5vPDcRSrWHvEgsmawP2QrrqrjXX1Yqbkj3vlqKG5GiSKfZApgLMj7K74Ove09HeW82OVpjORTJMZWb00XxLJ4cCd',
     secretKey: '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',
   },
-  // Web3/ENS/Solana - Infura API for blockchain interactions
+  // Web3/ENS/Solana/NFT Domain Sniping
   infura: {
-    apiKey: 'b8111de91b344fc5a4109d35adb079af',
-    mainnetUrl: 'https://mainnet.infura.io/v3/b8111de91b344fc5a4109d35adb079af',
-    gasApiUrl: 'https://gas.api.infura.io/v3/b8111de91b344fc5a4109d35adb079af',
+    projectId: '61f7969cca424b2a9325683fdb5916a1',
+    mainnetUrl: 'https://mainnet.infura.io/v3/61f7969cca424b2a9325683fdb5916a1',
+  },
+  alchemy: {
+    apiKey: 'NMEtxHS4m9mZTnYbKM5Yj',
+    ethMainnet: 'https://eth-mainnet.g.alchemy.com/v2/NMEtxHS4m9mZTnYbKM5Yj',
+    solanaMainnet: 'https://solana-mainnet.g.alchemy.com/v2/NMEtxHS4m9mZTnYbKM5Yj',
+    nftApi: 'https://eth-mainnet.g.alchemy.com/nft/v3/NMEtxHS4m9mZTnYbKM5Yj',
   },
 }
 
@@ -150,9 +160,14 @@ const DEFAULT_CONFIG: MasterConfigData = {
     secretKey: OWNER_CREDENTIALS.stripe.secretKey,
   },
   infura: {
-    apiKey: OWNER_CREDENTIALS.infura.apiKey,
+    projectId: OWNER_CREDENTIALS.infura.projectId,
     mainnetUrl: OWNER_CREDENTIALS.infura.mainnetUrl,
-    gasApiUrl: OWNER_CREDENTIALS.infura.gasApiUrl,
+  },
+  alchemy: {
+    apiKey: OWNER_CREDENTIALS.alchemy.apiKey,
+    ethMainnet: OWNER_CREDENTIALS.alchemy.ethMainnet,
+    solanaMainnet: OWNER_CREDENTIALS.alchemy.solanaMainnet,
+    nftApi: OWNER_CREDENTIALS.alchemy.nftApi,
   },
   empire: {
     totalCapital: 500,
@@ -215,7 +230,8 @@ class MasterConfig {
         if (!merged.twitter.bearerToken) merged.twitter.bearerToken = OWNER_CREDENTIALS.twitter.bearerToken
         if (!merged.uspto.apiKey) merged.uspto.apiKey = OWNER_CREDENTIALS.uspto.apiKey
         if (!merged.stripe?.publishableKey) merged.stripe = { ...OWNER_CREDENTIALS.stripe }
-        if (!merged.infura?.apiKey) merged.infura = { ...OWNER_CREDENTIALS.infura }
+        if (!merged.infura?.projectId) merged.infura = { ...OWNER_CREDENTIALS.infura }
+        if (!merged.alchemy?.apiKey) merged.alchemy = { ...OWNER_CREDENTIALS.alchemy }
         
         return merged
       }
@@ -284,6 +300,10 @@ class MasterConfig {
 
   getInfura() {
     return { ...this.config.infura }
+  }
+
+  getAlchemy() {
+    return { ...this.config.alchemy }
   }
 
   // Get ALL owner credentials (hardcoded, permanent)
@@ -435,7 +455,11 @@ class MasterConfig {
   }
 
   isInfuraConfigured(): boolean {
-    return !!this.config.infura?.apiKey
+    return !!this.config.infura?.projectId
+  }
+
+  isAlchemyConfigured(): boolean {
+    return !!this.config.alchemy?.apiKey
   }
 
   hasAnyAPIConfigured(): boolean {
@@ -452,6 +476,7 @@ class MasterConfig {
     if (this.isUSPTOConfigured()) count++
     if (this.isStripeConfigured()) count++
     if (this.isInfuraConfigured()) count++
+    if (this.isAlchemyConfigured()) count++
     return count
   }
 
