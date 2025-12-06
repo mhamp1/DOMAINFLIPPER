@@ -268,6 +268,26 @@ export default function EmpireDashboard() {
     }
   }
 
+  // Real uptime tracking
+  const [realUptime, setRealUptime] = useState(0)
+  
+  // Update uptime every second when running
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | null = null
+    
+    if (isLaunched) {
+      interval = setInterval(() => {
+        setRealUptime(prev => prev + 1)
+      }, 1000)
+    } else {
+      setRealUptime(0)
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval)
+    }
+  }, [isLaunched])
+
   const formatUptime = (seconds: number) => {
     const h = Math.floor(seconds / 3600)
     const m = Math.floor((seconds % 3600) / 60)
@@ -564,7 +584,7 @@ export default function EmpireDashboard() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
                 {[
                   { icon: Package, label: 'Win Rate', value: `${stats.winRate.toFixed(1)}%`, sub: `ROI: ${stats.roi.toFixed(0)}%`, color: 'text-green-500' },
-                  { icon: Target, label: 'Uptime', value: isLaunched ? formatUptime(stats.uptime) : '--:--:--', sub: isLaunched ? 'Running' : 'Paused', color: 'text-yellow-600' },
+                  { icon: Target, label: 'Uptime', value: isLaunched ? formatUptime(realUptime) : '--:--:--', sub: isLaunched ? 'Running' : 'Paused', color: 'text-yellow-600' },
                   { icon: ChartBar, label: 'Scans Today', value: stats.decisionsToday, sub: 'Target: 120k', color: 'text-yellow-600' },
                   { icon: Shield, label: 'Risk Score', value: `${riskStats.riskScore}/100`, sub: '12-layer shield', color: 'text-yellow-600' },
                 ].map((stat, i) => (
