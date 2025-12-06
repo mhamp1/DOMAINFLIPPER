@@ -146,6 +146,25 @@ class EmpireBrain {
 
     // ==================== START ALL SYSTEMS ====================
 
+    // 0. CRITICAL: Reinitialize APIs to ensure they have the latest saved credentials
+    godaddyAPI.reinit()
+    namecheapAPI.reinit()
+    realDomainScanner.reinit()
+    
+    // Check API status
+    const gdReady = godaddyAPI.isReady()
+    const ncReady = namecheapAPI.isReady()
+    
+    if (!gdReady && !ncReady) {
+      this.addThought('alert', '⚠️ No APIs configured! Go to Config tab to add GoDaddy or Namecheap keys.')
+      toast.warning('APIs Not Configured', { 
+        description: 'Add your API keys in the Config tab to start scanning',
+        duration: 10000,
+      })
+    } else {
+      this.addThought('scan', `APIs Ready: GoDaddy ${gdReady ? '✓' : '✗'} | Namecheap ${ncReady ? '✓' : '✗'}`)
+    }
+
     // 1. Start health monitoring
     healthMonitor.startMonitoring(30000)
     this.addThought('think', 'Health monitoring active — watching all systems')

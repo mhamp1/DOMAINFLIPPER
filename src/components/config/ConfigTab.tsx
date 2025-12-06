@@ -26,6 +26,9 @@ import { Badge } from '@/components/ui/badge'
 import { apiConfigManager, type APIConfig } from '@/lib/config/APIConfigManager'
 import { empireSettings } from '@/lib/config/EmpireSettings'
 import { healthMonitor } from '@/lib/health/HealthMonitor'
+import { godaddyAPI } from '@/lib/api/godaddyReal'
+import { namecheapAPI } from '@/lib/api/namecheapReal'
+import { realDomainScanner } from '@/lib/scanner/RealDomainScanner'
 import { toast } from 'sonner'
 
 interface APIField {
@@ -216,10 +219,19 @@ export default function ConfigTab() {
         }
       })
       
+      // CRITICAL: Reinitialize API clients with new credentials
+      godaddyAPI.reinit()
+      namecheapAPI.reinit()
+      realDomainScanner.reinit()
+      
       setHealthStatus(apiConfigManager.getHealthStatus())
       
+      // Verify APIs are now configured
+      const gdReady = godaddyAPI.isReady()
+      const ncReady = namecheapAPI.isReady()
+      
       toast.success('Configuration Saved!', {
-        description: 'All API keys have been securely stored',
+        description: `APIs initialized: GoDaddy ${gdReady ? '✓' : '✗'} | Namecheap ${ncReady ? '✓' : '✗'}`,
         duration: 5000,
       })
     } catch (error) {
@@ -233,6 +245,21 @@ export default function ConfigTab() {
     const sectionConfig = config[section.configKey]
     if (sectionConfig) {
       apiConfigManager.set(section.configKey, sectionConfig as any)
+      
+      // Reinitialize the specific API that was saved
+      if (section.configKey === 'godaddy') {
+        godaddyAPI.reinit()
+        toast.success('GoDaddy API Saved', { 
+          description: godaddyAPI.isReady() ? '✓ Connected and ready' : '✗ Check your credentials' 
+        })
+      } else if (section.configKey === 'namecheap' || section.configKey === 'namecheapBeast') {
+        namecheapAPI.reinit()
+        toast.success('Namecheap API Saved', { 
+          description: namecheapAPI.isReady() ? '✓ Connected and ready' : '✗ Check your credentials' 
+        })
+      }
+      
+      realDomainScanner.reinit()
       setHealthStatus(apiConfigManager.getHealthStatus())
     }
   }

@@ -60,6 +60,8 @@ import { godScoreEngine } from '@/lib/valuation/GodScore'
 import { formatCurrency } from '@/lib/utils'
 import { toast } from 'sonner'
 import { STRATEGIES, getStrategiesForBudget } from '@/lib/strategies/strategyDefinitions'
+import { godaddyAPI } from '@/lib/api/godaddyReal'
+import { namecheapAPI } from '@/lib/api/namecheapReal'
 import { ownerAuth } from '@/lib/auth/OwnerAuth'
 import { SignOut, Crown, Fire, Cpu, WifiHigh, Heartbeat } from '@phosphor-icons/react'
 import ConfigTab from '@/components/config/ConfigTab'
@@ -609,6 +611,21 @@ export default function EmpireDashboard() {
                       <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-2" />
                       Thinking
                     </Badge>
+                  )}
+                </div>
+                
+                {/* API STATUS BAR */}
+                <div className="flex gap-2 mb-4 p-2 bg-black/30 rounded-lg border border-yellow-600/10">
+                  <div className={`flex items-center gap-1 px-2 py-1 rounded text-xs ${godaddyAPI.isReady() ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                    <div className={`w-2 h-2 rounded-full ${godaddyAPI.isReady() ? 'bg-green-500' : 'bg-red-500'}`} />
+                    GoDaddy {godaddyAPI.isReady() ? '✓' : '✗'}
+                  </div>
+                  <div className={`flex items-center gap-1 px-2 py-1 rounded text-xs ${namecheapAPI.isReady() ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                    <div className={`w-2 h-2 rounded-full ${namecheapAPI.isReady() ? 'bg-green-500' : 'bg-red-500'}`} />
+                    Namecheap {namecheapAPI.isReady() ? '✓' : '✗'}
+                  </div>
+                  {!godaddyAPI.isReady() && !namecheapAPI.isReady() && (
+                    <span className="text-xs text-yellow-500 ml-2">⚠️ Configure APIs in Config tab</span>
                   )}
                 </div>
 

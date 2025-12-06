@@ -52,6 +52,9 @@ class RealDomainScanner {
       return { domains: [], totalScanned: 0, sources: [], errors: ['Scan in progress'] }
     }
 
+    // Always reinit APIs before scanning to pick up any config changes
+    this.reinit()
+
     this.isScanning = true
     this.lastScanTime = new Date()
     this.scanCount++
