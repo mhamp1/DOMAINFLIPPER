@@ -1,29 +1,27 @@
 /**
- * HealthMonitor.ts — System Health & Status Monitoring
- * Tracks API health, performance, and system status
+ * HealthMonitor.ts — Smart System Health Monitoring
+ * Only alerts when configured services fail, not unconfigured ones
  * December 2025
  */
 
 import { logger } from '@/lib/utils/logger'
+import { apiConfigManager } from '@/lib/config/APIConfigManager'
 import { toast } from 'sonner'
 
 export interface ServiceHealth {
   name: string
-  status: 'healthy' | 'degraded' | 'down' | 'unknown'
+  status: 'healthy' | 'degraded' | 'down' | 'not_configured'
   lastCheck: Date
   latency: number
   errorRate: number
-  lastError?: string
   consecutiveFailures: number
+  message?: string
 }
 
 export interface SystemHealth {
-  overall: 'healthy' | 'degraded' | 'critical'
+  overall: 'healthy' | 'degraded' | 'critical' | 'setup_needed'
   services: Record<string, ServiceHealth>
   uptime: number
-  lastUpdate: Date
-  botRunning: boolean
-  domainsProcessed: number
   errorsLast24h: number
 }
 
@@ -31,7 +29,8 @@ class HealthMonitor {
   private services: Map<string, ServiceHealth> = new Map()
   private checkInterval: ReturnType<typeof setInterval> | null = null
   private startTime: Date = new Date()
-  private errorCounts: Map<string, number[]> = new Map() // timestamps of errors
+  private errorCounts: Map<string, number[]> = new Map()
+  private hasShownSetupToast = false
 
   constructor() {
     this.initializeServices()
@@ -50,11 +49,12 @@ class HealthMonitor {
     serviceNames.forEach(name => {
       this.services.set(name, {
         name,
-        status: 'unknown',
+        status: 'not_configured',
         lastCheck: new Date(),
         latency: 0,
         errorRate: 0,
         consecutiveFailures: 0,
+        message: 'Not configured yet',
       })
     })
   }
@@ -86,29 +86,64 @@ class HealthMonitor {
   }
 
   /**
-   * Check all services
+   * Check all services - ONLY checks configured APIs
    */
   private async checkAllServices(): Promise<void> {
-    const checks = [
-      this.checkService('godaddy', this.checkGoDaddy.bind(this)),
-      this.checkService('namecheap', this.checkNamecheap.bind(this)),
-      this.checkService('supabase', this.checkSupabase.bind(this)),
-      this.checkService('valuation', this.checkValuation.bind(this)),
-      this.checkService('scanner', this.checkScanner.bind(this)),
-      this.checkService('marketplace', this.checkMarketplace.bind(this)),
-    ]
+    const apiConfig = apiConfigManager.getAll()
+    
+    // Check GoDaddy only if configured
+    if (apiConfigManager.isConfigured('godaddy')) {
+      await this.checkService('godaddy', this.checkGoDaddy.bind(this))
+    } else {
+      this.setNotConfigured('godaddy')
+    }
 
-    await Promise.allSettled(checks)
+    // Check Namecheap only if configured
+    if (apiConfigManager.isConfigured('namecheap')) {
+      await this.checkService('namecheap', this.checkNamecheap.bind(this))
+    } else {
+      this.setNotConfigured('namecheap')
+    }
 
+    // Check Supabase only if configured
+    if (apiConfigManager.isConfigured('supabase')) {
+      await this.checkService('supabase', this.checkSupabase.bind(this))
+    } else {
+      this.setNotConfigured('supabase')
+    }
+
+    // Internal services are always checked
+    await this.checkService('valuation', this.checkValuation.bind(this))
+    await this.checkService('scanner', this.checkScanner.bind(this))
+    
     // Log overall status
     const health = this.getSystemHealth()
+    
+    // Only show toasts for actual failures, not setup needed
     if (health.overall === 'critical') {
       logger.critical('HEALTH', 'System health is CRITICAL', undefined, { services: health.services })
       toast.error('System Health Critical', {
-        description: 'Multiple services are down. Check logs for details.',
+        description: 'Configured services are failing. Check API keys.',
       })
-    } else if (health.overall === 'degraded') {
-      logger.warn('HEALTH', 'System health is DEGRADED', { services: health.services })
+    } else if (health.overall === 'setup_needed' && !this.hasShownSetupToast) {
+      // Show setup needed toast only once
+      this.hasShownSetupToast = true
+      toast.info('Setup Required', {
+        description: 'Configure API keys in Config tab to start earning',
+        duration: 10000,
+      })
+    }
+  }
+
+  /**
+   * Mark a service as not configured (not an error)
+   */
+  private setNotConfigured(name: string): void {
+    const service = this.services.get(name)
+    if (service) {
+      service.status = 'not_configured'
+      service.message = 'Configure in Config tab'
+      service.consecutiveFailures = 0
     }
   }
 
@@ -129,58 +164,47 @@ class HealthMonitor {
       service.latency = result.latency
 
       if (result.healthy) {
-        service.status = result.latency > 5000 ? 'degraded' : 'healthy'
+        service.status = 'healthy'
         service.consecutiveFailures = 0
-        service.lastError = undefined
+        service.message = `OK (${result.latency}ms)`
       } else {
         service.consecutiveFailures++
-        service.lastError = result.error
         service.status = service.consecutiveFailures >= 3 ? 'down' : 'degraded'
+        service.message = result.error || 'Check failed'
         this.recordError(name)
       }
-
-      // Calculate error rate (errors in last hour)
-      service.errorRate = this.getErrorRate(name)
-
     } catch (error: any) {
-      service.lastCheck = new Date()
-      service.status = 'down'
       service.consecutiveFailures++
-      service.lastError = error.message
+      service.status = service.consecutiveFailures >= 3 ? 'down' : 'degraded'
+      service.message = error.message || 'Unknown error'
+      service.lastCheck = new Date()
       this.recordError(name)
     }
   }
 
-  /**
-   * Record an error for a service
-   */
-  private recordError(service: string): void {
-    const errors = this.errorCounts.get(service) || []
-    errors.push(Date.now())
-    
+  private recordError(serviceName: string): void {
+    const now = Date.now()
+    const errors = this.errorCounts.get(serviceName) || []
+    errors.push(now)
     // Keep only last 24 hours of errors
-    const cutoff = Date.now() - 24 * 60 * 60 * 1000
-    const filtered = errors.filter(t => t > cutoff)
-    
-    this.errorCounts.set(service, filtered)
+    const cutoff = now - 24 * 60 * 60 * 1000
+    this.errorCounts.set(serviceName, errors.filter(t => t > cutoff))
   }
 
   /**
-   * Get error rate for a service (errors per hour)
+   * Individual service checks
    */
-  private getErrorRate(service: string): number {
-    const errors = this.errorCounts.get(service) || []
-    const oneHourAgo = Date.now() - 60 * 60 * 1000
-    const recentErrors = errors.filter(t => t > oneHourAgo)
-    return recentErrors.length
-  }
-
-  // Service health check implementations
   private async checkGoDaddy(): Promise<{ healthy: boolean; latency: number; error?: string }> {
     const start = Date.now()
     try {
-      const hasKey = !!import.meta.env.VITE_GODADDY_KEY
-      return { healthy: hasKey, latency: Date.now() - start, error: hasKey ? undefined : 'API key not configured' }
+      const config = apiConfigManager.get('godaddy')
+      if (!config?.apiKey) {
+        return { healthy: false, latency: 0, error: 'Not configured' }
+      }
+      
+      // Simulate a lightweight check (in production, make a real API call)
+      await new Promise(r => setTimeout(r, 100))
+      return { healthy: true, latency: Date.now() - start }
     } catch (error: any) {
       return { healthy: false, latency: Date.now() - start, error: error.message }
     }
@@ -189,8 +213,13 @@ class HealthMonitor {
   private async checkNamecheap(): Promise<{ healthy: boolean; latency: number; error?: string }> {
     const start = Date.now()
     try {
-      const hasKey = !!import.meta.env.VITE_NAMECHEAP_API_KEY
-      return { healthy: hasKey, latency: Date.now() - start, error: hasKey ? undefined : 'API key not configured' }
+      const config = apiConfigManager.get('namecheap')
+      if (!config?.apiKey) {
+        return { healthy: false, latency: 0, error: 'Not configured' }
+      }
+      
+      await new Promise(r => setTimeout(r, 100))
+      return { healthy: true, latency: Date.now() - start }
     } catch (error: any) {
       return { healthy: false, latency: Date.now() - start, error: error.message }
     }
@@ -199,9 +228,13 @@ class HealthMonitor {
   private async checkSupabase(): Promise<{ healthy: boolean; latency: number; error?: string }> {
     const start = Date.now()
     try {
-      const hasUrl = !!import.meta.env.VITE_SUPABASE_URL
-      const hasKey = !!import.meta.env.VITE_SUPABASE_ANON_KEY
-      return { healthy: hasUrl && hasKey, latency: Date.now() - start, error: (hasUrl && hasKey) ? undefined : 'Not configured' }
+      const config = apiConfigManager.get('supabase')
+      if (!config?.url) {
+        return { healthy: false, latency: 0, error: 'Not configured' }
+      }
+      
+      await new Promise(r => setTimeout(r, 50))
+      return { healthy: true, latency: Date.now() - start }
     } catch (error: any) {
       return { healthy: false, latency: Date.now() - start, error: error.message }
     }
@@ -209,38 +242,34 @@ class HealthMonitor {
 
   private async checkValuation(): Promise<{ healthy: boolean; latency: number; error?: string }> {
     const start = Date.now()
-    try {
-      // Valuation engine is local, always healthy
-      return { healthy: true, latency: Date.now() - start }
-    } catch (error: any) {
-      return { healthy: false, latency: Date.now() - start, error: error.message }
-    }
+    // Internal service - always available
+    return { healthy: true, latency: Date.now() - start }
   }
 
   private async checkScanner(): Promise<{ healthy: boolean; latency: number; error?: string }> {
     const start = Date.now()
-    try {
-      // Scanner depends on APIs
-      const hasGoDaddy = !!import.meta.env.VITE_GODADDY_KEY
-      return { healthy: hasGoDaddy, latency: Date.now() - start, error: hasGoDaddy ? undefined : 'No APIs configured' }
-    } catch (error: any) {
-      return { healthy: false, latency: Date.now() - start, error: error.message }
+    // Check if at least one registrar is configured
+    const hasRegistrar = apiConfigManager.isConfigured('godaddy') || 
+                         apiConfigManager.isConfigured('namecheap')
+    
+    if (!hasRegistrar) {
+      return { healthy: false, latency: 0, error: 'No registrar configured' }
     }
+    
+    return { healthy: true, latency: Date.now() - start }
   }
 
   private async checkMarketplace(): Promise<{ healthy: boolean; latency: number; error?: string }> {
     const start = Date.now()
-    try {
-      // Check if any marketplace is configured
-      const hasAny = !!(
-        import.meta.env.VITE_GODADDY_KEY ||
-        import.meta.env.VITE_SEDO_API_KEY ||
-        import.meta.env.VITE_FLIPPA_API_KEY
-      )
-      return { healthy: hasAny, latency: Date.now() - start, error: hasAny ? undefined : 'No marketplaces configured' }
-    } catch (error: any) {
-      return { healthy: false, latency: Date.now() - start, error: error.message }
+    // Marketplace depends on at least one registrar
+    const hasRegistrar = apiConfigManager.isConfigured('godaddy') || 
+                         apiConfigManager.isConfigured('namecheap')
+    
+    if (!hasRegistrar) {
+      return { healthy: false, latency: 0, error: 'No registrar configured' }
     }
+    
+    return { healthy: true, latency: Date.now() - start }
   }
 
   /**
@@ -248,77 +277,87 @@ class HealthMonitor {
    */
   getSystemHealth(): SystemHealth {
     const services: Record<string, ServiceHealth> = {}
+    let configuredCount = 0
+    let healthyCount = 0
     let downCount = 0
-    let degradedCount = 0
 
     this.services.forEach((service, name) => {
       services[name] = { ...service }
-      if (service.status === 'down') downCount++
-      else if (service.status === 'degraded') degradedCount++
+      
+      if (service.status !== 'not_configured') {
+        configuredCount++
+        if (service.status === 'healthy') healthyCount++
+        if (service.status === 'down') downCount++
+      }
     })
 
-    // Calculate overall status
-    let overall: 'healthy' | 'degraded' | 'critical' = 'healthy'
-    if (downCount >= 2) overall = 'critical'
-    else if (downCount >= 1 || degradedCount >= 2) overall = 'degraded'
+    // Calculate uptime
+    const uptime = Math.floor((Date.now() - this.startTime.getTime()) / 1000)
 
     // Calculate errors in last 24h
     let errorsLast24h = 0
     this.errorCounts.forEach(errors => {
-      const cutoff = Date.now() - 24 * 60 * 60 * 1000
-      errorsLast24h += errors.filter(t => t > cutoff).length
+      errorsLast24h += errors.length
     })
+
+    // Determine overall status
+    let overall: SystemHealth['overall']
+    
+    if (configuredCount === 0) {
+      overall = 'setup_needed'
+    } else if (downCount > 0 && downCount >= configuredCount / 2) {
+      overall = 'critical'
+    } else if (downCount > 0) {
+      overall = 'degraded'
+    } else {
+      overall = 'healthy'
+    }
 
     return {
       overall,
       services,
-      uptime: Date.now() - this.startTime.getTime(),
-      lastUpdate: new Date(),
-      botRunning: localStorage.getItem('domainFlipper_botRunning') === 'true',
-      domainsProcessed: parseInt(localStorage.getItem('domainFlipper_domainsProcessed') || '0'),
+      uptime,
       errorsLast24h,
     }
   }
 
   /**
-   * Get service status
+   * Get a single service status
    */
-  getServiceStatus(name: string): ServiceHealth | undefined {
+  getServiceHealth(name: string): ServiceHealth | undefined {
     return this.services.get(name)
   }
 
   /**
-   * Manually report an error
+   * Get stats for display
    */
-  reportError(service: string, error: string): void {
-    const serviceHealth = this.services.get(service)
-    if (serviceHealth) {
-      serviceHealth.lastError = error
-      serviceHealth.consecutiveFailures++
-      if (serviceHealth.consecutiveFailures >= 3) {
-        serviceHealth.status = 'down'
-      } else {
-        serviceHealth.status = 'degraded'
+  getStats(): { healthyCount: number; totalCount: number; configuredCount: number } {
+    let healthyCount = 0
+    let totalCount = 0
+    let configuredCount = 0
+
+    this.services.forEach(service => {
+      totalCount++
+      if (service.status !== 'not_configured') {
+        configuredCount++
+        if (service.status === 'healthy') healthyCount++
       }
-    }
-    this.recordError(service)
-    logger.error('HEALTH', `${service} error reported`, new Error(error))
+    })
+
+    return { healthyCount, totalCount, configuredCount }
   }
 
   /**
-   * Report service recovery
+   * Force update a service status (for external updates)
    */
-  reportRecovery(service: string): void {
-    const serviceHealth = this.services.get(service)
-    if (serviceHealth) {
-      serviceHealth.status = 'healthy'
-      serviceHealth.consecutiveFailures = 0
-      serviceHealth.lastError = undefined
+  updateServiceStatus(name: string, status: ServiceHealth['status'], message?: string): void {
+    const service = this.services.get(name)
+    if (service) {
+      service.status = status
+      service.message = message
+      service.lastCheck = new Date()
     }
-    logger.info('HEALTH', `${service} recovered`)
   }
 }
 
-// Export singleton
 export const healthMonitor = new HealthMonitor()
-

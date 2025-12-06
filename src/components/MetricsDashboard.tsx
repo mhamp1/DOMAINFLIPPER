@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
   ChartLine, Heartbeat, Lightning, Clock, Database, Cloud, CheckCircle,
-  Warning, XCircle, ArrowUp, ArrowDown, Minus, Cpu, HardDrives, WifiHigh,
+  Warning, XCircle, ArrowUp, ArrowDown, Minus, Cpu, HardDrives, WifiHigh, Gear,
 } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { healthMonitor, type ServiceHealth, type SystemHealth } from '@/lib/health/HealthMonitor'
@@ -31,11 +31,14 @@ interface Metric {
 
 // ==================== CONSTANTS ====================
 
-const STATUS_CONFIG = {
+const STATUS_CONFIG: Record<string, { icon: any; color: string; bg: string }> = {
   healthy: { icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-500/20' },
   degraded: { icon: Warning, color: 'text-yellow-400', bg: 'bg-yellow-500/20' },
   down: { icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/20' },
+  critical: { icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/20' },
   unknown: { icon: Minus, color: 'text-gray-400', bg: 'bg-gray-500/20' },
+  not_configured: { icon: Gear, color: 'text-blue-400', bg: 'bg-blue-500/20' },
+  setup_needed: { icon: Gear, color: 'text-blue-400', bg: 'bg-blue-500/20' },
 }
 
 // ==================== HELPER COMPONENTS ====================
@@ -111,9 +114,9 @@ const ServiceCard: React.FC<{ service: ServiceHealth }> = ({ service }) => {
         </div>
       </div>
       
-      {service.lastError && (
+      {service.message && service.status !== 'healthy' && service.status !== 'not_configured' && (
         <div className="mt-2 text-xs text-red-400/70 truncate">
-          ⚠️ {service.lastError}
+          ⚠️ {service.message}
         </div>
       )}
     </motion.div>
@@ -206,9 +209,9 @@ export const MetricsDashboard: React.FC<MetricsDashboardProps> = ({
               </p>
             </div>
             <div className="text-center">
-              <p className="text-yellow-600/40">Bot</p>
-              <p className={`font-mono ${systemHealth.botRunning ? 'text-green-400' : 'text-yellow-400'}`}>
-                {systemHealth.botRunning ? 'Active' : 'Idle'}
+              <p className="text-yellow-600/40">Status</p>
+              <p className={`font-mono ${systemHealth.overall === 'healthy' ? 'text-green-400' : 'text-yellow-400'}`}>
+                {systemHealth.overall === 'healthy' ? 'OK' : systemHealth.overall}
               </p>
             </div>
           </div>
@@ -235,9 +238,9 @@ export const MetricsDashboard: React.FC<MetricsDashboardProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            <div className={`px-3 py-1 rounded-full ${systemHealth.botRunning ? 'bg-green-500/20' : 'bg-yellow-500/20'}`}>
-              <span className={`text-sm font-medium ${systemHealth.botRunning ? 'text-green-400' : 'text-yellow-400'}`}>
-                {systemHealth.botRunning ? '🟢 Bot Running' : '🟡 Bot Idle'}
+            <div className={`px-3 py-1 rounded-full ${systemHealth.overall === 'healthy' ? 'bg-green-500/20' : 'bg-yellow-500/20'}`}>
+              <span className={`text-sm font-medium ${systemHealth.overall === 'healthy' ? 'text-green-400' : 'text-yellow-400'}`}>
+                {systemHealth.overall === 'healthy' ? '🟢 Systems OK' : systemHealth.overall === 'setup_needed' ? '⚙️ Setup Required' : '🟡 Check Config'}
               </span>
             </div>
           </div>
@@ -252,8 +255,8 @@ export const MetricsDashboard: React.FC<MetricsDashboardProps> = ({
             color="text-green-400"
           />
           <MetricCard
-            label="Domains Processed"
-            value={systemHealth.domainsProcessed.toLocaleString()}
+            label="Services Active"
+            value={Object.values(systemHealth.services).filter(s => s.status === 'healthy').length}
             icon={Database}
             color="text-blue-400"
           />

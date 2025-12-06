@@ -61,6 +61,7 @@ import { toast } from 'sonner'
 import { STRATEGIES, getStrategiesForBudget } from '@/lib/strategies/strategyDefinitions'
 import { ownerAuth } from '@/lib/auth/OwnerAuth'
 import { SignOut, Crown, Fire, Cpu, WifiHigh, Heartbeat } from '@phosphor-icons/react'
+import ConfigTab from '@/components/config/ConfigTab'
 
 // Tab types
 type TabType = 'empire' | 'vault' | 'strategies' | 'intelligence' | 'portfolio' | 'revenue' | 'risk' | 'finance' | 'swarm' | 'config'
@@ -1350,98 +1351,7 @@ export default function EmpireDashboard() {
 
           {/* ===== CONFIG TAB ===== */}
           {activeTab === 'config' && (
-            <motion.div
-              key="config"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="space-y-6"
-            >
-              {/* API Configuration */}
-              <Card className="bg-black/50 border border-yellow-600/20 p-6">
-                <h3 className="text-lg font-semibold text-yellow-600 mb-4">API Keys</h3>
-                <div className="space-y-4">
-                  {['Namecheap', 'GoDaddy', 'Google Trends', 'Twitter (X)', 'USPTO', 'Stripe'].map(api => (
-                    <div key={api} className="space-y-2">
-                      <label className="text-sm text-yellow-600">{api} API Key</label>
-                      <input
-                        type="password"
-                        placeholder={`Enter ${api} API Key`}
-                        className="w-full px-4 py-3 bg-black/50 border border-yellow-600/20 rounded-lg text-yellow-600 placeholder-yellow-600/40 focus:outline-none focus:border-yellow-600/50"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </Card>
-
-              {/* Auto-Funding */}
-              <Card className="bg-black/50 border border-yellow-600/20 p-6">
-                <h3 className="text-lg font-semibold text-yellow-600 mb-4">Auto-Funding (Stripe)</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm text-yellow-600/60">Min Balance Trigger</label>
-                    <input
-                      type="number"
-                      defaultValue={500}
-                      className="w-full px-4 py-3 bg-black/50 border border-yellow-600/20 rounded-lg text-yellow-600 mt-1"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm text-yellow-600/60">Auto-Fund Amount</label>
-                    <input
-                      type="number"
-                      defaultValue={1000}
-                      className="w-full px-4 py-3 bg-black/50 border border-yellow-600/20 rounded-lg text-yellow-600 mt-1"
-                    />
-                  </div>
-                </div>
-              </Card>
-
-              {/* Save Button */}
-              <Button className="w-full bg-yellow-600 hover:bg-yellow-500 text-black font-bold mb-4">
-                <Gear size={20} className="mr-2" />
-                Save Configuration
-              </Button>
-
-              {/* Re-run Setup Wizard */}
-              <Card className="card-obsidian-premium p-6">
-                <h3 className="text-lg font-semibold section-header mb-4">Setup Wizard</h3>
-                <p className="text-sm text-yellow-600/60 mb-4">
-                  Run the setup wizard again to reconfigure your API connections and settings.
-                </p>
-                <Button 
-                  variant="outline"
-                  className="w-full border-yellow-600/30 text-yellow-600 hover:bg-yellow-600/10"
-                  onClick={() => {
-                    localStorage.removeItem('domainFlipper_setupComplete')
-                    window.location.reload()
-                  }}
-                >
-                  <Rocket size={20} className="mr-2" />
-                  Re-run Setup Wizard
-                </Button>
-              </Card>
-
-              {/* Reset All Data */}
-              <Card className="bg-red-500/10 border border-red-500/30 p-6">
-                <h3 className="text-lg font-semibold text-red-400 mb-4">Danger Zone</h3>
-                <p className="text-sm text-red-400/60 mb-4">
-                  Clear all saved credentials and settings. This will reset the app to its initial state.
-                </p>
-                <Button 
-                  variant="outline"
-                  className="w-full border-red-500/30 text-red-400 hover:bg-red-500/10"
-                  onClick={() => {
-                    if (confirm('Are you sure? This will clear all your saved credentials and settings.')) {
-                      localStorage.clear()
-                      window.location.reload()
-                    }
-                  }}
-                >
-                  Reset All Data
-                </Button>
-              </Card>
-            </motion.div>
+            <ConfigTab />
           )}
         </AnimatePresence>
       </main>
