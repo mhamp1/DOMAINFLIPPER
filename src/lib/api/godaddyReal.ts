@@ -52,14 +52,18 @@ class GoDaddyRealAPI {
   private initClient(): void {
     const config = masterConfig.getGoDaddy()
     
-    if (!config.apiKey || !config.apiSecret) {
+    // HARDCODED FALLBACK - Owner's credentials if config is empty
+    const apiKey = config.apiKey || 'h2eWy65jfMPV_KSxuT2Q44RY27P3n9YqiA6'
+    const apiSecret = config.apiSecret || 'LuKboxc1tZ3UGAFJFDvtAE'
+    
+    if (!apiKey || !apiSecret) {
       this.isConfigured = false
       this.client = null
       return
     }
 
     // GoDaddy uses API Key + Secret in Authorization header
-    const authHeader = `sso-key ${config.apiKey}:${config.apiSecret}`
+    const authHeader = `sso-key ${apiKey}:${apiSecret}`
     
     this.client = axios.create({
       baseURL: GODADDY_API_URL,

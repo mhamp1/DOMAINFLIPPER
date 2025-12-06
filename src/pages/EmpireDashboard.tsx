@@ -129,9 +129,16 @@ export default function EmpireDashboard() {
   const [isLoading, setIsLoading] = useState(false)
   const [voiceEnabled, setVoiceEnabled] = useState(false)
   
-  // Core stats
+  // Core stats - SYNC WITH MASTERCONFIG
   const [stats, setStats] = useState(empireEngine.getStats())
-  const [fundingStats, setFundingStats] = useState(autoFundEngine.getStats())
+  
+  // Get empire settings from MasterConfig (single source of truth)
+  const masterEmpireSettings = masterConfig.getEmpire()
+  const [fundingStats, setFundingStats] = useState({
+    ...autoFundEngine.getStats(),
+    capital: masterEmpireSettings.totalCapital,
+    dailyBudget: masterEmpireSettings.dailyBudget,
+  })
   const [compoundStats, setCompoundStats] = useState(compoundEngine.getStats())
   const [riskStats, setRiskStats] = useState(quantumShield.getStats())
   
@@ -183,11 +190,19 @@ export default function EmpireDashboard() {
     return () => unsubscribe()
   }, [])
 
-  // Update all stats every second
+  // Update all stats every second - SYNC WITH MASTERCONFIG
   useEffect(() => {
     const interval = setInterval(() => {
       setStats(empireEngine.getStats())
-      setFundingStats(autoFundEngine.getStats())
+      
+      // Merge auto fund stats with MasterConfig empire settings
+      const masterEmpire = masterConfig.getEmpire()
+      setFundingStats({
+        ...autoFundEngine.getStats(),
+        capital: masterEmpire.totalCapital,
+        dailyBudget: masterEmpire.dailyBudget,
+      })
+      
       setCompoundStats(compoundEngine.getStats())
       setRiskStats(quantumShield.getStats())
       setMarketIntelStats(marketIntelEngine.getStats())

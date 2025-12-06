@@ -421,9 +421,19 @@ export class SupabaseDB {
   }
 }
 
-// Initialize with environment variables (gracefully handle missing vars)
-const supabaseUrl = typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_URL || ''
-const supabaseAnonKey = typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_ANON_KEY || ''
+// Initialize with MasterConfig (HARDCODED CREDENTIALS - NEVER EMPTY)
+import { masterConfig } from '@/lib/config/MasterConfig'
+
+// Get credentials from MasterConfig (always has owner's hardcoded values)
+const getSupabaseConfig = () => {
+  const config = masterConfig.getSupabase()
+  return {
+    url: config.url || 'https://gipcuhnjbzcnkclemopv.supabase.co',
+    anonKey: config.anonKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdpcGN1aG5qYnpjbmtjbGVtb3B2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ5NTU4MjcsImV4cCI6MjA4MDUzMTgyN30.8F1JWsoplrS6NC7aQnCj722uWQz4x10E_Y2xQfn0Mnk',
+  }
+}
+
+const { url: supabaseUrl, anonKey: supabaseAnonKey } = getSupabaseConfig()
 
 export const supabaseDB = new SupabaseDB({
   url: supabaseUrl,

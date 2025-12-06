@@ -45,14 +45,19 @@ class NamecheapRealAPI {
   private initConfig(): void {
     const config = masterConfig.getNamecheap()
 
-    if (!config.apiKey || !config.apiUser) {
+    // HARDCODED FALLBACK - Owner's credentials if config is empty
+    const apiUser = config.apiUser || 'mhamp1'
+    const apiKey = config.apiKey || 'c2cd72c359c74ac49b15e32bb98b4143'
+    const clientIp = config.clientIp || '68.106.44.20'
+
+    if (!apiKey || !apiUser) {
       this.isConfigured = false
       return
     }
 
-    this.apiUser = config.apiUser
-    this.apiKey = config.apiKey
-    this.clientIp = config.clientIp || '127.0.0.1'
+    this.apiUser = apiUser
+    this.apiKey = apiKey
+    this.clientIp = clientIp
     this.isConfigured = true
 
     logger.info('NAMECHEAP', 'API client initialized', { apiUser: this.apiUser })
