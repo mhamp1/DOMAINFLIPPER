@@ -44,6 +44,13 @@ export interface MasterConfigData {
     secretKey: string
   }
   
+  // Web3/ENS/Solana - Infura
+  infura: {
+    apiKey: string
+    mainnetUrl: string
+    gasApiUrl: string
+  }
+  
   // Empire Settings
   empire: {
     totalCapital: number
@@ -106,6 +113,12 @@ const OWNER_CREDENTIALS = {
     publishableKey: 'pk_live_51SYgQHGXpC5vPDcRSrWHvEgsmawP2QrrqrjXX1Yqbkj3vlqKG5GiSKfZApgLMj7K74Ove09HeW82OVpjORTJMZWb00XxLJ4cCd',
     secretKey: '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',
   },
+  // Web3/ENS/Solana - Infura API for blockchain interactions
+  infura: {
+    apiKey: 'b8111de91b344fc5a4109d35adb079af',
+    mainnetUrl: 'https://mainnet.infura.io/v3/b8111de91b344fc5a4109d35adb079af',
+    gasApiUrl: 'https://gas.api.infura.io/v3/b8111de91b344fc5a4109d35adb079af',
+  },
 }
 
 const DEFAULT_CONFIG: MasterConfigData = {
@@ -135,6 +148,11 @@ const DEFAULT_CONFIG: MasterConfigData = {
   stripe: {
     publishableKey: OWNER_CREDENTIALS.stripe.publishableKey,
     secretKey: OWNER_CREDENTIALS.stripe.secretKey,
+  },
+  infura: {
+    apiKey: OWNER_CREDENTIALS.infura.apiKey,
+    mainnetUrl: OWNER_CREDENTIALS.infura.mainnetUrl,
+    gasApiUrl: OWNER_CREDENTIALS.infura.gasApiUrl,
   },
   empire: {
     totalCapital: 500,
@@ -197,6 +215,7 @@ class MasterConfig {
         if (!merged.twitter.bearerToken) merged.twitter.bearerToken = OWNER_CREDENTIALS.twitter.bearerToken
         if (!merged.uspto.apiKey) merged.uspto.apiKey = OWNER_CREDENTIALS.uspto.apiKey
         if (!merged.stripe?.publishableKey) merged.stripe = { ...OWNER_CREDENTIALS.stripe }
+        if (!merged.infura?.apiKey) merged.infura = { ...OWNER_CREDENTIALS.infura }
         
         return merged
       }
@@ -261,6 +280,10 @@ class MasterConfig {
 
   getStripe() {
     return { ...this.config.stripe }
+  }
+
+  getInfura() {
+    return { ...this.config.infura }
   }
 
   // Get ALL owner credentials (hardcoded, permanent)
@@ -411,6 +434,10 @@ class MasterConfig {
     return !!(this.config.stripe?.publishableKey && this.config.stripe?.secretKey)
   }
 
+  isInfuraConfigured(): boolean {
+    return !!this.config.infura?.apiKey
+  }
+
   hasAnyAPIConfigured(): boolean {
     return this.isGoDaddyConfigured() || this.isNamecheapConfigured()
   }
@@ -423,6 +450,8 @@ class MasterConfig {
     if (this.isGoogleConfigured()) count++
     if (this.isTwitterConfigured()) count++
     if (this.isUSPTOConfigured()) count++
+    if (this.isStripeConfigured()) count++
+    if (this.isInfuraConfigured()) count++
     return count
   }
 
