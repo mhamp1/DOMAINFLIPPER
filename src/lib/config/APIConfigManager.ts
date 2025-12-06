@@ -37,11 +37,8 @@ export interface APIConfig {
     apiKey: string
     apiSecret: string
   }
-  // FREE: Afternic (GoDaddy's marketplace) - free API for listing/bidding
-  afternic: {
-    accountId: string
-    apiKey: string
-  }
+  // DropCatch for catching expiring domains
+  // (Afternic removed - requires partner program, no public API)
   
   // Intelligence APIs
   uspto: {
@@ -197,13 +194,6 @@ class APIConfigManager {
         description: 'Domain auctions and registration',
       },
       {
-        name: 'Afternic (FREE)',
-        key: 'afternic',
-        configured: this.isConfigured('afternic'),
-        required: false,
-        description: 'FREE - GoDaddy marketplace for listing/bidding',
-      },
-      {
         name: 'Namecheap',
         key: 'namecheap',
         configured: this.isConfigured('namecheap'),
@@ -279,7 +269,6 @@ class APIConfigManager {
       namecheap: 'Namecheap',
       namecheapBeast: 'Namecheap Beast Mode',
       dropcatch: 'DropCatch',
-      afternic: 'Afternic (FREE)',
       uspto: 'USPTO',
       google: 'Google',
       twitter: 'Twitter/X',
@@ -395,7 +384,6 @@ class APIConfigManager {
     return (
       this.isConfigured('godaddy') || 
       this.isConfigured('namecheap') ||
-      this.isConfigured('afternic') ||       // FREE option
       this.isConfigured('namecheapBeast') || // $99/mo option
       this.isConfigured('dropcatch')
     )

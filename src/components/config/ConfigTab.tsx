@@ -24,6 +24,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { apiConfigManager, type APIConfig } from '@/lib/config/APIConfigManager'
+import { empireSettings } from '@/lib/config/EmpireSettings'
 import { healthMonitor } from '@/lib/health/HealthMonitor'
 import { toast } from 'sonner'
 
@@ -45,18 +46,7 @@ interface APISection {
 }
 
 const API_SECTIONS: APISection[] = [
-  // ===== FREE OPTIONS FIRST =====
-  {
-    name: '🆓 Afternic (FREE)',
-    configKey: 'afternic',
-    description: "GoDaddy's marketplace — FREE API for listing/bidding (no paid upgrade needed)",
-    required: false,
-    helpUrl: 'https://www.afternic.com/sell-domains',
-    fields: [
-      { key: 'accountId', label: 'Account ID', placeholder: 'Your Afternic Account ID', type: 'text' },
-      { key: 'apiKey', label: 'API Key', placeholder: 'Enter Afternic API Key', type: 'password' },
-    ],
-  },
+  // ===== BEST VALUE OPTIONS FIRST =====
   {
     name: '💰 Namecheap Beast Mode ($99/mo)',
     configKey: 'namecheapBeast',
@@ -153,6 +143,12 @@ export default function ConfigTab() {
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({})
   const [saving, setSaving] = useState(false)
   const [healthStatus, setHealthStatus] = useState(apiConfigManager.getHealthStatus())
+  
+  // Empire Settings State
+  const [capital, setCapital] = useState(empireSettings.get('totalCapital'))
+  const [minROI, setMinROI] = useState(empireSettings.get('minROI'))
+  const [dailyBudget, setDailyBudget] = useState(empireSettings.get('dailyBudget'))
+  const [allStrategies, setAllStrategies] = useState(empireSettings.get('allStrategiesActive'))
 
   // Load saved config on mount
   useEffect(() => {
@@ -170,7 +166,25 @@ export default function ConfigTab() {
     
     setConfig(formattedConfig)
     setHealthStatus(apiConfigManager.getHealthStatus())
+    
+    // Load empire settings
+    setCapital(empireSettings.get('totalCapital'))
+    setMinROI(empireSettings.get('minROI'))
+    setDailyBudget(empireSettings.get('dailyBudget'))
+    setAllStrategies(empireSettings.get('allStrategiesActive'))
   }, [])
+  
+  const saveEmpireSettings = () => {
+    empireSettings.setCapital(capital)
+    empireSettings.setMinROI(minROI)
+    empireSettings.set('dailyBudget', dailyBudget)
+    if (allStrategies) {
+      empireSettings.enableAllStrategies()
+    }
+    toast.success('Empire Settings Saved!', { 
+      description: `Capital: $${capital} | Min ROI: ${minROI}x | Daily Budget: $${dailyBudget}` 
+    })
+  }
 
   const handleFieldChange = (sectionKey: string, fieldKey: string, value: string) => {
     setConfig(prev => ({
@@ -267,6 +281,81 @@ export default function ConfigTab() {
             </div>
           ))}
         </div>
+      </Card>
+
+      {/* ===== EMPIRE SETTINGS (Capital, ROI, Strategies) ===== */}
+      <Card className="card-obsidian-premium p-6 border-2 border-yellow-500/30">
+        <h3 className="text-xl font-bold text-yellow-500 mb-4 flex items-center gap-2">
+          💰 Empire Settings
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          {/* Capital */}
+          <div className="space-y-2">
+            <label className="text-sm text-yellow-600/70 font-medium">Starting Capital ($)</label>
+            <input
+              type="number"
+              value={capital}
+              onChange={(e) => setCapital(Number(e.target.value))}
+              min={100}
+              step={100}
+              className="w-full px-4 py-3 bg-black/50 border border-yellow-500/30 rounded-lg text-yellow-500 text-lg font-bold focus:outline-none focus:border-yellow-500"
+            />
+            <p className="text-xs text-yellow-600/50">Your initial investment</p>
+          </div>
+          
+          {/* Min ROI */}
+          <div className="space-y-2">
+            <label className="text-sm text-yellow-600/70 font-medium">Minimum ROI (x)</label>
+            <input
+              type="number"
+              value={minROI}
+              onChange={(e) => setMinROI(Number(e.target.value))}
+              min={2}
+              max={50}
+              step={1}
+              className="w-full px-4 py-3 bg-black/50 border border-yellow-500/30 rounded-lg text-yellow-500 text-lg font-bold focus:outline-none focus:border-yellow-500"
+            />
+            <p className="text-xs text-yellow-600/50">Only buy {minROI}x+ return domains</p>
+          </div>
+          
+          {/* Daily Budget */}
+          <div className="space-y-2">
+            <label className="text-sm text-yellow-600/70 font-medium">Daily Budget ($)</label>
+            <input
+              type="number"
+              value={dailyBudget}
+              onChange={(e) => setDailyBudget(Number(e.target.value))}
+              min={10}
+              step={10}
+              className="w-full px-4 py-3 bg-black/50 border border-yellow-500/30 rounded-lg text-yellow-500 text-lg font-bold focus:outline-none focus:border-yellow-500"
+            />
+            <p className="text-xs text-yellow-600/50">Max spend per day</p>
+          </div>
+        </div>
+        
+        {/* All Strategies Toggle */}
+        <div className="flex items-center justify-between p-4 bg-black/30 rounded-lg border border-yellow-600/20 mb-4">
+          <div>
+            <p className="text-yellow-600 font-medium">Enable ALL Strategies</p>
+            <p className="text-xs text-yellow-600/50">Run all strategies simultaneously for maximum profit</p>
+          </div>
+          <button
+            onClick={() => {
+              setAllStrategies(!allStrategies)
+              if (!allStrategies) {
+                empireSettings.enableAllStrategies()
+              }
+            }}
+            className={`w-14 h-7 rounded-full transition-all duration-300 ${allStrategies ? 'bg-green-500' : 'bg-yellow-600/30'}`}
+          >
+            <div className={`w-6 h-6 bg-white rounded-full transition-transform duration-300 ${allStrategies ? 'translate-x-7' : 'translate-x-0.5'}`} />
+          </button>
+        </div>
+        
+        <Button onClick={saveEmpireSettings} className="w-full btn-gold-premium py-3">
+          <FloppyDisk size={20} className="mr-2" /> Save Empire Settings
+        </Button>
       </Card>
 
       {/* API Sections */}

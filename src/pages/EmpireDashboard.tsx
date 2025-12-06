@@ -54,6 +54,7 @@ import { aiNarrator } from '@/lib/ai/AINarrator'
 import { multiCurrencyEngine } from '@/lib/finance/MultiCurrencyEngine'
 import { multiBotSwarm } from '@/lib/scalability/MultiBotSwarm'
 import { empireBrain, type EmpireStats, type EmpireThought } from '@/lib/empire/EmpireBrain'
+import { empireSettings } from '@/lib/config/EmpireSettings'
 import { leadScanner } from '@/lib/intelligence/LeadScanner'
 import { godScoreEngine } from '@/lib/valuation/GodScore'
 import { formatCurrency } from '@/lib/utils'
@@ -109,7 +110,7 @@ export default function EmpireDashboard() {
 
   // Auto-resume bot if it was running before logout
   useEffect(() => {
-    const wasRunning = empireBrain.wasRunning()
+    const wasRunning = empireSettings.wasBotRunning()
     if (wasRunning && !isLaunched) {
       console.log('🔄 Auto-resuming Empire (was running before logout)...')
       handleLaunchEmpire()
@@ -226,9 +227,14 @@ export default function EmpireDashboard() {
       setIsLoading(true)
       try {
         // LAUNCH THE UNIFIED EMPIRE BRAIN — One button starts EVERYTHING
+        // Use saved capital from EmpireSettings
+        const savedCapital = empireSettings.get('totalCapital')
         await empireBrain.launch({
-          initialCapital: fundingStats.capital || 500,
+          initialCapital: savedCapital || 500,
         })
+        
+        // Mark bot as running (persists across logout)
+        empireSettings.setBotRunning(true)
         
         // Empire Brain now starts all systems automatically:
         // - Autonomous Brain (scanning, buying)
@@ -305,7 +311,7 @@ export default function EmpireDashboard() {
                 ) : 'READY'}
               </Badge>
               <div className="text-right hidden md:block">
-                <div className="text-lg font-bold value-gold value-display">{formatCurrency(fundingStats.capital)}</div>
+                <div className="text-lg font-bold value-gold value-display">{formatCurrency(empireSettings.get('totalCapital'))}</div>
                 <div className="text-xs text-yellow-600/50">Capital</div>
               </div>
               {/* Logout Button - Bot keeps running! */}
@@ -390,9 +396,9 @@ export default function EmpireDashboard() {
                     <span className="text-xs text-yellow-600/60 uppercase tracking-wider">Capital</span>
                   </div>
                   <div className="text-2xl md:text-3xl font-bold value-gold value-display">
-                    {formatCurrency(fundingStats.capital)}
+                    {formatCurrency(empireSettings.get('totalCapital'))}
                   </div>
-                  <div className="text-xs text-yellow-600/40 mt-1">Started with $100</div>
+                  <div className="text-xs text-yellow-600/40 mt-1">Available: {formatCurrency(empireSettings.getAvailableCapital())}</div>
                 </Card>
 
                 {/* Total Profit Card */}
@@ -404,9 +410,9 @@ export default function EmpireDashboard() {
                     <span className="text-xs text-yellow-600/60 uppercase tracking-wider">Total Profit</span>
                   </div>
                   <div className="text-2xl md:text-3xl font-bold value-green value-display">
-                    {formatCurrency(compoundStats.totalProfit)}
+                    {formatCurrency(empireSettings.get('totalProfit'))}
                   </div>
-                  <div className="text-xs text-green-500/60 mt-1">+{((compoundStats.totalProfit / Math.max(fundingStats.capital, 1)) * 100).toFixed(1)}% growth</div>
+                  <div className="text-xs text-green-500/60 mt-1">ROI: {empireSettings.getROI().toFixed(1)}%</div>
                 </Card>
 
                 {/* Domains Card */}
@@ -418,9 +424,9 @@ export default function EmpireDashboard() {
                     <span className="text-xs text-yellow-600/60 uppercase tracking-wider">Domains</span>
                   </div>
                   <div className="text-2xl md:text-3xl font-bold value-gold value-display">
-                    {stats.domainsOwned}
+                    {empireSettings.get('domainsAcquired')}
                   </div>
-                  <div className="text-xs text-yellow-600/40 mt-1">{stats.domainsSold} flipped</div>
+                  <div className="text-xs text-yellow-600/40 mt-1">{empireSettings.get('domainsSold')} sold | Win: {empireSettings.getWinRate().toFixed(0)}%</div>
                 </Card>
 
                 {/* Scans Today Card */}
@@ -800,9 +806,9 @@ export default function EmpireDashboard() {
                   { name: 'Crypto Domain Sniper', desc: 'Find domains related to new crypto projects, DeFi protocols, and Web3 brands', roi: '25x', success: '72%', profit: 0, active: true },
                   { name: 'AI Name Generator', desc: 'Use AI to predict valuable domain names before they become trends', roi: '18x', success: '81%', profit: 0, active: true },
                   { name: 'Startup Name Sniper', desc: 'Monitor YC, TechCrunch, and Product Hunt for emerging startup names', roi: '30x', success: '68%', profit: 0, active: true },
-                  { name: 'Geographic Domain Hunter', desc: 'Target city, region, and country-specific domains with local value', roi: '8x', success: '89%', profit: 0, active: false },
-                  { name: 'Industry Keyword Sniper', desc: 'Focus on high-CPC industry keywords with proven commercial intent', roi: '15x', success: '82%', profit: 0, active: false },
-                  { name: 'Typo Domain Finder', desc: 'Find common misspellings of popular brands and websites', roi: '5x', success: '95%', profit: 0, active: false },
+                  { name: 'Geographic Domain Hunter', desc: 'Target city, region, and country-specific domains with local value', roi: '8x', success: '89%', profit: 0, active: true },
+                  { name: 'Industry Keyword Sniper', desc: 'Focus on high-CPC industry keywords with proven commercial intent', roi: '15x', success: '82%', profit: 0, active: true },
+                  { name: 'Typo Domain Finder', desc: 'Find common misspellings of popular brands and websites', roi: '5x', success: '95%', profit: 0, active: true },
                 ].map((strategy, i) => (
                   <Card key={i} className="card-obsidian-premium p-6">
                     <div className="flex items-start justify-between mb-4">
