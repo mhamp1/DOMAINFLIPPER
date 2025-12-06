@@ -3,6 +3,7 @@ import { createGoDaddyClient } from '@/lib/api/godaddy'
 import { createNamecheapClient } from '@/lib/api/namecheapReal'
 import { valuationEngine } from '@/lib/ai/valuationEngine'
 import { STRATEGIES, getAllEnabledStrategies } from '@/lib/strategies/strategyDefinitions'
+import { logger } from '@/lib/utils/logger'
 
 /**
  * Multi-source domain scanner
@@ -29,7 +30,7 @@ export class DomainScanner {
         apiKey: godaddyKey,
         apiSecret: godaddySecret,
       })
-      console.log('✅ GoDaddy API client initialized')
+      logger.info('SCANNER', 'GoDaddy API client initialized')
     } else {
       console.warn('⚠️ GoDaddy API not configured - add VITE_GODADDY_KEY and VITE_GODADDY_SECRET')
     }
@@ -44,7 +45,7 @@ export class DomainScanner {
         apiKey: ncKey,
         clientIp: ncIp,
       })
-      console.log('✅ Namecheap API client initialized')
+      logger.info('SCANNER', 'Namecheap API client initialized')
     } else {
       console.warn('⚠️ Namecheap API not configured - add VITE_NAMECHEAP_API_USER, VITE_NAMECHEAP_API_KEY, VITE_NAMECHEAP_CLIENT_IP')
     }
@@ -55,12 +56,12 @@ export class DomainScanner {
    */
   private async scanGoDaddy(): Promise<Domain[]> {
     if (!this.godaddyClient) {
-      console.log('⏭️ Skipping GoDaddy scan - API not configured')
+      logger.debug('SCANNER', 'Skipping GoDaddy scan - API not configured')
       return []
     }
 
     try {
-      console.log('🔍 Scanning GoDaddy Auctions...')
+      logger.info('SCANNER', 'Scanning GoDaddy Auctions...')
       
       // Get expiring auctions (most profitable)
       const auctions = await this.godaddyClient.searchExpiringDomains({ limit: 100 })
@@ -80,7 +81,7 @@ export class DomainScanner {
         timeLeft: auction.timeLeft || '',
       }))
       
-      console.log(`✅ Found ${domains.length} domains on GoDaddy`)
+      logger.info('SCANNER', `Found ${domains.length} domains on GoDaddy`)
       return domains
     } catch (error) {
       console.error('❌ GoDaddy scan error:', error)
@@ -93,12 +94,12 @@ export class DomainScanner {
    */
   private async scanNamecheap(): Promise<Domain[]> {
     if (!this.namecheapClient) {
-      console.log('⏭️ Skipping Namecheap scan - API not configured')
+      logger.debug('SCANNER', 'Skipping Namecheap scan - API not configured')
       return []
     }
 
     try {
-      console.log('🔍 Scanning Namecheap...')
+      logger.info('SCANNER', 'Scanning Namecheap...')
       // Namecheap doesn't have a direct auction API like GoDaddy
       // This would need to integrate with their marketplace
       return []
@@ -113,7 +114,7 @@ export class DomainScanner {
    * Returns EMPTY array if no APIs are configured
    */
   async scan(): Promise<Domain[]> {
-    console.log('🔍 Starting domain scan...')
+    logger.info('SCANNER', 'Starting domain scan...')
     
     // Scan all sources in parallel
     const [godaddyDomains, namecheapDomains] = await Promise.all([
@@ -125,12 +126,12 @@ export class DomainScanner {
     const allDomains = [...godaddyDomains, ...namecheapDomains]
 
     if (allDomains.length === 0) {
-      console.log('📭 No domains found - ensure APIs are configured in Setup Wizard')
+      logger.warn('SCANNER', 'No domains found - ensure APIs are configured in Config tab')
       return []
     }
 
     // Valuate all domains with AI
-    console.log(`🧠 Valuating ${allDomains.length} domains...`)
+    logger.info('SCANNER', `Valuating ${allDomains.length} domains...`)
     const valuatedDomains = await Promise.all(
       allDomains.map(async (domain) => {
         try {
@@ -161,7 +162,7 @@ export class DomainScanner {
       return domain.aiScore >= 70
     })
 
-    console.log(`✅ Scan complete: ${filteredDomains.length} opportunities found`)
+    logger.info('SCANNER', `Scan complete: ${filteredDomains.length} opportunities found`)
     return filteredDomains
   }
 
@@ -202,7 +203,7 @@ export class DomainScanner {
     if (this.isScanning) return
 
     this.isScanning = true
-    console.log(`🔄 Starting continuous scanning every ${intervalMs / 1000}s`)
+    logger.info('SCANNER', `Starting continuous scanning every ${intervalMs / 1000}s`)
 
     // Initial scan
     this.scan().then(callback)
@@ -223,7 +224,7 @@ export class DomainScanner {
       this.scanInterval = null
     }
     this.isScanning = false
-    console.log('⏹️ Domain scanning stopped')
+    logger.info('SCANNER', 'Domain scanning stopped')
   }
 
   /**

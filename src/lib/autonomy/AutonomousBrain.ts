@@ -356,7 +356,7 @@ export class AutonomousBrain {
    */
   private async runScanCycle(): Promise<void> {
     if (!this.canBuyToday()) {
-      console.log('Daily budget exhausted, skipping scan')
+      logger.info('BRAIN', 'Daily budget exhausted, skipping scan')
       return
     }
     
@@ -380,7 +380,7 @@ export class AutonomousBrain {
         }
       }
       
-      console.log(`✅ Scan complete: ${domains.length} domains analyzed`)
+      logger.info('BRAIN', `Scan complete: ${domains.length} domains analyzed`)
       
     } catch (error) {
       console.error('Scan cycle error:', error)
@@ -543,13 +543,13 @@ export class AutonomousBrain {
    */
   private async executeBuy(intel: DomainIntelligence, maxBid: number): Promise<boolean> {
     try {
-      console.log(`🎯 Attempting to acquire: ${intel.domain} (max bid: $${maxBid})`)
+      logger.info('BRAIN', `Attempting to acquire: ${intel.domain} (max bid: $${maxBid})`)
       
       // Use the REAL multi-registrar sniper
       const result = await snipeDomainMultiRegistrar(intel.domain, maxBid)
       
       if (!result || !result.success) {
-        console.log(`❌ Failed to acquire ${intel.domain}`)
+        logger.warn('BRAIN', `Failed to acquire ${intel.domain}`)
         return false
       }
       
@@ -591,7 +591,7 @@ export class AutonomousBrain {
       })
       
       // Auto-list on configured marketplaces
-      console.log(`📢 Auto-listing ${intel.domain} on marketplaces...`)
+      logger.info('BRAIN', `Auto-listing ${intel.domain} on marketplaces...`)
       await marketplaceLister.listOnAllMarketplaces(intel.domain, owned.currentListingPrice)
       
       toast.success('💎 DOMAIN ACQUIRED & LISTED', {
@@ -599,7 +599,7 @@ export class AutonomousBrain {
         duration: 5000,
       })
       
-      console.log(`✅ Bought: ${intel.domain} for $${purchasePrice} via ${result.registrar}`)
+      logger.purchase(intel.domain, purchasePrice, result.registrar)
       
       return true
       
@@ -665,7 +665,7 @@ export class AutonomousBrain {
           owned.currentListingPrice = newPrice
           owned.priceDrops++
           
-          console.log(`📉 Price drop: ${domain} → $${newPrice.toLocaleString()} (was $${oldPrice.toLocaleString()})`)
+          logger.info('PRICING', `Price drop: ${domain} → $${newPrice.toLocaleString()} (was $${oldPrice.toLocaleString()})`)
         }
       }
     }
@@ -741,7 +741,7 @@ export class AutonomousBrain {
       duration: 7000,
     })
     
-    console.log(`🎉 Sold: ${domain} for $${salePrice} | Profit: $${profit} | ROI: ${roi.toFixed(0)}%`)
+    logger.sale(domain, salePrice, profit)
   }
   
   // ==========================================================================
@@ -898,7 +898,7 @@ export class AutonomousBrain {
     this.stats.buysToday = 0
     this.stats.sellsToday = 0
     
-    console.log('📅 Daily stats reset')
+    logger.info('BRAIN', 'Daily stats reset')
   }
   
   private updateWinRate(won: boolean): void {

@@ -65,9 +65,10 @@ import { namecheapAPI } from '@/lib/api/namecheapReal'
 import { ownerAuth } from '@/lib/auth/OwnerAuth'
 import { SignOut, Crown, Fire, Cpu, WifiHigh, Heartbeat } from '@phosphor-icons/react'
 import ConfigTab from '@/components/config/ConfigTab'
+import EmpireControlCenter from '@/pages/EmpireControlCenter'
 
 // Tab types
-type TabType = 'empire' | 'vault' | 'strategies' | 'intelligence' | 'portfolio' | 'revenue' | 'risk' | 'finance' | 'swarm' | 'config'
+type TabType = 'empire' | 'vault' | 'strategies' | 'intelligence' | 'portfolio' | 'revenue' | 'risk' | 'finance' | 'swarm' | 'control' | 'config'
 
 // API Status Bar Component - Updates automatically
 function APIStatusBar() {
@@ -145,7 +146,7 @@ export default function EmpireDashboard() {
   useEffect(() => {
     const wasRunning = empireSettings.wasBotRunning()
     if (wasRunning && !isLaunched) {
-      console.log('🔄 Auto-resuming Empire (was running before logout)...')
+      // Auto-resuming Empire (was running before logout)
       handleLaunchEmpire()
     }
   }, []) // Only run once on mount
@@ -399,6 +400,7 @@ export default function EmpireDashboard() {
               { id: 'risk', label: 'Risk', icon: Shield },
               { id: 'finance', label: 'Finance', icon: CurrencyDollar },
               { id: 'swarm', label: 'Swarm', icon: Robot },
+              { id: 'control', label: 'CONTROL', icon: Crown },
               { id: 'config', label: 'Config', icon: Gear },
             ].map(tab => (
               <button
@@ -1409,6 +1411,11 @@ export default function EmpireDashboard() {
                 )}
               </Card>
             </motion.div>
+          )}
+
+          {/* ===== CONTROL TAB ===== */}
+          {activeTab === 'control' && (
+            <EmpireControlCenter />
           )}
 
           {/* ===== CONFIG TAB ===== */}
