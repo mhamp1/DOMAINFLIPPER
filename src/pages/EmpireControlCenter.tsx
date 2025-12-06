@@ -30,6 +30,14 @@ import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { useEmpireConfig, ALL_STRATEGIES, formatUptime } from '@/lib/config/UserEmpireConfig'
+import { empireBrain } from '@/lib/empire/EmpireBrain'
+import { empireEngine } from '@/lib/autonomy/EmpireEngine'
+import { autoFundEngine } from '@/lib/funding/AutoFundEngine'
+import { compoundEngine } from '@/lib/empire/CompoundEngine'
+import { marketIntelEngine } from '@/lib/intelligence/MarketIntelEngine'
+import { leasingEngine } from '@/lib/revenue/LeasingEngine'
+import { multiBotSwarm } from '@/lib/scalability/MultiBotSwarm'
+import { empireSettings } from '@/lib/config/EmpireSettings'
 import { toast } from 'sonner'
 
 const RISK_LEVELS = [
@@ -51,19 +59,59 @@ export default function EmpireControlCenter() {
     return () => clearInterval(interval)
   }, [config])
 
-  const handleLaunch = () => {
+  const [isLoading, setIsLoading] = useState(false)
+  const [isLaunched, setIsLaunched] = useState(empireBrain.isActive())
+  
+  // Subscribe to Empire Brain updates
+  useEffect(() => {
+    const unsubscribe = empireBrain.subscribe((stats) => {
+      setIsLaunched(stats.isRunning)
+    })
+    return () => unsubscribe()
+  }, [])
+
+  const handleLaunch = async () => {
     if (config.emergencyPaused) {
       toast.error('Empire is emergency paused. Resume first.')
       return
     }
     
-    if (config.botRunning) {
+    setIsLoading(true)
+    
+    if (isLaunched) {
+      // Stop the unified Empire Brain (stops everything)
+      empireBrain.stop()
+      
+      // Also stop legacy systems
+      empireEngine.stop()
+      autoFundEngine.stopAutoFundLoop()
+      compoundEngine.stopCompoundLoop()
+      marketIntelEngine.stopMonitoring()
+      leasingEngine.stopAutoRenewalMonitoring()
+      multiBotSwarm.pauseSwarm()
+      
       config.stopBot()
-      toast.info('Empire Paused', { description: 'Bot stopped scanning' })
+      empireSettings.setBotRunning(false)
+      setIsLoading(false)
+      toast.warning('🛑 Empire Paused', { description: 'All systems on standby' })
     } else {
+      // Launch the unified Empire Brain with current capital
+      const capital = config.capital
+      await empireBrain.launch({ initialCapital: capital })
+      
+      // Also start supporting systems
+      if (config.autoFund) {
+        autoFundEngine.startAutoFundLoop()
+      }
+      compoundEngine.startCompoundLoop()
+      marketIntelEngine.startMonitoring()
+      leasingEngine.startAutoRenewalMonitoring()
+      
       config.startBot()
+      empireSettings.setBotRunning(true)
+      setIsLoading(false)
       toast.success('🚀 EMPIRE LAUNCHED', { 
-        description: 'Bot is now scanning and sniping domains',
+        description: `Capital: $${capital.toLocaleString()} | All systems GO`,
         duration: 5000,
       })
     }
@@ -103,9 +151,9 @@ export default function EmpireControlCenter() {
         <Card className="card-obsidian-premium p-4">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-4">
-              <div className={`w-4 h-4 rounded-full ${config.botRunning ? 'bg-green-500 animate-pulse' : config.emergencyPaused ? 'bg-red-500' : 'bg-yellow-500'}`} />
+              <div className={`w-4 h-4 rounded-full ${isLaunched ? 'bg-green-500 animate-pulse' : config.emergencyPaused ? 'bg-red-500' : 'bg-yellow-500'}`} />
               <span className="text-lg font-bold">
-                {config.emergencyPaused ? '🛑 EMERGENCY PAUSED' : config.botRunning ? '🟢 LIVE & SCANNING' : '🟡 READY'}
+                {config.emergencyPaused ? '🛑 EMERGENCY PAUSED' : isLaunched ? '🟢 LIVE & SCANNING' : '🟡 READY'}
               </span>
             </div>
             <div className="flex items-center gap-6">
@@ -333,14 +381,19 @@ export default function EmpireControlCenter() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Button
             onClick={handleLaunch}
-            disabled={config.emergencyPaused}
+            disabled={config.emergencyPaused || isLoading}
             className={`h-24 text-2xl font-black transition-all ${
-              config.botRunning
-                ? 'bg-yellow-600 hover:bg-yellow-500 text-black'
+              isLaunched
+                ? 'bg-red-600 hover:bg-red-500 text-white'
                 : 'bg-green-600 hover:bg-green-500 text-white'
             }`}
           >
-            {config.botRunning ? (
+            {isLoading ? (
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 border-4 border-current border-t-transparent rounded-full animate-spin" />
+                {isLaunched ? 'Stopping...' : 'Launching...'}
+              </div>
+            ) : isLaunched ? (
               <><Pause size={32} className="mr-3" /> PAUSE EMPIRE</>
             ) : (
               <><Rocket size={32} className="mr-3" /> LAUNCH EMPIRE</>

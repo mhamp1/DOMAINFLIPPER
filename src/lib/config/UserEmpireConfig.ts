@@ -6,6 +6,7 @@
 
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { empireSettings } from '@/lib/config/EmpireSettings'
 
 // All 10 strategies
 export const ALL_STRATEGIES = [
@@ -80,10 +81,10 @@ interface EmpireConfig {
 export const useEmpireConfig = create<EmpireConfig>()(
   persist(
     (set, get) => ({
-      // Initial values
-      capital: 500,
-      dailyBudgetPercent: 10,
-      minROI: 5,
+      // Initial values - Load from empireSettings for sync
+      capital: empireSettings.get('totalCapital') || 500,
+      dailyBudgetPercent: Math.round((empireSettings.get('dailyBudget') / (empireSettings.get('totalCapital') || 500)) * 100) || 10,
+      minROI: empireSettings.get('minROI') || 5,
       riskLevel: 'god',
       autoFund: false,
       autoCompound: true,
@@ -91,19 +92,32 @@ export const useEmpireConfig = create<EmpireConfig>()(
       autoBid: true,
       activeStrategies: ALL_STRATEGIES.map(s => s.id), // All ON by default
       emergencyPaused: false,
-      botRunning: false,
+      botRunning: empireSettings.wasBotRunning() || false,
       launchTime: null,
-      totalProfit: 0,
-      totalSpent: 0,
-      domainsAcquired: 0,
-      domainsSold: 0,
+      totalProfit: empireSettings.get('totalProfit') || 0,
+      totalSpent: empireSettings.get('totalSpent') || 0,
+      domainsAcquired: empireSettings.get('domainsAcquired') || 0,
+      domainsSold: empireSettings.get('domainsSold') || 0,
 
-      // Actions
-      setCapital: (amount) => set({ capital: Math.max(0, amount) }),
+      // Actions - Also sync to empireSettings for Dashboard compatibility
+      setCapital: (amount) => {
+        const newAmount = Math.max(0, amount)
+        empireSettings.setCapital(newAmount) // Sync to empireSettings
+        set({ capital: newAmount })
+      },
       
-      setDailyBudget: (percent) => set({ dailyBudgetPercent: Math.min(100, Math.max(1, percent)) }),
+      setDailyBudget: (percent) => {
+        const newPercent = Math.min(100, Math.max(1, percent))
+        const capital = get().capital
+        empireSettings.set('dailyBudget', Math.round((capital * newPercent) / 100)) // Sync to empireSettings
+        set({ dailyBudgetPercent: newPercent })
+      },
       
-      setMinROI: (roi) => set({ minROI: Math.max(1, roi) }),
+      setMinROI: (roi) => {
+        const newRoi = Math.max(1, roi)
+        empireSettings.setMinROI(newRoi) // Sync to empireSettings
+        set({ minROI: newRoi })
+      },
       
       setRiskLevel: (level) => set({ riskLevel: level }),
       
