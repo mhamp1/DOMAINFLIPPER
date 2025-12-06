@@ -48,59 +48,135 @@ interface APISection {
   helpUrl: string
 }
 
-const API_SECTIONS: APISection[] = [
-  // ===== BEST VALUE OPTIONS FIRST =====
-  {
-    name: '💰 Namecheap Beast Mode ($99/mo)',
-    configKey: 'namecheapBeast',
-    description: 'Full auctions API without upgrade — best value for serious flippers',
-    required: false,
-    helpUrl: 'https://www.namecheap.com/domains/marketplace/beast-mode/',
-    fields: [
-      { key: 'apiUser', label: 'API Username', placeholder: 'Your Namecheap username', type: 'text' },
-      { key: 'apiKey', label: 'Beast Mode API Key', placeholder: 'Enter Beast Mode API Key', type: 'password' },
-      { key: 'clientIp', label: 'Whitelisted IP', placeholder: 'Your whitelisted IP address', type: 'text' },
+// ==================== API SETUP INSTRUCTIONS ====================
+const API_INSTRUCTIONS: Record<string, { steps: string[]; cost: string; priority: string }> = {
+  godaddy: {
+    priority: '🥇 PRIMARY — Start Here',
+    cost: 'Free to create keys, pay per domain purchase',
+    steps: [
+      '1. Go to https://developer.godaddy.com/keys',
+      '2. Log in with your GoDaddy account (create one if needed)',
+      '3. Click "Create New API Key"',
+      '4. Name it "DomainFlipper" and select "Production"',
+      '5. Copy both the API Key and Secret immediately (Secret only shown once!)',
+      '6. Paste them below and click Save',
+      '⚠️ Keep your GoDaddy account funded for purchases',
     ],
   },
-  // ===== PREMIUM OPTIONS =====
+  namecheap: {
+    priority: '🥈 SECONDARY — Expand Later',
+    cost: 'Free API, requires 20+ domains or $50+ balance',
+    steps: [
+      '1. Go to https://www.namecheap.com/support/api/intro/',
+      '2. Log in to your Namecheap account',
+      '3. Enable API access in Profile → Tools → API Access',
+      '4. Whitelist your IP address (find yours at whatismyip.com)',
+      '5. Copy your API Key from the dashboard',
+      '6. Your username is your Namecheap login username',
+    ],
+  },
+  supabase: {
+    priority: '💾 DATABASE — For Portfolio Tracking',
+    cost: 'Free tier: 500MB database, 2GB bandwidth',
+    steps: [
+      '1. Go to https://supabase.com and sign up (free)',
+      '2. Create a new project (any name)',
+      '3. Go to Project Settings → API',
+      '4. Copy the "Project URL" (https://xxx.supabase.co)',
+      '5. Copy the "anon public" key (NOT service_role!)',
+      '6. Paste both below and click Save',
+    ],
+  },
+  google: {
+    priority: '📊 INTEL — Google Trends (Expand Later)',
+    cost: 'Free tier: 100 requests/day',
+    steps: [
+      '1. Go to https://console.cloud.google.com',
+      '2. Create a new project',
+      '3. Enable "Custom Search API"',
+      '4. Go to Credentials → Create API Key',
+      '5. Restrict key to Custom Search API (recommended)',
+      '6. Copy the API key and paste below',
+    ],
+  },
+  twitter: {
+    priority: '🐦 INTEL — Trending Topics (Expand Later)',
+    cost: 'Free tier: 500k tweets/month read',
+    steps: [
+      '1. Go to https://developer.twitter.com/en/portal/dashboard',
+      '2. Apply for a Developer Account (takes 1-2 days)',
+      '3. Create a new App in the Developer Portal',
+      '4. Go to "Keys and Tokens"',
+      '5. Generate a Bearer Token',
+      '6. Copy the Bearer Token and paste below',
+    ],
+  },
+  uspto: {
+    priority: '™️ LEGAL — Trademark Check (Optional)',
+    cost: 'Free',
+    steps: [
+      '1. Go to https://developer.uspto.gov/',
+      '2. Create a free account',
+      '3. Request API access (instant approval)',
+      '4. Copy your API key from the dashboard',
+      '5. This helps avoid buying trademarked domains',
+    ],
+  },
+}
+
+const API_SECTIONS: APISection[] = [
+  // ===== PRIMARY — GoDaddy FIRST =====
   {
-    name: 'GoDaddy',
+    name: '🥇 GoDaddy (PRIMARY)',
     configKey: 'godaddy',
-    description: 'Domain auctions and registration (requires paid API access)',
-    required: false,
+    description: 'Your main domain source — auctions, purchases, and account balance',
+    required: true,
     helpUrl: 'https://developer.godaddy.com/keys',
     fields: [
-      { key: 'apiKey', label: 'API Key', placeholder: 'Enter GoDaddy API Key', type: 'password' },
-      { key: 'apiSecret', label: 'API Secret', placeholder: 'Enter GoDaddy API Secret', type: 'password' },
+      { key: 'apiKey', label: 'API Key', placeholder: 'e.g., abcd1234...', type: 'password' },
+      { key: 'apiSecret', label: 'API Secret', placeholder: 'e.g., xyz789...', type: 'password' },
     ],
   },
+  // ===== DATABASE =====
   {
-    name: 'Namecheap',
+    name: '💾 Supabase (Database)',
+    configKey: 'supabase',
+    description: 'Free database for storing your portfolio and flip history',
+    required: false,
+    helpUrl: 'https://supabase.com/dashboard',
+    fields: [
+      { key: 'url', label: 'Project URL', placeholder: 'https://xxxx.supabase.co', type: 'text' },
+      { key: 'anonKey', label: 'Anon Key', placeholder: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...', type: 'password' },
+    ],
+  },
+  // ===== SECONDARY — Expand Later =====
+  {
+    name: '🥈 Namecheap (Secondary)',
     configKey: 'namecheap',
-    description: 'Alternative registrar for sniping',
+    description: 'Alternative registrar — add after you build GoDaddy profits',
     required: false,
     helpUrl: 'https://www.namecheap.com/support/api/intro/',
     fields: [
       { key: 'apiUser', label: 'API Username', placeholder: 'Your Namecheap username', type: 'text' },
       { key: 'apiKey', label: 'API Key', placeholder: 'Enter Namecheap API Key', type: 'password' },
-      { key: 'clientIp', label: 'Whitelisted IP', placeholder: 'Your whitelisted IP address', type: 'text' },
+      { key: 'clientIp', label: 'Whitelisted IP', placeholder: 'Your IP (find at whatismyip.com)', type: 'text' },
     ],
   },
+  // ===== INTELLIGENCE APIs — Future Expansion =====
   {
-    name: 'Supabase',
-    configKey: 'supabase',
-    description: 'Database for storing portfolio data',
+    name: '📊 Google (Trends Intel)',
+    configKey: 'google',
+    description: 'Spot trending keywords before they explode — add when profitable',
     required: false,
-    helpUrl: 'https://supabase.com/dashboard',
+    helpUrl: 'https://console.cloud.google.com',
     fields: [
-      { key: 'url', label: 'Project URL', placeholder: 'https://xxxx.supabase.co', type: 'text' },
-      { key: 'anonKey', label: 'Anon Key', placeholder: 'Enter Supabase Anon Key', type: 'password' },
+      { key: 'apiKey', label: 'API Key', placeholder: 'Enter Google API Key', type: 'password' },
     ],
   },
   {
-    name: 'Twitter/X',
+    name: '🐦 Twitter/X (Viral Intel)',
     configKey: 'twitter',
-    description: 'Trending topics for lead generation',
+    description: 'Find viral trends and snipe related domains — add when profitable',
     required: false,
     helpUrl: 'https://developer.twitter.com/en/portal/dashboard',
     fields: [
@@ -108,13 +184,13 @@ const API_SECTIONS: APISection[] = [
     ],
   },
   {
-    name: 'USPTO',
+    name: '™️ USPTO (Trademark Check)',
     configKey: 'uspto',
-    description: 'Trademark checking (optional)',
+    description: 'Avoid buying trademarked domains — optional but recommended',
     required: false,
     helpUrl: 'https://developer.uspto.gov/',
     fields: [
-      { key: 'apiKey', label: 'API Key', placeholder: 'Enter USPTO API Key (optional)', type: 'password' },
+      { key: 'apiKey', label: 'API Key', placeholder: 'Enter USPTO API Key', type: 'password' },
     ],
   },
   {
@@ -194,9 +270,13 @@ export default function ConfigTab() {
     setDailyBudgetState(empireData.dailyBudget)
     setAllStrategies(empireData.allStrategiesActive)
     
-    // Also load GoDaddy and Namecheap from MasterConfig
+    // Load ALL APIs from MasterConfig (single source of truth)
     const gdConfig = masterConfig.getGoDaddy()
     const ncConfig = masterConfig.getNamecheap()
+    const sbConfig = masterConfig.getSupabase()
+    const googleConfig = masterConfig.getGoogle()
+    const twitterConfig = masterConfig.getTwitter()
+    const usptoConfig = masterConfig.getUSPTO()
     
     setConfig(prev => ({
       ...prev,
@@ -208,6 +288,19 @@ export default function ConfigTab() {
         apiUser: ncConfig.apiUser || '',
         apiKey: ncConfig.apiKey || '',
         clientIp: ncConfig.clientIp || '',
+      },
+      supabase: {
+        url: sbConfig.url || '',
+        anonKey: sbConfig.anonKey || '',
+      },
+      google: {
+        apiKey: googleConfig.apiKey || '',
+      },
+      twitter: {
+        bearerToken: twitterConfig.bearerToken || '',
+      },
+      uspto: {
+        apiKey: usptoConfig.apiKey || '',
       },
     }))
   }, [])
@@ -250,6 +343,22 @@ export default function ConfigTab() {
       if (ncConfig?.apiUser && ncConfig?.apiKey) {
         masterConfig.setNamecheap(ncConfig.apiUser, ncConfig.apiKey, ncConfig.clientIp || '')
       }
+      
+      // Save Supabase to MasterConfig
+      const sbConfig = config['supabase']
+      if (sbConfig?.url && sbConfig?.anonKey) {
+        masterConfig.setSupabase(sbConfig.url, sbConfig.anonKey)
+      }
+      
+      // Save intelligence APIs to MasterConfig
+      const googleConfig = config['google']
+      if (googleConfig?.apiKey) masterConfig.setGoogle(googleConfig.apiKey)
+      
+      const twitterConfig = config['twitter']
+      if (twitterConfig?.bearerToken) masterConfig.setTwitter(twitterConfig.bearerToken)
+      
+      const usptoConfig = config['uspto']
+      if (usptoConfig?.apiKey) masterConfig.setUSPTO(usptoConfig.apiKey)
       
       // Also save to legacy APIConfigManager for compatibility
       API_SECTIONS.forEach(section => {
@@ -300,6 +409,17 @@ export default function ConfigTab() {
         toast.success('Namecheap API Saved', { 
           description: namecheapAPI.isReady() ? '✓ Connected and ready' : '✗ Check your credentials' 
         })
+      } else if (section.configKey === 'supabase') {
+        masterConfig.setSupabase(sectionConfig.url || '', sectionConfig.anonKey || '')
+        toast.success('Supabase Saved', { 
+          description: masterConfig.isSupabaseConfigured() ? '✓ Database connected' : '✗ Check your credentials' 
+        })
+      } else if (section.configKey === 'google') {
+        masterConfig.setGoogle(sectionConfig.apiKey || '')
+      } else if (section.configKey === 'twitter') {
+        masterConfig.setTwitter(sectionConfig.bearerToken || '')
+      } else if (section.configKey === 'uspto') {
+        masterConfig.setUSPTO(sectionConfig.apiKey || '')
       }
       
       // Also save to legacy APIConfigManager
@@ -469,6 +589,32 @@ export default function ConfigTab() {
               </Button>
             </div>
           </div>
+
+          {/* Setup Instructions */}
+          {API_INSTRUCTIONS[section.configKey] && (
+            <div className="mb-4 p-3 bg-black/30 rounded-lg border border-yellow-600/10">
+              <div className="flex items-center gap-2 mb-2">
+                <Badge className="bg-yellow-600/20 text-yellow-500 border-0">
+                  {API_INSTRUCTIONS[section.configKey].priority}
+                </Badge>
+                <span className="text-xs text-yellow-600/50">
+                  Cost: {API_INSTRUCTIONS[section.configKey].cost}
+                </span>
+              </div>
+              <details className="text-xs text-yellow-600/70">
+                <summary className="cursor-pointer hover:text-yellow-500 font-medium">
+                  📖 Click for step-by-step setup instructions
+                </summary>
+                <ul className="mt-2 space-y-1 pl-4">
+                  {API_INSTRUCTIONS[section.configKey].steps.map((step, i) => (
+                    <li key={i} className={step.startsWith('⚠️') ? 'text-yellow-400' : ''}>
+                      {step}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            </div>
+          )}
 
           <div className="space-y-3">
             {section.fields.map((field) => (

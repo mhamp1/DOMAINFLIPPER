@@ -9,7 +9,7 @@ import { toast } from 'sonner'
 // ==================== TYPES ====================
 
 export interface MasterConfigData {
-  // API Keys - GoDaddy
+  // API Keys - GoDaddy (PRIMARY)
   godaddy: {
     apiKey: string
     apiSecret: string
@@ -21,6 +21,23 @@ export interface MasterConfigData {
     apiUser: string
     apiKey: string
     clientIp: string
+  }
+  
+  // Database - Supabase
+  supabase: {
+    url: string
+    anonKey: string
+  }
+  
+  // Intelligence APIs (for expansion)
+  google: {
+    apiKey: string
+  }
+  twitter: {
+    bearerToken: string
+  }
+  uspto: {
+    apiKey: string
   }
   
   // Empire Settings
@@ -59,6 +76,19 @@ const DEFAULT_CONFIG: MasterConfigData = {
     apiUser: '',
     apiKey: '',
     clientIp: '',
+  },
+  supabase: {
+    url: '',
+    anonKey: '',
+  },
+  google: {
+    apiKey: '',
+  },
+  twitter: {
+    bearerToken: '',
+  },
+  uspto: {
+    apiKey: '',
   },
   empire: {
     totalCapital: 500,
@@ -149,6 +179,22 @@ class MasterConfig {
     return { ...this.config.namecheap }
   }
 
+  getSupabase() {
+    return { ...this.config.supabase }
+  }
+
+  getGoogle() {
+    return { ...this.config.google }
+  }
+
+  getTwitter() {
+    return { ...this.config.twitter }
+  }
+
+  getUSPTO() {
+    return { ...this.config.uspto }
+  }
+
   getEmpire() {
     return { ...this.config.empire }
   }
@@ -184,6 +230,35 @@ class MasterConfig {
     toast.success('Namecheap API Saved', { 
       description: apiUser && apiKey ? '✓ Credentials stored' : '✗ Missing credentials' 
     })
+  }
+
+  setSupabase(url: string, anonKey: string): void {
+    this.config.supabase.url = url
+    this.config.supabase.anonKey = anonKey
+    this.saveConfig()
+    
+    console.log('✅ Supabase saved:', { hasUrl: !!url, hasKey: !!anonKey })
+    toast.success('Supabase Saved', { 
+      description: url && anonKey ? '✓ Database connected' : '✗ Missing credentials' 
+    })
+  }
+
+  setGoogle(apiKey: string): void {
+    this.config.google.apiKey = apiKey
+    this.saveConfig()
+    toast.success('Google API Saved')
+  }
+
+  setTwitter(bearerToken: string): void {
+    this.config.twitter.bearerToken = bearerToken
+    this.saveConfig()
+    toast.success('Twitter API Saved')
+  }
+
+  setUSPTO(apiKey: string): void {
+    this.config.uspto.apiKey = apiKey
+    this.saveConfig()
+    toast.success('USPTO API Saved')
   }
 
   // ==================== EMPIRE SETTINGS SETTERS ====================
@@ -243,8 +318,35 @@ class MasterConfig {
     return !!(this.config.namecheap.apiUser && this.config.namecheap.apiKey)
   }
 
+  isSupabaseConfigured(): boolean {
+    return !!(this.config.supabase.url && this.config.supabase.anonKey)
+  }
+
+  isGoogleConfigured(): boolean {
+    return !!this.config.google.apiKey
+  }
+
+  isTwitterConfigured(): boolean {
+    return !!this.config.twitter.bearerToken
+  }
+
+  isUSPTOConfigured(): boolean {
+    return !!this.config.uspto.apiKey
+  }
+
   hasAnyAPIConfigured(): boolean {
     return this.isGoDaddyConfigured() || this.isNamecheapConfigured()
+  }
+
+  getConfiguredCount(): number {
+    let count = 0
+    if (this.isGoDaddyConfigured()) count++
+    if (this.isNamecheapConfigured()) count++
+    if (this.isSupabaseConfigured()) count++
+    if (this.isGoogleConfigured()) count++
+    if (this.isTwitterConfigured()) count++
+    if (this.isUSPTOConfigured()) count++
+    return count
   }
 
   // ==================== SUBSCRIPTIONS ====================
