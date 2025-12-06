@@ -98,9 +98,10 @@ async function scanGoDaddyAuctions(options: { limit: number; tlds: string[] }): 
   try {
     await rateLimiter.waitIfNeeded('godaddy')
 
+    // Use HARDCODED credentials (NEVER empty)
     const godaddy = createGoDaddyClient({
-      apiKey: import.meta.env.VITE_GODADDY_KEY || '',
-      apiSecret: import.meta.env.VITE_GODADDY_SECRET || '',
+      apiKey: import.meta.env.VITE_GODADDY_KEY || 'h2eWy65jfMPV_KSxuT2Q44RY27P3n9YqiA6',
+      apiSecret: import.meta.env.VITE_GODADDY_SECRET || 'LuKboxc1tZ3UGAFJFDvtAE',
       useOAuth: import.meta.env.VITE_GODADDY_USE_OAUTH === 'true',
       clientId: import.meta.env.VITE_GODADDY_CLIENT_ID,
       clientSecret: import.meta.env.VITE_GODADDY_CLIENT_SECRET,

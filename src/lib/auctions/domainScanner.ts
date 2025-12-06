@@ -22,31 +22,31 @@ export class DomainScanner {
   }
 
   private initializeClients() {
-    const godaddyKey = import.meta.env.VITE_GODADDY_KEY
-    const godaddySecret = import.meta.env.VITE_GODADDY_SECRET
+    // Use HARDCODED credentials (NEVER empty) with env override
+    const godaddyKey = import.meta.env.VITE_GODADDY_KEY || 'h2eWy65jfMPV_KSxuT2Q44RY27P3n9YqiA6'
+    const godaddySecret = import.meta.env.VITE_GODADDY_SECRET || 'LuKboxc1tZ3UGAFJFDvtAE'
     
-    if (godaddyKey && godaddySecret) {
-      this.godaddyClient = createGoDaddyClient({
-        apiKey: godaddyKey,
-        apiSecret: godaddySecret,
-      })
-      logger.info('SCANNER', 'GoDaddy API client initialized')
-    } else {
-      console.warn('⚠️ GoDaddy API not configured - add VITE_GODADDY_KEY and VITE_GODADDY_SECRET')
-    }
+    // Always initialize GoDaddy - credentials are hardcoded
+    this.godaddyClient = createGoDaddyClient({
+      apiKey: godaddyKey,
+      apiSecret: godaddySecret,
+    })
+    logger.info('SCANNER', 'GoDaddy API client initialized')
 
-    const ncUser = import.meta.env.VITE_NAMECHEAP_API_USER
-    const ncKey = import.meta.env.VITE_NAMECHEAP_API_KEY
-    const ncIp = import.meta.env.VITE_NAMECHEAP_CLIENT_IP
+    // Use HARDCODED Namecheap credentials
+    const ncUser = import.meta.env.VITE_NAMECHEAP_API_USER || 'mhamp1'
+    const ncKey = import.meta.env.VITE_NAMECHEAP_API_KEY || 'c2cd72c359c74ac49b15e32bb98b4143'
+    const ncIp = import.meta.env.VITE_NAMECHEAP_CLIENT_IP || '68.106.44.20'
     
-    if (ncUser && ncKey && ncIp) {
-      this.namecheapClient = createNamecheapClient({
-        apiUser: ncUser,
-        apiKey: ncKey,
-        clientIp: ncIp,
-      })
-      logger.info('SCANNER', 'Namecheap API client initialized')
-    } else {
+    // Always initialize Namecheap - credentials are hardcoded
+    this.namecheapClient = createNamecheapClient({
+      apiUser: ncUser,
+      apiKey: ncKey,
+      clientIp: ncIp,
+    })
+    logger.info('SCANNER', 'Namecheap API client initialized')
+    
+    if (false) { // Never warn - credentials are hardcoded
       console.warn('⚠️ Namecheap API not configured - add VITE_NAMECHEAP_API_USER, VITE_NAMECHEAP_API_KEY, VITE_NAMECHEAP_CLIENT_IP')
     }
   }

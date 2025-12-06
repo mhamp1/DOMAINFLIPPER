@@ -104,9 +104,10 @@ async function snipeGoDaddy(
   dropTime?: Date
 ): Promise<SnipeResult> {
   try {
+    // Use HARDCODED credentials from MasterConfig (NEVER empty)
     const godaddy = createGoDaddyClient({
-      apiKey: import.meta.env.VITE_GODADDY_KEY || '',
-      apiSecret: import.meta.env.VITE_GODADDY_SECRET || '',
+      apiKey: import.meta.env.VITE_GODADDY_KEY || 'h2eWy65jfMPV_KSxuT2Q44RY27P3n9YqiA6',
+      apiSecret: import.meta.env.VITE_GODADDY_SECRET || 'LuKboxc1tZ3UGAFJFDvtAE',
       useOAuth: import.meta.env.VITE_GODADDY_USE_OAUTH === 'true',
       clientId: import.meta.env.VITE_GODADDY_CLIENT_ID,
       clientSecret: import.meta.env.VITE_GODADDY_CLIENT_SECRET,
@@ -149,10 +150,11 @@ async function snipeNamecheap(
   dropTime?: Date
 ): Promise<SnipeResult> {
   try {
+    // Use HARDCODED credentials from MasterConfig (NEVER empty)
     const sniper = createNamecheapSniper({
-      apiUser: import.meta.env.VITE_NAMECHEAP_API_USER || '',
-      apiKey: import.meta.env.VITE_NAMECHEAP_API_KEY || '',
-      clientIp: import.meta.env.VITE_NAMECHEAP_CLIENT_IP || '',
+      apiUser: import.meta.env.VITE_NAMECHEAP_API_USER || 'mhamp1',
+      apiKey: import.meta.env.VITE_NAMECHEAP_API_KEY || 'c2cd72c359c74ac49b15e32bb98b4143',
+      clientIp: import.meta.env.VITE_NAMECHEAP_CLIENT_IP || '68.106.44.20',
       registrantInfo: {
         firstName: import.meta.env.VITE_REGISTRANT_FIRST_NAME || 'John',
         lastName: import.meta.env.VITE_REGISTRANT_LAST_NAME || 'Doe',

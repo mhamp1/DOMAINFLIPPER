@@ -72,7 +72,7 @@ const MARKETPLACES: Marketplace[] = [
     avgSaleTime: 30,
     traffic: 8000000,
     enabled: true,
-    configured: !!(import.meta.env.VITE_GODADDY_KEY && import.meta.env.VITE_GODADDY_SECRET),
+    configured: true, // HARDCODED CREDENTIALS - ALWAYS CONFIGURED
   },
   {
     id: 'dan',
@@ -196,12 +196,11 @@ export class MarketplaceLister {
   }
 
   private async listOnGoDaddy(domain: string, price: number): Promise<ListingStatus> {
-    const apiKey = import.meta.env.VITE_GODADDY_KEY
-    const apiSecret = import.meta.env.VITE_GODADDY_SECRET
+    // Use HARDCODED credentials (NEVER empty)
+    const apiKey = import.meta.env.VITE_GODADDY_KEY || 'h2eWy65jfMPV_KSxuT2Q44RY27P3n9YqiA6'
+    const apiSecret = import.meta.env.VITE_GODADDY_SECRET || 'LuKboxc1tZ3UGAFJFDvtAE'
 
-    if (!apiKey || !apiSecret) {
-      throw new Error('GoDaddy API credentials not configured')
-    }
+    // Always have credentials - they're hardcoded
 
     // Real GoDaddy Aftermarket API call
     const response = await fetch('https://api.godaddy.com/v1/aftermarket/listings', {
@@ -429,7 +428,7 @@ export class MarketplaceLister {
         await fetch(`https://api.godaddy.com/v1/aftermarket/listings/${listingId}`, {
           method: 'PATCH',
           headers: {
-            'Authorization': `sso-key ${import.meta.env.VITE_GODADDY_KEY}:${import.meta.env.VITE_GODADDY_SECRET}`,
+            'Authorization': `sso-key ${import.meta.env.VITE_GODADDY_KEY || 'h2eWy65jfMPV_KSxuT2Q44RY27P3n9YqiA6'}:${import.meta.env.VITE_GODADDY_SECRET || 'LuKboxc1tZ3UGAFJFDvtAE'}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ price: newPrice }),
