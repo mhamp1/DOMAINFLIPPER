@@ -42,6 +42,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { empireEngine } from '@/lib/autonomy/EmpireEngine'
 import { autonomousBrain } from '@/lib/autonomy/AutonomousBrain'
+import { totalAutonomy } from '@/lib/autonomy/TotalAutonomy'
 import { autoFundEngine } from '@/lib/funding/AutoFundEngine'
 import { compoundEngine } from '@/lib/empire/CompoundEngine'
 import { quantumShield } from '@/lib/risk/QuantumShield'
@@ -158,13 +159,19 @@ export default function EmpireDashboard() {
   // Empire Brain stats
   const [empireStats, setEmpireStats] = useState<EmpireStats | null>(null)
 
-  // Auto-resume bot if it was running before logout
+  // Auto-resume via TotalAutonomy (handles its own auto-restart)
+  // TotalAutonomy checks localStorage and auto-restarts on page load
   useEffect(() => {
-    const wasRunning = empireSettings.wasBotRunning()
-    if (wasRunning && !isLaunched) {
-      // Auto-resuming Empire (was running before logout)
-      handleLaunchEmpire()
+    // Check if we should show as launched based on autonomy status
+    const checkAutonomy = () => {
+      if (totalAutonomy.isAutonomous() && !isLaunched) {
+        setIsLaunched(true)
+      }
     }
+    
+    // Check after a short delay to allow autonomy to initialize
+    const timer = setTimeout(checkAutonomy, 3000)
+    return () => clearTimeout(timer)
   }, []) // Only run once on mount
 
   // Subscribe to Empire Brain updates
@@ -266,8 +273,8 @@ export default function EmpireDashboard() {
     if (isLaunched) {
       setIsLoading(true)
       
-      // Stop the unified Empire Brain (stops everything)
-      empireBrain.stop()
+      // Stop TOTAL AUTONOMY — stops everything
+      totalAutonomy.stop()
       
       // Also stop legacy systems
       empireEngine.stop()
@@ -284,22 +291,22 @@ export default function EmpireDashboard() {
     } else {
       setIsLoading(true)
       try {
-        // LAUNCH THE UNIFIED EMPIRE BRAIN — One button starts EVERYTHING
-        // Use saved capital from EmpireSettings
-        const savedCapital = empireSettings.get('totalCapital')
-        await empireBrain.launch({
-          initialCapital: savedCapital || 500,
-        })
+        // LAUNCH TOTAL AUTONOMY — One button starts EVERYTHING FOREVER
+        // Bot will now:
+        // - Auto-fund when low
+        // - Auto-compound profits
+        // - Auto-adjust settings
+        // - Auto-restart on page load
+        // - Self-heal if stopped
+        const success = await totalAutonomy.launchAndForget()
+        
+        if (!success) {
+          setIsLoading(false)
+          return
+        }
         
         // Mark bot as running (persists across logout)
         empireSettings.setBotRunning(true)
-        
-        // Empire Brain now starts all systems automatically:
-        // - Autonomous Brain (scanning, buying)
-        // - Lead Scanner (GitHub, ProductHunt, USPTO, YC, Reddit)
-        // - Web3 Sniper (.eth, .sol, .btc, Handshake)
-        // - GodScore Engine (15-layer valuation)
-        // - Health Monitoring
         
         // Start additional legacy systems
         autoFundEngine.startAutoFundLoop()
