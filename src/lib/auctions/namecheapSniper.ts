@@ -130,7 +130,7 @@ export class NamecheapSniper {
       
       try {
         const results = await this.namecheapClient.checkDomains([domain])
-        const isAvailable = results[0]?.Available === true
+        const isAvailable = results[0]?.available === true
 
         if (isAvailable) {
           // Domain dropped! Snipe immediately
@@ -178,7 +178,7 @@ export class NamecheapSniper {
 
       // Check availability one more time
       const results = await this.namecheapClient.checkDomains([domain])
-      const isAvailable = results[0]?.Available === true
+      const isAvailable = results[0]?.available === true
 
       if (!isAvailable) {
         console.log(`Domain ${domain} not available yet`)
@@ -187,10 +187,7 @@ export class NamecheapSniper {
       }
 
       // Execute registration (snipe)
-      const result = await this.namecheapClient.registerDomain(domain, {
-        years: 1,
-        registrant: this.config.registrantInfo,
-      })
+      const result = await this.namecheapClient.registerDomain(domain, 1)
 
       if (result.success) {
         console.log(`✅ SNIPE SUCCESS: ${domain} for $${maxBid}`)

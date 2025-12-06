@@ -11,16 +11,13 @@
 import { toast } from 'sonner'
 import { logger } from '@/lib/utils/logger'
 import { autonomousBrain } from '@/lib/autonomy/AutonomousBrain'
-import { godScoreEngine } from '@/lib/valuation/GodScore'
-import { whoisEngine } from '@/lib/whois/WhoisEngine'
-import { typoGenerator } from '@/lib/typo/TypoGenerator'
-import { leadScanner, type Lead } from '@/lib/intelligence/LeadScanner'
-import { web3DomainSniper } from '@/lib/web3/Web3DomainSniper'
 import { healthMonitor } from '@/lib/health/HealthMonitor'
 import { valuationEngine } from '@/lib/ai/valuationEngine'
-import { domainScanner } from '@/lib/auctions/domainScanner'
-import { snipeDomainMultiRegistrar } from '@/lib/buy/multiRegistrarSniper'
-import { marketplaceLister } from '@/lib/marketplace/autoList'
+import { realDomainScanner, type ScannedDomain } from '@/lib/scanner/RealDomainScanner'
+import { realSniper } from '@/lib/buy/RealSniper'
+import { empireSettings } from '@/lib/config/EmpireSettings'
+import { godaddyAPI } from '@/lib/api/godaddyReal'
+import { namecheapAPI } from '@/lib/api/namecheapReal'
 
 // ==================== TYPES ====================
 
@@ -157,13 +154,9 @@ class EmpireBrain {
     await autonomousBrain.start()
     this.addThought('think', 'Autonomous Brain online — scanning 120k+ domains')
 
-    // 3. Start lead scanner (GitHub, ProductHunt, USPTO, etc.)
-    leadScanner.startScanning(3 * 60 * 1000) // Every 3 minutes
-    this.addThought('scan', 'Lead Scanner active — monitoring GitHub, ProductHunt, USPTO, YC, Reddit')
-
-    // 4. Start Web3 domain sniper
-    web3DomainSniper.startSniping(20000) // Every 20 seconds
-    this.addThought('scan', 'Web3 Sniper active — hunting .eth, .sol, .btc, Handshake')
+    // 3. Reinitialize real APIs with saved config
+    realDomainScanner.reinit()
+    this.addThought('scan', 'Domain Scanner active — scanning GoDaddy & Namecheap auctions')
 
     // 5. Start the main intelligence loop
     this.startMainLoop()
@@ -193,9 +186,8 @@ class EmpireBrain {
     if (this.thoughtLoop) clearInterval(this.thoughtLoop)
     
     autonomousBrain.stop()
-    leadScanner.stopScanning()
-    web3DomainSniper.stopSniping()
     healthMonitor.stopMonitoring()
+    empireSettings.setBotRunning(false)
 
     this.addThought('alert', '🛑 EMPIRE PAUSED — All systems stopped')
     
@@ -227,47 +219,84 @@ class EmpireBrain {
   }
 
   /**
-   * THE CORE INTELLIGENCE CYCLE
+   * THE CORE INTELLIGENCE CYCLE — REAL SCANNING & SNIPING
    * This is where the magic happens — every 30 seconds
    */
   private async runIntelligenceCycle(): Promise<void> {
     if (!this.isRunning) return
 
     try {
-      this.stats.currentAction = 'Thinking...'
+      this.stats.currentAction = 'Scanning markets...'
       this.notifyListeners()
 
-      // ==================== PHASE 1: GATHER INTELLIGENCE ====================
+      // ==================== PHASE 1: SCAN REAL AUCTIONS ====================
       
-      this.addThought('think', 'Analyzing market conditions...')
+      this.addThought('scan', 'Scanning GoDaddy & Namecheap for opportunities...')
 
-      // Get top leads from scanner
-      const leads = leadScanner.getTopLeads(20)
-      this.stats.leadsFound = leads.length
+      const scanResult = await realDomainScanner.scan({
+        maxResults: 50,
+        maxPrice: empireSettings.get('dailyBudget'),
+      })
 
-      // ==================== PHASE 2: EVALUATE OPPORTUNITIES ====================
+      this.stats.domainsScanned += scanResult.totalScanned
+      
+      if (scanResult.errors.length > 0) {
+        scanResult.errors.forEach(e => this.addThought('alert', e))
+      }
+
+      // ==================== PHASE 2: EVALUATE & VALUE DOMAINS ====================
 
       this.stats.currentAction = 'Evaluating opportunities...'
       this.notifyListeners()
 
-      for (const lead of leads.slice(0, 5)) { // Top 5 leads
-        await this.evaluateAndDecide(lead)
+      const minROI = empireSettings.get('minROI')
+      const opportunities: Array<ScannedDomain & { estimatedValue: number; score: number }> = []
+
+      for (const domain of scanResult.domains.slice(0, 20)) {
+        try {
+          // Get AI valuation
+          const [name, tld] = domain.domain.split('.')
+          const valuation = await valuationEngine.predictValue({ name: domain.domain, tld: `.${tld}` })
+          
+          const roi = valuation.value / domain.price
+          
+          if (roi >= minROI && valuation.score >= 70) {
+            opportunities.push({
+              ...domain,
+              estimatedValue: valuation.value,
+              score: valuation.score,
+            })
+            
+            this.addThought('evaluate', 
+              `${domain.domain}: $${domain.price} → Est. $${valuation.value.toLocaleString()} (${roi.toFixed(1)}x ROI, Score: ${valuation.score})`
+            )
+          }
+        } catch (e) {
+          // Skip domains we can't value
+        }
       }
 
-      // ==================== PHASE 3: TYPO OPPORTUNITIES ====================
+      // Sort by ROI
+      opportunities.sort((a, b) => (b.estimatedValue / b.price) - (a.estimatedValue / a.price))
 
-      // For high-value domains, check typo variants
-      const topLeads = leads.filter(l => l.potentialValue > 50000).slice(0, 3)
-      for (const lead of topLeads) {
-        const domain = `${lead.name}.com`
-        const variants = typoGenerator.generateVariants(domain, { maxVariants: 20 })
-        this.stats.typoVariantsGenerated += variants.length
+      // ==================== PHASE 3: SNIPE TOP OPPORTUNITIES ====================
 
-        // Check top variants
-        for (const variant of variants.slice(0, 5)) {
-          if (variant.similarity > 85) {
-            this.addThought('scan', `Checking typo variant: ${variant.variant}`)
-          }
+      this.stats.currentAction = 'Sniping opportunities...'
+      this.notifyListeners()
+
+      for (const opp of opportunities.slice(0, 3)) { // Top 3 only
+        const roi = opp.estimatedValue / opp.price
+        
+        this.addThought('buy', `🎯 SNIPING: ${opp.domain} for $${opp.price} (${roi.toFixed(1)}x ROI potential)`)
+        
+        const result = await realSniper.snipe(opp)
+        
+        if (result.success) {
+          this.stats.domainsOwned++
+          this.stats.availableCapital -= result.price
+          this.addThought('buy', `✅ ACQUIRED: ${result.domain} for $${result.price}`)
+        } else {
+          this.addThought('think', `Skipped ${opp.domain}: ${result.message}`)
         }
       }
 
@@ -283,137 +312,6 @@ class EmpireBrain {
       // Self-healing: continue running
     }
   }
-
-  /**
-   * Evaluate a lead and make a decision
-   */
-  private async evaluateAndDecide(lead: Lead): Promise<void> {
-    const domain = `${lead.name}.com`
-    
-    this.addThought('evaluate', `Evaluating: ${domain} from ${lead.source}`)
-    this.stats.currentAction = `GodScore: ${domain}`
-    this.notifyListeners()
-
-    try {
-      // Get GodScore
-      const godScore = await godScoreEngine.calculate(domain)
-      this.stats.godScoreEvaluations++
-
-      // Get WHOIS data
-      const whois = await whoisEngine.lookup(domain)
-
-      // Make decision
-      const decision: EmpireDecision = {
-        action: this.determineAction(godScore.score, godScore.maxBid),
-        domain,
-        godScore: godScore.score,
-        estimatedValue: godScore.estimatedValue,
-        maxBid: godScore.maxBid,
-        confidence: godScore.confidence,
-        reasoning: this.generateReasoning(godScore, whois.data, lead),
-      }
-
-      this.decisions.unshift(decision)
-      if (this.decisions.length > 100) this.decisions.pop()
-
-      // Act on decision
-      if (decision.action === 'snipe' || decision.action === 'buy') {
-        await this.executePurchase(decision)
-      } else if (decision.action === 'watch') {
-        this.addThought('think', `Watching: ${domain} (Score: ${godScore.score})`)
-      }
-
-    } catch (error) {
-      logger.warn('EMPIRE', `Failed to evaluate ${domain}`, { error })
-    }
-  }
-
-  /**
-   * Determine action based on GodScore
-   */
-  private determineAction(score: number, maxBid: number): EmpireDecision['action'] {
-    if (score >= 900 && maxBid <= this.stats.availableCapital * 0.3) return 'snipe'
-    if (score >= 750 && maxBid <= this.stats.availableCapital * 0.15) return 'buy'
-    if (score >= 600) return 'watch'
-    return 'skip'
-  }
-
-  /**
-   * Generate human-readable reasoning
-   */
-  private generateReasoning(godScore: any, whois: any, lead: Lead): string[] {
-    const reasons: string[] = []
-
-    if (godScore.score >= 900) reasons.push('🔥 GOD-TIER domain detected')
-    if (godScore.score >= 750) reasons.push('⭐ High-value opportunity')
-    
-    reasons.push(`Source: ${lead.source} (${lead.confidence}% confidence)`)
-    reasons.push(`GodScore: ${godScore.score}/1000 (${godScore.tier})`)
-    reasons.push(`Est. Value: $${godScore.estimatedValue.toLocaleString()}`)
-    reasons.push(`Max Bid: $${godScore.maxBid.toLocaleString()}`)
-    
-    if (whois?.ageYears > 10) reasons.push(`✅ Aged domain (${whois.ageYears} years)`)
-    if (whois?.expiresSoon) reasons.push('⏰ Expiring soon — prime snipe target')
-    
-    godScore.layers
-      .filter((l: any) => l.score > 70)
-      .slice(0, 3)
-      .forEach((l: any) => reasons.push(`✓ ${l.name}: ${l.score}/100`))
-
-    return reasons
-  }
-
-  /**
-   * Execute a purchase decision
-   */
-  private async executePurchase(decision: EmpireDecision): Promise<void> {
-    if (decision.maxBid > this.stats.availableCapital) {
-      this.addThought('think', `Insufficient capital for ${decision.domain} ($${decision.maxBid})`)
-      return
-    }
-
-    this.addThought('buy', `💎 SNIPING: ${decision.domain} for $${decision.maxBid}`)
-    this.stats.currentAction = `BUYING: ${decision.domain}`
-    this.stats.pendingSnipes++
-    this.notifyListeners()
-
-    try {
-      // Execute the snipe
-      const result = await snipeDomainMultiRegistrar(decision.domain, decision.maxBid)
-
-      if (result?.success) {
-        // Update stats
-        this.stats.availableCapital -= decision.maxBid
-        this.stats.investedCapital += decision.maxBid
-        this.stats.domainsOwned++
-        this.stats.pendingSnipes--
-
-        // Auto-list on marketplaces
-        const listingPrice = decision.estimatedValue * 0.8 // 80% of estimated value
-        await marketplaceLister.listOnAllMarketplaces(decision.domain, listingPrice)
-        this.stats.activeListings++
-
-        this.addThought('buy', `✅ ACQUIRED: ${decision.domain} for $${decision.maxBid} → Listed at $${listingPrice.toLocaleString()}`)
-
-        toast.success('💎 DOMAIN ACQUIRED', {
-          description: `${decision.domain} → Listed at $${listingPrice.toLocaleString()}`,
-          duration: 7000,
-        })
-
-        // Save purchase
-        this.savePurchase(decision)
-      } else {
-        this.stats.pendingSnipes--
-        this.addThought('think', `Snipe failed for ${decision.domain} — continuing hunt`)
-      }
-    } catch (error) {
-      this.stats.pendingSnipes--
-      logger.error('EMPIRE', `Purchase failed: ${decision.domain}`, error as Error)
-    }
-
-    this.notifyListeners()
-  }
-
   // ==================== THOUGHT SYSTEM ====================
 
   private startThoughtLoop(): void {
