@@ -508,7 +508,7 @@ export default function EmpireDashboard() {
                   <div className="text-xs text-yellow-600/40 mt-1">{empireSettings.get('domainsSold')} sold | Win: {empireSettings.getWinRate().toFixed(0)}%</div>
                 </Card>
 
-                {/* Scans Today Card */}
+                {/* Scans Today Card - Uses EmpireBrain stats */}
                 <Card className="card-obsidian-premium p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="p-1.5 rounded-lg bg-yellow-600/10">
@@ -517,7 +517,7 @@ export default function EmpireDashboard() {
                     <span className="text-xs text-yellow-600/60 uppercase tracking-wider">Scans Today</span>
                   </div>
                   <div className="text-2xl md:text-3xl font-bold value-gold value-display">
-                    {stats.decisionsToday}
+                    {empireStats?.domainsScanned || stats.decisionsToday || 0}
                   </div>
                   <div className="text-xs text-yellow-600/40 mt-1">Target: 120,000/day</div>
                 </Card>
@@ -644,7 +644,7 @@ export default function EmpireDashboard() {
                 {[
                   { icon: Package, label: 'Win Rate', value: `${stats.winRate.toFixed(1)}%`, sub: `ROI: ${stats.roi.toFixed(0)}%`, color: 'text-green-500' },
                   { icon: Target, label: 'Uptime', value: isLaunched ? formatUptime(realUptime) : '--:--:--', sub: isLaunched ? 'Running' : 'Paused', color: 'text-yellow-600' },
-                  { icon: ChartBar, label: 'Scans Today', value: stats.decisionsToday, sub: 'Target: 120k', color: 'text-yellow-600' },
+                  { icon: ChartBar, label: 'Scans Today', value: empireStats?.domainsScanned || stats.decisionsToday || 0, sub: 'Target: 120k', color: 'text-yellow-600' },
                   { icon: Shield, label: 'Risk Score', value: `${riskStats.riskScore}/100`, sub: '12-layer shield', color: 'text-yellow-600' },
                 ].map((stat, i) => (
                   <Card key={i} className="bg-black/50 border border-yellow-600/20 p-4">

@@ -18,6 +18,7 @@ import { realSniper } from '@/lib/buy/RealSniper'
 import { empireSettings } from '@/lib/config/EmpireSettings'
 import { godaddyAPI } from '@/lib/api/godaddyReal'
 import { namecheapAPI } from '@/lib/api/namecheapReal'
+import { marketplaceLister } from '@/lib/marketplace/autoList'
 
 // ==================== TYPES ====================
 
@@ -314,6 +315,23 @@ class EmpireBrain {
           this.stats.domainsOwned++
           this.stats.availableCapital -= result.price
           this.addThought('buy', `✅ ACQUIRED: ${result.domain} for $${result.price}`)
+          
+          // ==================== AUTO-LIST FOR SALE ====================
+          // List at 5-10x purchase price based on AI valuation
+          const listPrice = Math.round(opp.estimatedValue * 0.8) // 80% of estimated value
+          this.addThought('sell', `📋 AUTO-LISTING: ${result.domain} for $${listPrice.toLocaleString()}`)
+          
+          try {
+            const listings = await marketplaceLister.listOnAllMarketplaces(result.domain, listPrice)
+            const successCount = listings.filter(l => l.status === 'active').length
+            this.stats.activeListings += successCount
+            
+            if (successCount > 0) {
+              this.addThought('sell', `✅ Listed on ${successCount} marketplaces at $${listPrice.toLocaleString()}`)
+            }
+          } catch (listError) {
+            logger.warn('EMPIRE', 'Auto-list failed, will retry later', listError)
+          }
         } else {
           this.addThought('think', `Skipped ${opp.domain}: ${result.message}`)
         }
