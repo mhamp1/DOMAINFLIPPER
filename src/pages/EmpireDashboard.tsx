@@ -68,6 +68,8 @@ import { ownerAuth } from '@/lib/auth/OwnerAuth'
 import { SignOut, Crown, Fire, Cpu, WifiHigh, Heartbeat } from '@phosphor-icons/react'
 import ConfigTab from '@/components/config/ConfigTab'
 import EmpireControlCenter from '@/pages/EmpireControlCenter'
+import { supabaseDB } from '@/lib/database/supabase'
+import type { Domain } from '@/types/domain'
 
 // Tab types
 type TabType = 'empire' | 'vault' | 'strategies' | 'intelligence' | 'portfolio' | 'revenue' | 'risk' | 'finance' | 'swarm' | 'control' | 'config'
@@ -165,6 +167,13 @@ export default function EmpireDashboard() {
   const [intelLeads, setIntelLeads] = useState<any[]>([])
   const [isLoadingIntel, setIsLoadingIntel] = useState(false)
 
+  // Portfolio Tab - REAL DATA
+  const [portfolioDomains, setPortfolioDomains] = useState<Domain[]>([])
+  const [portfolioMetrics, setPortfolioMetrics] = useState<any>(null)
+  const [tldAllocations, setTldAllocations] = useState<any[]>([])
+  const [exitStrategies, setExitStrategies] = useState<any[]>([])
+  const [isLoadingPortfolio, setIsLoadingPortfolio] = useState(false)
+
   // Fetch real intelligence data and start monitoring
   useEffect(() => {
     const fetchIntelData = async () => {
@@ -240,6 +249,66 @@ export default function EmpireDashboard() {
     
     // Refresh every 30 seconds when on intelligence tab
     const interval = setInterval(fetchIntelData, 30000)
+    return () => clearInterval(interval)
+  }, [activeTab])
+
+  // Fetch real portfolio data
+  useEffect(() => {
+    const fetchPortfolioData = async () => {
+      if (activeTab !== 'portfolio') return
+
+      setIsLoadingPortfolio(true)
+      try {
+        // Fetch owned domains from database
+        const ownedDomainsData = await supabaseDB.getOwnedDomains()
+        
+        // Convert to Domain format for PortfolioOptimizer
+        const domains: Domain[] = ownedDomainsData
+          .filter(d => !d.sold) // Only active domains
+          .map(d => ({
+            id: d.id,
+            name: d.domain,
+            tld: '.' + d.domain.split('.').pop() || '',
+            length: d.domain.split('.')[0].length,
+            estimatedValue: d.current_value || d.estimated_value || 0,
+            purchasePrice: d.purchase_price || 0,
+            purchasedAt: d.purchase_date ? new Date(d.purchase_date) : undefined,
+            status: d.listed ? 'listed' : 'owned',
+            strategyId: d.strategy_id || 'default',
+            aiScore: 0, // Will be calculated if needed
+            age: d.purchase_date 
+              ? Math.floor((Date.now() - new Date(d.purchase_date).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+              : 0,
+          }))
+
+        setPortfolioDomains(domains)
+
+        // Calculate portfolio metrics
+        const metrics = portfolioOptimizer.calculateMetrics(domains)
+        setPortfolioMetrics(metrics)
+
+        // Get TLD allocations
+        const allocations = portfolioOptimizer.analyzeDiversification(domains)
+        setTldAllocations(allocations)
+
+        // Generate exit strategies for top domains
+        const topDomains = domains
+          .sort((a, b) => (b.estimatedValue || 0) - (a.estimatedValue || 0))
+          .slice(0, 10)
+        const strategies = topDomains.map(d => portfolioOptimizer.generateExitStrategy(d))
+        setExitStrategies(strategies)
+      } catch (error) {
+        console.error('Failed to fetch portfolio data:', error)
+        toast.error('Failed to load portfolio data', { description: error instanceof Error ? error.message : 'Unknown error' })
+      } finally {
+        setIsLoadingPortfolio(false)
+      }
+    }
+
+    fetchPortfolioData()
+    
+    // Refresh every 30 seconds when on portfolio tab
+    const interval = setInterval(fetchPortfolioData, 30000)
     return () => clearInterval(interval)
   }, [activeTab])
 
@@ -1179,7 +1248,7 @@ export default function EmpireDashboard() {
             </motion.div>
           )}
 
-          {/* ===== PORTFOLIO TAB ===== */}
+          {/* ===== PORTFOLIO TAB - REAL DATA ===== */}
           {activeTab === 'portfolio' && (
             <motion.div
               key="portfolio"
@@ -1188,68 +1257,133 @@ export default function EmpireDashboard() {
               exit={{ opacity: 0, y: -10 }}
               className="space-y-6"
             >
-              {/* Portfolio Health */}
+              {/* Portfolio Health - REAL DATA */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {[
-                  { label: 'Total Value', value: formatCurrency(50000), color: 'text-yellow-600' },
-                  { label: 'Diversification', value: '78/100', color: 'text-green-500' },
-                  { label: 'Liquidity Score', value: '82/100', color: 'text-blue-500' },
-                  { label: 'Risk Score', value: '35/100', color: 'text-yellow-500' },
-                ].map((metric, i) => (
-                  <Card key={i} className="bg-black/50 border border-yellow-600/20 p-4">
-                    <div className="text-xs text-yellow-600/60 mb-1">{metric.label}</div>
-                    <div className={`text-2xl font-bold ${metric.color}`}>{metric.value}</div>
-                  </Card>
-                ))}
+                {portfolioMetrics ? (
+                  <>
+                    <Card className="bg-black/50 border border-yellow-600/20 p-4">
+                      <div className="text-xs text-yellow-600/60 mb-1">Total Value</div>
+                      <div className="text-2xl font-bold text-yellow-600">
+                        {isLoadingPortfolio ? '...' : formatCurrency(portfolioMetrics.totalValue)}
+                      </div>
+                    </Card>
+                    <Card className="bg-black/50 border border-yellow-600/20 p-4">
+                      <div className="text-xs text-yellow-600/60 mb-1">Diversification</div>
+                      <div className="text-2xl font-bold text-green-500">
+                        {isLoadingPortfolio ? '...' : `${Math.round(portfolioMetrics.diversificationScore)}/100`}
+                      </div>
+                    </Card>
+                    <Card className="bg-black/50 border border-yellow-600/20 p-4">
+                      <div className="text-xs text-yellow-600/60 mb-1">Liquidity Score</div>
+                      <div className="text-2xl font-bold text-blue-500">
+                        {isLoadingPortfolio ? '...' : `${Math.round(portfolioMetrics.liquidityScore)}/100`}
+                      </div>
+                    </Card>
+                    <Card className="bg-black/50 border border-yellow-600/20 p-4">
+                      <div className="text-xs text-yellow-600/60 mb-1">Risk Score</div>
+                      <div className="text-2xl font-bold text-yellow-500">
+                        {isLoadingPortfolio ? '...' : `${Math.round(portfolioMetrics.riskScore)}/100`}
+                      </div>
+                    </Card>
+                  </>
+                ) : (
+                  <div className="col-span-full text-center py-8 text-yellow-600/50">
+                    {isLoadingPortfolio ? 'Loading portfolio metrics...' : 'No portfolio data available'}
+                  </div>
+                )}
               </div>
 
-              {/* TLD Allocation */}
+              {/* TLD Allocation - REAL DATA */}
               <Card className="bg-black/50 border border-yellow-600/20 p-6">
-                <h3 className="text-lg font-semibold text-yellow-600 mb-4">TLD Allocation</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-yellow-600">TLD Allocation</h3>
+                  {isLoadingPortfolio && (
+                    <div className="w-4 h-4 border-2 border-yellow-600 border-t-transparent rounded-full animate-spin" />
+                  )}
+                </div>
                 <div className="space-y-3">
-                  {[
-                    { tld: '.com', actual: 55, target: 50, value: 27500 },
-                    { tld: '.ai', actual: 18, target: 20, value: 9000 },
-                    { tld: '.io', actual: 15, target: 15, value: 7500 },
-                    { tld: '.co', actual: 8, target: 10, value: 4000 },
-                    { tld: 'Other', actual: 4, target: 5, value: 2000 },
-                  ].map((alloc, i) => (
-                    <div key={i} className="space-y-1">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-yellow-600">{alloc.tld}</span>
-                        <span className="text-yellow-600/70">{alloc.actual}% (target: {alloc.target}%)</span>
+                  {tldAllocations.length > 0 ? (
+                    tldAllocations.map((alloc) => (
+                      <div key={alloc.tld} className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-yellow-600">{alloc.tld}</span>
+                          <span className="text-yellow-600/70">
+                            {alloc.percentage.toFixed(1)}% (target: {alloc.target}%)
+                            {alloc.deviation !== 0 && (
+                              <span className={`ml-2 ${alloc.deviation > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                                {alloc.deviation > 0 ? '+' : ''}{alloc.deviation.toFixed(1)}%
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                        <div className="h-2 bg-black/50 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full rounded-full ${
+                              Math.abs(alloc.deviation) > 15 
+                                ? 'bg-gradient-to-r from-red-600 to-red-500' 
+                                : 'bg-gradient-to-r from-yellow-600 to-yellow-500'
+                            }`} 
+                            style={{ width: `${Math.min(100, alloc.percentage)}%` }} 
+                          />
+                        </div>
+                        <div className="text-xs text-yellow-600/50">
+                          {alloc.count} domains • {formatCurrency(alloc.value)} value
+                        </div>
                       </div>
-                      <div className="h-2 bg-black/50 rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-yellow-600 to-yellow-500 rounded-full" style={{ width: `${alloc.actual}%` }} />
-                      </div>
-                    </div>
-                  ))}
+                    ))
+                  ) : isLoadingPortfolio ? (
+                    <div className="text-center py-8 text-yellow-600/50">Loading TLD allocations...</div>
+                  ) : (
+                    <div className="text-center py-8 text-yellow-600/50">No domains in portfolio yet</div>
+                  )}
                 </div>
               </Card>
 
-              {/* Exit Strategy Recommendations */}
+              {/* Exit Strategy Recommendations - REAL DATA */}
               <Card className="bg-black/50 border border-yellow-600/20 p-6">
-                <h3 className="text-lg font-semibold text-yellow-600 mb-4">AI Exit Strategies</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-yellow-600">AI Exit Strategies</h3>
+                  {isLoadingPortfolio && (
+                    <div className="w-4 h-4 border-2 border-yellow-600 border-t-transparent rounded-full animate-spin" />
+                  )}
+                </div>
                 <div className="space-y-3">
-                  {[
-                    { domain: 'techvault.ai', strategy: 'premium-buyer', price: '$25,000', timeframe: '3-6 months', confidence: 85 },
-                    { domain: 'quantum.io', strategy: 'quick-flip', price: '$3,500', timeframe: '1-2 weeks', confidence: 92 },
-                    { domain: 'datacloud.com', strategy: 'lease', price: '$1,800/mo', timeframe: 'Ongoing', confidence: 88 },
-                  ].map((rec, i) => (
-                    <div key={i} className="p-4 bg-black/50 rounded-lg border border-yellow-600/10">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-medium text-yellow-600">{rec.domain}</span>
-                        <Badge className="text-xs bg-purple-500/20 text-purple-400">{rec.strategy}</Badge>
+                  {exitStrategies.length > 0 ? (
+                    exitStrategies.map((strategy) => (
+                      <div key={strategy.domain} className="p-4 bg-black/50 rounded-lg border border-yellow-600/10">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-medium text-yellow-600">{strategy.domain}</span>
+                          <Badge className="text-xs bg-purple-500/20 text-purple-400">
+                            {strategy.strategy.replace(/-/g, ' ')}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-yellow-600/70 mb-2">{strategy.reasoning}</p>
+                        <div className="flex items-center gap-4 text-sm text-yellow-600/70 mb-2">
+                          <span>Target: {formatCurrency(strategy.estimatedSalePrice)}</span>
+                          <span>•</span>
+                          <span>{strategy.estimatedTimeframe}</span>
+                          <span>•</span>
+                          <span>{strategy.confidence}% confidence</span>
+                        </div>
+                        {strategy.actions && strategy.actions.length > 0 && (
+                          <div className="mt-2 space-y-1">
+                            <div className="text-xs text-yellow-600/50 font-medium">Recommended Actions:</div>
+                            <ul className="text-xs text-yellow-600/60 list-disc list-inside space-y-1">
+                              {strategy.actions.slice(0, 3).map((action, i) => (
+                                <li key={i}>{action}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-yellow-600/70">
-                        <span>Target: {rec.price}</span>
-                        <span>•</span>
-                        <span>{rec.timeframe}</span>
-                        <span>•</span>
-                        <span>{rec.confidence}% confidence</span>
-                      </div>
+                    ))
+                  ) : isLoadingPortfolio ? (
+                    <div className="text-center py-8 text-yellow-600/50">Generating exit strategies...</div>
+                  ) : (
+                    <div className="text-center py-8 text-yellow-600/50">
+                      No exit strategies available. Add domains to your portfolio to see AI recommendations.
                     </div>
-                  ))}
+                  )}
                 </div>
               </Card>
             </motion.div>
