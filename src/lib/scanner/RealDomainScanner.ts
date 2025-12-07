@@ -12,7 +12,7 @@ import { toast } from 'sonner'
 
 export interface ScannedDomain {
   domain: string
-  source: 'godaddy' | 'namecheap' | 'dropcatch'
+  source: 'godaddy' | 'namecheap' | 'dropcatch' | 'expireddomains'
   price: number
   currentBid?: number
   auctionId?: string

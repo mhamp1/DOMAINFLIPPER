@@ -16,6 +16,11 @@ import { realSniper } from '@/lib/buy/RealSniper'
 import { marketplaceLister } from '@/lib/marketplace/autoList'
 import { godScoreEngine } from '@/lib/valuation/GodScore'
 import { masterConfig } from '@/lib/config/MasterConfig'
+import { expiredDomainsScanner } from '@/lib/scanner/ExpiredDomainsScanner'
+import { sedoAPI } from '@/lib/api/sedo'
+import { godaddyAPI } from '@/lib/api/godaddyReal'
+import { namecheapAPI } from '@/lib/api/namecheapReal'
+import type { Domain } from '@/types/domain'
 
 // ==================== TYPES ====================
 
@@ -126,6 +131,30 @@ class AutonomousBrain {
     this.notifyListeners()
   }
 
+  // ==================== AVAILABILITY CHECKER ====================
+
+  private async checkAvailability(domain: string): Promise<{ available: boolean; price: number; registrar: string }> {
+    // Parallel check on GoDaddy & Namecheap
+    const [godaddy, namecheap] = await Promise.all([
+      godaddyAPI.isReady() 
+        ? godaddyAPI.checkAvailability(domain).catch(() => null)
+        : Promise.resolve(null),
+      namecheapAPI.isReady()
+        ? namecheapAPI.checkAvailability([domain]).catch(() => null)
+        : Promise.resolve(null),
+    ])
+
+    if (godaddy?.available) {
+      return { available: true, price: godaddy.price || 10, registrar: 'GoDaddy' }
+    }
+
+    if (namecheap && namecheap[0]?.available) {
+      return { available: true, price: namecheap[0].price, registrar: 'Namecheap' }
+    }
+
+    return { available: false, price: 0, registrar: 'None' }
+  }
+
   // ==================== DIVINE WILL — THE CORE LOOP ====================
 
   private async executeDivineWill(): Promise<void> {
@@ -137,45 +166,101 @@ class AutonomousBrain {
       // Get fresh config
       const config = masterConfig.getEmpire()
 
-      // Scan for opportunities
+      // Scan for opportunities from multiple sources
       const scanResult = await realDomainScanner.scan({
         maxPrice: config.dailyBudget,
         maxResults: 50,
       })
 
-      if (scanResult.domains.length === 0) {
+      // Also scan expired domains with high backlinks
+      const expiredDomains = await expiredDomainsScanner.scanExpiredDomains({
+        tld: 'com',
+        minBacklinks: 10,
+        limit: 30,
+      })
+
+      // Convert expired domains to scanned format
+      const expiredTargets = expiredDomains.map(d => ({
+        domain: d.domain,
+        source: 'expireddomains' as const,
+        price: 10, // Base registration price
+        type: 'registration' as const,
+        available: true,
+      }))
+
+      // Combine all sources
+      const allDomains = [...scanResult.domains, ...expiredTargets]
+
+      if (allDomains.length === 0) {
         this.speak('👁️ No prey found this cycle. Waiting...')
         return
       }
 
-      this.speak(`🔍 Scanning ${scanResult.domains.length} targets...`)
+      this.speak(`🔍 Scanning ${allDomains.length} targets (${scanResult.domains.length} auctions + ${expiredDomains.length} expired)...`)
 
-      for (const target of scanResult.domains.slice(0, 10)) {
+      for (const target of allDomains.slice(0, 15)) {
         try {
-          // Real valuation
-          const valuation = await valuationEngine.predictValue(target)
+          // REAL AVAILABILITY CHECK for all domains
+          const avail = await this.checkAvailability(target.domain)
+
+          if (!avail.available) {
+            continue // Skip if not available
+          }
+
+          // Use real availability price
+          const actualPrice = avail.price
+          
+          // Use dailyBudget as max single buy limit
+          const maxSingleBuy = config.dailyBudget / 2 // Allow up to half of daily budget per domain
+          if (actualPrice > maxSingleBuy) {
+            continue // Skip if over budget
+          }
+
+          // Real valuation - convert target to proper Domain type
+          const domainForValuation: Partial<Domain> = {
+            name: target.domain,
+            purchasePrice: actualPrice,
+            registrar: target.source,
+          }
+          const valuation = await valuationEngine.predictValue(domainForValuation)
           const godScore = await godScoreEngine.calculate(target.domain)
 
-          const roi = valuation.value / target.price
+          const roi = valuation.value / actualPrice
 
-          // Decision logic
+          // Decision logic with availability check
           if (
+            avail.available &&
+            actualPrice <= maxSingleBuy &&
             godScore.score > 85 &&
             roi >= config.minROI &&
             valuation.score >= 75
           ) {
-            const result = await realSniper.snipe(target)
+            // AUTO-SNIPE if good ROI - convert to proper format
+            const snipeTarget = {
+              domain: target.domain,
+              price: actualPrice,
+              source: target.source,
+              type: target.type,
+              available: true,
+            }
+            const result = await realSniper.snipe(snipeTarget)
 
             if (result.success) {
               this.stats.domainsOwned++
               this.stats.todayProfit += valuation.value * 0.8
               this.stats.availableCapital -= result.price
 
-              this.speak(`💰 ACQUIRED: ${target.domain} → $${result.price} → Value $${valuation.value.toLocaleString()}`)
+              this.speak(`💰 ACQUIRED: ${target.domain} → $${result.price} (${avail.registrar}) → Value $${valuation.value.toLocaleString()}`)
 
-              // Auto-list
-              await marketplaceLister.listOnAllMarketplaces(target.domain, valuation.value * 0.85)
+              // Get competitive pricing from Sedo
+              const sedoPricing = await sedoAPI.getCompetitivePrice(target.domain, valuation.value)
+              const listPrice = sedoPricing > 0 ? sedoPricing : valuation.value * 0.85
+
+              // Auto-list with competitive pricing
+              await marketplaceLister.listOnAllMarketplaces(target.domain, listPrice)
               this.stats.activeListings++
+
+              this.speak(`📋 LISTED: ${target.domain} at $${listPrice.toLocaleString()} (Sedo competitive pricing)`)
             }
           }
         } catch (e) {
