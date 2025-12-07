@@ -303,7 +303,7 @@ export class AnomalyDetector {
     }
     
     // Log alert
-    logger.warning('ANOMALY', alert.message, alert.details)
+    logger.warn('ANOMALY', alert.message, alert.details)
     
     // Show toast notification
     const toastFn = alert.severity === 'critical' ? toast.error :
@@ -372,7 +372,7 @@ export class AnomalyDetector {
     }
     
     if (options?.since) {
-      filtered = filtered.filter(a => a.timestamp >= options.since)
+      filtered = filtered.filter(a => a.timestamp >= options.since!)
     }
     
     return filtered.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())

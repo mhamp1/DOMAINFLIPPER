@@ -116,7 +116,7 @@ export async function syncPriceAcrossChannels(
   const allSucceeded = failedChannels.length === 0
   
   if (!allSucceeded) {
-    logger.warning('SYNC', `Partial sync failure for ${domain}`, {
+    logger.warn('SYNC', `Partial sync failure for ${domain}`, {
       succeeded: results.filter(r => r.success).length,
       failed: failedChannels.length,
       failedChannels,
@@ -221,7 +221,7 @@ async function rollbackPriceChanges(
   channels: ChannelListing[],
   results: SyncResult[]
 ): Promise<void> {
-  logger.warning('SYNC', `Rolling back price changes for ${domain}`, {
+  logger.warn('SYNC', `Rolling back price changes for ${domain}`, {
     channels: channels.length,
   })
   
