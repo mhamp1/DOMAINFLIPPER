@@ -28,6 +28,7 @@ Full production features include:
 - ✅ **Pure Black + Gold Luxury UI** (bank vault aesthetic)
 - ✅ **AI-Powered Sniper** (0.001s precision timing)
 - ✅ **Built-in Security** (transaction simulation, rate limiting, emergency pause)
+- ✅ **UI-Configurable Settings** (plug-and-play runtime knobs with DRY_RUN protection)
 
 **The empire is complete. Time to conquer.**
 
@@ -101,6 +102,22 @@ Trained on **1M+ real domain sales** with advanced features:
 - **Real-Time Stats**: Live profit counter, ROI tracking
 - **Owned Domains List**: Complete portfolio overview
 - **Active Offers**: Track all negotiations
+
+### ⚙️ **UI-Configurable Pipeline Settings**
+
+Plug-and-play runtime configuration with safety guardrails:
+
+- **DRY_RUN Mode**: Safe testing without real purchases (default: ON)
+- **Registrar Selection**: Choose GoDaddy, Namecheap, or Auto
+- **Marketplace Channels**: Select Afternic, Dan, Sedo, Flippa, GoDaddy
+- **Spending Limits**: Daily cap ($200 default) & per-domain cap ($20 default)
+- **Margin Requirements**: Min 3.0x return ratio (configurable 1.5x-10x)
+- **TLD Whitelist**: Filter by .com, .ai, .io, .net, .org, .co
+- **Alert Webhooks**: Slack/Discord notifications for key events
+
+All settings persist to Supabase with localStorage fallback. Changes take effect immediately without code changes or restarts.
+
+See [Pipeline Settings Documentation](docs/PIPELINE_SETTINGS.md) for complete details.
 
 ---
 
