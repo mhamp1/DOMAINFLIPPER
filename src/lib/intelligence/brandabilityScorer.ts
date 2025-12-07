@@ -86,7 +86,11 @@ export const DEFAULT_BRANDABILITY_CONFIG: BrandabilityConfig = {
 }
 
 export class BrandabilityScorer {
-  constructor(private config: BrandabilityConfig = DEFAULT_BRANDABILITY_CONFIG) {}
+  private config: BrandabilityConfig
+  
+  constructor(config?: BrandabilityConfig) {
+    this.config = config || DEFAULT_BRANDABILITY_CONFIG
+  }
 
   /**
    * Score a domain name for brandability

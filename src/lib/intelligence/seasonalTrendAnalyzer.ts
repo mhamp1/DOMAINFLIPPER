@@ -48,7 +48,11 @@ export const DEFAULT_SEASONAL_CONFIG: SeasonalConfig = {
 }
 
 export class SeasonalTrendAnalyzer {
-  constructor(private config: SeasonalConfig = DEFAULT_SEASONAL_CONFIG) {}
+  private config: SeasonalConfig
+  
+  constructor(config?: SeasonalConfig) {
+    this.config = config || DEFAULT_SEASONAL_CONFIG
+  }
 
   /**
    * Analyze trend data with recency weighting and persistence
