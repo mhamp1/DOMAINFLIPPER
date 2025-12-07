@@ -45,6 +45,26 @@ export interface EmpireSettingsData {
   totalSpent: number
   domainsAcquired: number
   domainsSold: number
+  
+  // Momentum & Filter Settings
+  momentumThreshold: number
+  persistenceThreshold: number
+  enableProfanityFilter: boolean
+  enableTMFilter: boolean
+  enableScamFilter: boolean
+  
+  // Pricing Policy Settings
+  liquidationDiscount: number
+  floorDiscount: number
+  autoRepriceEnabled: boolean
+  
+  // Anomaly Alert Thresholds
+  spendSpikePercent: number
+  spendSpikeWindow: number
+  providerErrorThreshold: number
+  providerErrorWindow: number
+  listingMismatchThreshold: number
+  budgetOverrunPercent: number
 }
 
 const DEFAULT_SETTINGS: EmpireSettingsData = {
@@ -66,6 +86,23 @@ const DEFAULT_SETTINGS: EmpireSettingsData = {
   totalSpent: 0,
   domainsAcquired: 0,
   domainsSold: 0,
+  // Momentum & Filter Settings
+  momentumThreshold: 50,
+  persistenceThreshold: 3,
+  enableProfanityFilter: true,
+  enableTMFilter: true,
+  enableScamFilter: true,
+  // Pricing Policy Settings
+  liquidationDiscount: 0.75,
+  floorDiscount: 0.55,
+  autoRepriceEnabled: true,
+  // Anomaly Alert Thresholds
+  spendSpikePercent: 200,
+  spendSpikeWindow: 1,
+  providerErrorThreshold: 5,
+  providerErrorWindow: 15,
+  listingMismatchThreshold: 3,
+  budgetOverrunPercent: 110,
 }
 
 const STORAGE_KEY = 'domainFlipper_empireSettings'
