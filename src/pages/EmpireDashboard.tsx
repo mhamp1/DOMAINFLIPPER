@@ -135,12 +135,12 @@ export default function EmpireDashboard() {
   // Core stats - SYNC WITH MASTERCONFIG
   const [stats, setStats] = useState(empireEngine.getStats())
   
-  // Get empire settings from MasterConfig (single source of truth)
-  const masterEmpireSettings = masterConfig.getEmpire()
+  // Get empire settings from MasterConfig (single source of truth) - REFRESH EVERY UPDATE
+  const [masterEmpireSettings, setMasterEmpireSettings] = useState(masterConfig.getEmpire())
   const [fundingStats, setFundingStats] = useState({
     ...autoFundEngine.getStats(),
-    capital: masterEmpireSettings.totalCapital,
-    dailyBudget: masterEmpireSettings.dailyBudget,
+    capital: masterConfig.getEmpire().totalCapital,
+    dailyBudget: masterConfig.getEmpire().dailyBudget,
   })
   const [compoundStats, setCompoundStats] = useState(compoundEngine.getStats())
   const [riskStats, setRiskStats] = useState(quantumShield.getStats())
@@ -355,8 +355,9 @@ export default function EmpireDashboard() {
     const interval = setInterval(() => {
       setStats(empireEngine.getStats())
       
-      // Merge auto fund stats with MasterConfig empire settings
+      // ALWAYS REFRESH FROM MASTERCONFIG (single source of truth)
       const masterEmpire = masterConfig.getEmpire()
+      setMasterEmpireSettings(masterEmpire) // Update state so UI reflects changes
       setFundingStats({
         ...autoFundEngine.getStats(),
         capital: masterEmpire.totalCapital,
@@ -683,19 +684,24 @@ export default function EmpireDashboard() {
                 </Card>
               </div>
 
-              {/* Empire Controls Card */}
+              {/* Empire Controls Card - REAL CONFIG VALUES */}
               <Card className="card-obsidian-premium p-6 mb-6">
                 <h3 className="text-lg font-semibold section-header mb-4">Empire Controls</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                   <div>
                     <div className="text-xs text-yellow-600/50 uppercase tracking-wider mb-1">Daily Budget</div>
-                    <div className="text-2xl font-bold value-gold value-display">{formatCurrency(fundingStats.dailyBudget)}</div>
-                    <div className="text-xs text-yellow-600/40">10% of capital</div>
+                    <div className="text-2xl font-bold value-gold value-display">{formatCurrency(masterEmpireSettings.dailyBudget)}</div>
+                    <div className="text-xs text-yellow-600/40">
+                      {masterEmpireSettings.totalCapital > 0 
+                        ? `${((masterEmpireSettings.dailyBudget / masterEmpireSettings.totalCapital) * 100).toFixed(1)}% of capital`
+                        : 'Not set'
+                      }
+                    </div>
                   </div>
                   <div>
                     <div className="text-xs text-yellow-600/50 uppercase tracking-wider mb-1">Min ROI Target</div>
-                    <div className="text-2xl font-bold value-gold value-display">8x</div>
-                    <div className="text-xs text-yellow-600/40">Only acquire 8x+ returns</div>
+                    <div className="text-2xl font-bold value-gold value-display">{masterEmpireSettings.minROI}x</div>
+                    <div className="text-xs text-yellow-600/40">Only acquire {masterEmpireSettings.minROI}x+ returns</div>
                   </div>
                   <div>
                     <div className="text-xs text-yellow-600/50 uppercase tracking-wider mb-1">AI Accuracy</div>
