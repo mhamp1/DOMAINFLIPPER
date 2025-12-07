@@ -80,6 +80,76 @@ export interface MasterConfigData {
     domainsAcquired: number
     domainsSold: number
   }
+  
+  // Advanced Features Settings
+  advanced: {
+    // Brandability/NLP Scoring
+    brandability: {
+      enabled: boolean
+      minVowelRatio: number
+      maxVowelRatio: number
+      maxLength: number
+      minLength: number
+      penalizeProfanity: boolean
+      penalizeStopwords: boolean
+      penalizeTrademark: boolean
+      requireEnglish: boolean
+      minScore: number
+    }
+    
+    // Seasonal/Recency Trend Analysis
+    seasonal: {
+      enabled: boolean
+      windowDays: number
+      recencyDecayRate: number
+      minPersistenceDays: number
+      spikeFilterThreshold: number
+      momentumWeight: number
+      enableSpikeFilter: boolean
+    }
+    
+    // Channel Performance Tracking
+    channelPerformance: {
+      enabled: boolean
+      channels: Array<{
+        name: string
+        enabled: boolean
+        commission: number
+        listPriceMultiplier: number
+        floorPriceMultiplier: number
+        repricingCadenceDays: number
+        autoReprice: boolean
+      }>
+    }
+    
+    // Outbound Buyer Suggestions (OPT-IN)
+    outbound: {
+      enabled: boolean              // DEFAULT: FALSE
+      requireManualApproval: boolean // DEFAULT: TRUE
+      minMatchScore: number
+      maxSuggestionsPerDomain: number
+      includeCompetitors: boolean
+    }
+    
+    // Registrar/Marketplace Optimization
+    registrar: {
+      defaultRegistrar: 'GoDaddy' | 'Namecheap' | 'DropCatch'
+      defaultMarketplaces: string[]
+      preferredRegion?: string
+      preAuthEnabled: boolean
+    }
+    
+    // Safety Guardrails
+    safety: {
+      dryRun: boolean              // DEFAULT: TRUE
+      dailyCapUSD: number          // DEFAULT: $200
+      perDomainCapUSD: number      // DEFAULT: $20
+      minMargin: number            // DEFAULT: 3.0x
+      allowedTLDs: string[]        // DEFAULT: ['.com', '.ai', '.io']
+      circuitBreakerThreshold: number
+      requireConfirmation: boolean // DEFAULT: TRUE
+    }
+  }
 }
 
 // ============================================
@@ -189,6 +259,73 @@ const DEFAULT_CONFIG: MasterConfigData = {
     totalSpent: 0,
     domainsAcquired: 0,
     domainsSold: 0,
+  },
+  advanced: {
+    brandability: {
+      enabled: true,
+      minVowelRatio: 0.25,
+      maxVowelRatio: 0.5,
+      maxLength: 15,
+      minLength: 4,
+      penalizeProfanity: true,
+      penalizeStopwords: true,
+      penalizeTrademark: true,
+      requireEnglish: false,
+      minScore: 60,
+    },
+    seasonal: {
+      enabled: true,
+      windowDays: 30,
+      recencyDecayRate: 0.1,
+      minPersistenceDays: 3,
+      spikeFilterThreshold: 2.5,
+      momentumWeight: 0.4,
+      enableSpikeFilter: true,
+    },
+    channelPerformance: {
+      enabled: true,
+      channels: [
+        {
+          name: 'Afternic',
+          enabled: true,
+          commission: 0.20,
+          listPriceMultiplier: 1.0,
+          floorPriceMultiplier: 1.0,
+          repricingCadenceDays: 30,
+          autoReprice: false,
+        },
+        {
+          name: 'Dan',
+          enabled: true,
+          commission: 0.09,
+          listPriceMultiplier: 1.0,
+          floorPriceMultiplier: 1.0,
+          repricingCadenceDays: 30,
+          autoReprice: false,
+        },
+      ],
+    },
+    outbound: {
+      enabled: false,              // DEFAULT: DISABLED
+      requireManualApproval: true, // DEFAULT: REQUIRE APPROVAL
+      minMatchScore: 70,
+      maxSuggestionsPerDomain: 5,
+      includeCompetitors: false,
+    },
+    registrar: {
+      defaultRegistrar: 'GoDaddy',
+      defaultMarketplaces: ['Afternic', 'Dan'],
+      preAuthEnabled: false,
+    },
+    safety: {
+      dryRun: true,                // DEFAULT: DRY RUN
+      dailyCapUSD: 200,            // DEFAULT: $200
+      perDomainCapUSD: 20,         // DEFAULT: $20
+      minMargin: 3.0,              // DEFAULT: 3.0x
+      allowedTLDs: ['.com', '.ai', '.io'],
+      circuitBreakerThreshold: 5,
+      requireConfirmation: true,   // DEFAULT: REQUIRE CONFIRMATION
+    },
   },
 }
 
@@ -717,6 +854,88 @@ class MasterConfig {
 
   private notifyListeners(): void {
     this.listeners.forEach(l => l({ ...this.config }))
+  }
+
+  // ==================== ADVANCED SETTINGS ====================
+  
+  getAdvancedSettings() {
+    return { ...this.config.advanced }
+  }
+  
+  getBrandabilitySettings() {
+    return { ...this.config.advanced.brandability }
+  }
+  
+  getSeasonalSettings() {
+    return { ...this.config.advanced.seasonal }
+  }
+  
+  getChannelPerformanceSettings() {
+    return { ...this.config.advanced.channelPerformance }
+  }
+  
+  getOutboundSettings() {
+    return { ...this.config.advanced.outbound }
+  }
+  
+  getRegistrarSettings() {
+    return { ...this.config.advanced.registrar }
+  }
+  
+  getSafetySettings() {
+    return { ...this.config.advanced.safety }
+  }
+  
+  updateBrandabilitySettings(settings: Partial<typeof this.config.advanced.brandability>): void {
+    this.config.advanced.brandability = { ...this.config.advanced.brandability, ...settings }
+    this.saveConfig()
+  }
+  
+  updateSeasonalSettings(settings: Partial<typeof this.config.advanced.seasonal>): void {
+    this.config.advanced.seasonal = { ...this.config.advanced.seasonal, ...settings }
+    this.saveConfig()
+  }
+  
+  updateChannelPerformanceSettings(settings: Partial<typeof this.config.advanced.channelPerformance>): void {
+    this.config.advanced.channelPerformance = { ...this.config.advanced.channelPerformance, ...settings }
+    this.saveConfig()
+  }
+  
+  updateOutboundSettings(settings: Partial<typeof this.config.advanced.outbound>): void {
+    this.config.advanced.outbound = { ...this.config.advanced.outbound, ...settings }
+    this.saveConfig()
+    
+    if (settings.enabled !== undefined) {
+      if (settings.enabled) {
+        toast.warning('⚠️ Outbound Enabled', { 
+          description: 'Buyer suggestions enabled. No auto-send - manual approval required.' 
+        })
+      } else {
+        toast.success('Outbound Disabled', { description: 'Buyer suggestions disabled' })
+      }
+    }
+  }
+  
+  updateRegistrarSettings(settings: Partial<typeof this.config.advanced.registrar>): void {
+    this.config.advanced.registrar = { ...this.config.advanced.registrar, ...settings }
+    this.saveConfig()
+  }
+  
+  updateSafetySettings(settings: Partial<typeof this.config.advanced.safety>): void {
+    const oldDryRun = this.config.advanced.safety.dryRun
+    this.config.advanced.safety = { ...this.config.advanced.safety, ...settings }
+    this.saveConfig()
+    
+    // Show warning when DRY_RUN is disabled
+    if (settings.dryRun !== undefined && !settings.dryRun && oldDryRun) {
+      toast.error('🚨 DRY_RUN DISABLED', { 
+        description: 'Real purchases enabled. Be careful!' 
+      })
+    } else if (settings.dryRun !== undefined && settings.dryRun && !oldDryRun) {
+      toast.success('✅ DRY_RUN Enabled', { 
+        description: 'Safe mode - no real purchases' 
+      })
+    }
   }
 
   // ==================== RESET ====================
