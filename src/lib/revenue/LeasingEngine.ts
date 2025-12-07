@@ -576,6 +576,14 @@ export class LeasingEngine {
   // ==================== STATS ====================
 
   /**
+   * Enable leasing for a domain (mark as leasable)
+   */
+  enableLeasing(domain: string, suggestedPrice: number): void {
+    this.leasableDomains.add(domain)
+    // In production, this would deploy the leasing landing page
+  }
+
+  /**
    * Get leasing statistics
    */
   getStats(): LeaseStats {
