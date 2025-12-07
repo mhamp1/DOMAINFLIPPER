@@ -65,6 +65,15 @@ export interface CompetitorProfile {
   winRateAgainstUs: number
 }
 
+export interface ActivityLogEntry {
+  id: string
+  timestamp: Date
+  type: 'scan' | 'evaluate' | 'buy' | 'reject' | 'watch' | 'error' | 'system'
+  message: string
+  domain?: string
+  data?: any
+}
+
 export interface EmpireStats {
   // Capital & Profit
   totalCapital: number
@@ -78,6 +87,8 @@ export interface EmpireStats {
   // Activity
   isRunning: boolean
   uptime: number
+  lastActivity: Date | null
+  lastScanTime: Date | null
   domainsScanned: number
   domainsOwned: number
   domainsSold: number
@@ -143,6 +154,10 @@ class EmpireBrain {
   private todayWins = 0
   private lastProfitDay = new Date().toDateString()
 
+  // Activity Logging
+  private activityLog: ActivityLogEntry[] = []
+  private readonly MAX_LOG_ENTRIES = 1000
+
   private stats: EmpireStats = {
     totalCapital: 0,
     availableCapital: 0,
@@ -153,6 +168,8 @@ class EmpireBrain {
     projectedYearly: 0,
     isRunning: false,
     uptime: 0,
+    lastActivity: null,
+    lastScanTime: null,
     domainsScanned: 0,
     domainsOwned: 0,
     domainsSold: 0,
@@ -293,6 +310,9 @@ class EmpireBrain {
 
       // ==================== PHASE 1: SCAN ====================
       
+      this.stats.lastScanTime = new Date()
+      this.stats.lastActivity = new Date()
+      
       const scan = await realDomainScanner.scan({ 
         maxPrice: budget, 
         maxResults: 50 
@@ -300,6 +320,14 @@ class EmpireBrain {
       
       this.stats.domainsScanned += scan.totalScanned
       this.stats.leadsFound += scan.domains.length
+      
+      // Log scan activity with domain names
+      this.logActivity('scan', `Scanned ${scan.totalScanned} domains, found ${scan.domains.length} candidates`, undefined, {
+        totalScanned: scan.totalScanned,
+        candidates: scan.domains.length,
+        sources: scan.sources,
+        domains: scan.domains.slice(0, 10).map(d => d.domain), // First 10 domain names
+      })
 
       if (scan.domains.length === 0) {
         this.speak('think', `No prey under $${budget}. Market is quiet. Patience...`, 'calm')
@@ -491,9 +519,10 @@ class EmpireBrain {
   // ==================== SELF-AWARE THINKING ====================
 
   private speak(type: ThoughtType, message: string, emotion: EmotionType, data?: any): void {
+    const now = new Date()
     const thought: EmpireThought = {
       id: `thought-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: new Date(),
+      timestamp: now,
       type,
       message,
       emotion,
@@ -504,7 +533,25 @@ class EmpireBrain {
     if (this.stats.thoughts.length > 100) this.stats.thoughts.pop()
 
     this.stats.lastAction = message
-    this.stats.lastActionTime = new Date()
+    this.stats.lastActionTime = now
+    this.stats.lastActivity = now
+
+    // Extract domain name from message if present
+    const domainMatch = message.match(/([a-zA-Z0-9][a-zA-Z0-9-]{1,61}\.[a-zA-Z]{2,})/i)
+    const domain = domainMatch ? domainMatch[1] : data?.domain
+
+    // Enhanced console logging with timestamp and domain
+    const timestamp = now.toLocaleTimeString()
+    const logPrefix = `[${timestamp}] [EMPIRE]`
+    
+    if (domain) {
+      console.log(`${logPrefix} [${domain}] ${message}`, data || '')
+    } else {
+      console.log(`${logPrefix} ${message}`, data || '')
+    }
+
+    // Add to activity log
+    this.logActivity(type === 'scan' ? 'scan' : type === 'evaluate' ? 'evaluate' : type === 'buy' ? 'buy' : type === 'think' ? 'watch' : 'system', message, domain, data)
 
     // Log based on importance
     if (type === 'victory' || type === 'rage') {
@@ -516,6 +563,32 @@ class EmpireBrain {
     }
 
     this.notifyListeners()
+  }
+
+  // ==================== ACTIVITY LOGGING ====================
+
+  private logActivity(type: ActivityLogEntry['type'], message: string, domain?: string, data?: any): void {
+    const entry: ActivityLogEntry = {
+      id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      timestamp: new Date(),
+      type,
+      message,
+      domain,
+      data,
+    }
+
+    this.activityLog.unshift(entry)
+    if (this.activityLog.length > this.MAX_LOG_ENTRIES) {
+      this.activityLog.pop()
+    }
+  }
+
+  getActivityLog(limit: number = 100): ActivityLogEntry[] {
+    return this.activityLog.slice(0, limit)
+  }
+
+  clearActivityLog(): void {
+    this.activityLog = []
   }
 
   // ==================== SELF-CRITIQUE & LEARNING ====================
@@ -720,6 +793,89 @@ class EmpireBrain {
     } catch (e) {
       console.warn('Failed to load empire memory')
     }
+  }
+
+  // ==================== TEST SCAN ====================
+
+  /**
+   * Force an immediate test scan to verify bot is working
+   */
+  async testScan(): Promise<void> {
+    const config = masterConfig.getEmpire()
+    const budget = config.dailyBudget
+    const minROI = config.minROI
+
+    this.speak('think', '🧪 TEST SCAN INITIATED — Verifying bot functionality...', 'excited')
+    this.stats.currentAction = '🧪 TEST SCAN — Running diagnostic'
+
+    try {
+      this.stats.lastScanTime = new Date()
+      this.stats.lastActivity = new Date()
+
+      const scan = await realDomainScanner.scan({ 
+        maxPrice: budget, 
+        maxResults: 20 // Smaller for test
+      })
+
+      this.stats.domainsScanned += scan.totalScanned
+      this.stats.leadsFound += scan.domains.length
+
+      // Log test scan with all domain names
+      const domainNames = scan.domains.map(d => d.domain)
+      this.logActivity('scan', `TEST SCAN: Found ${scan.domains.length} domains`, undefined, {
+        totalScanned: scan.totalScanned,
+        candidates: scan.domains.length,
+        sources: scan.sources,
+        domains: domainNames, // ALL domain names
+      })
+
+      this.speak('think', 
+        `✅ TEST SCAN COMPLETE | Scanned: ${scan.totalScanned} | Found: ${scan.domains.length} candidates | Sources: ${scan.sources.join(', ')}`,
+        'excited',
+        { domains: domainNames }
+      )
+
+      // Evaluate first few domains
+      if (scan.domains.length > 0) {
+        this.speak('think', `📊 Evaluating top ${Math.min(5, scan.domains.length)} domains...`, 'excited')
+        
+        for (const domain of scan.domains.slice(0, 5)) {
+          try {
+            const [name, tld] = domain.domain.split('.')
+            const valuation = await valuationEngine.predictValue({ name: domain.domain, tld: `.${tld}` })
+            const roi = valuation.value / domain.price
+
+            if (roi >= minROI) {
+              this.speak('evaluate', 
+                `✅ ${domain.domain} | Price: $${domain.price} | Value: $${valuation.value.toLocaleString()} | ROI: ${roi.toFixed(1)}x | Score: ${valuation.score}`,
+                'excited',
+                { domain: domain.domain }
+              )
+            } else {
+              this.speak('evaluate',
+                `❌ ${domain.domain} | ROI ${roi.toFixed(1)}x < ${minROI}x required`,
+                'calm',
+                { domain: domain.domain }
+              )
+            }
+          } catch (e: any) {
+            this.speak('alert', `⚠️ Evaluation failed for ${domain.domain}: ${e.message}`, 'calm', { domain: domain.domain })
+          }
+        }
+      }
+
+      this.stats.currentAction = `✅ TEST SCAN COMPLETE — ${scan.domains.length} candidates found`
+      toast.success('✅ Test Scan Complete', {
+        description: `Scanned ${scan.totalScanned} domains, found ${scan.domains.length} candidates`,
+        duration: 5000,
+      })
+    } catch (error: any) {
+      this.speak('rage', `🔴 TEST SCAN FAILED: ${error.message}`, 'angry')
+      this.stats.currentAction = '❌ TEST SCAN FAILED'
+      toast.error('Test Scan Failed', { description: error.message })
+    }
+
+    this.notifyListeners()
   }
 
   // ==================== CONTROL ====================

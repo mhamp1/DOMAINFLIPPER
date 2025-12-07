@@ -61,6 +61,18 @@ import { leadScanner } from '@/lib/intelligence/LeadScanner'
 import { godScoreEngine } from '@/lib/valuation/GodScore'
 import { formatCurrency } from '@/lib/utils'
 import { toast } from 'sonner'
+
+// Format time ago helper
+const formatTimeAgo = (date: Date | null): string => {
+  if (!date) return 'Never'
+  const now = new Date()
+  const diff = Math.floor((now.getTime() - date.getTime()) / 1000)
+  
+  if (diff < 60) return `${diff} seconds ago`
+  if (diff < 3600) return `${Math.floor(diff / 60)} minutes ago`
+  if (diff < 86400) return `${Math.floor(diff / 3600)} hours ago`
+  return `${Math.floor(diff / 86400)} days ago`
+}
 import { STRATEGIES, getStrategiesForBudget } from '@/lib/strategies/strategyDefinitions'
 import { godaddyAPI } from '@/lib/api/godaddyReal'
 import { namecheapAPI } from '@/lib/api/namecheapReal'
@@ -160,6 +172,10 @@ export default function EmpireDashboard() {
   
   // Empire Brain stats
   const [empireStats, setEmpireStats] = useState<EmpireStats | null>(null)
+
+  // Activity Log
+  const [activityLog, setActivityLog] = useState<any[]>([])
+  const [isTestScanning, setIsTestScanning] = useState(false)
 
   // Intelligence Tab - REAL DATA
   const [predictiveAlerts, setPredictiveAlerts] = useState<any[]>([])
@@ -349,6 +365,29 @@ export default function EmpireDashboard() {
     
     return () => unsubscribe()
   }, [])
+
+  // Fetch activity log periodically
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const log = empireBrain.getActivityLog(100)
+      setActivityLog(log)
+    }, 2000) // Every 2 seconds
+
+    return () => clearInterval(interval)
+  }, [])
+
+  // Test scan handler
+  const handleTestScan = async () => {
+    setIsTestScanning(true)
+    try {
+      await empireBrain.testScan()
+      toast.success('Test Scan Initiated', { description: 'Check console and activity log for results' })
+    } catch (error: any) {
+      toast.error('Test Scan Failed', { description: error.message })
+    } finally {
+      setIsTestScanning(false)
+    }
+  }
 
   // Update all stats every second - SYNC WITH MASTERCONFIG
   useEffect(() => {
@@ -676,11 +715,23 @@ export default function EmpireDashboard() {
                       <ChartBar size={18} className="text-yellow-500" />
                     </div>
                     <span className="text-xs text-yellow-600/60 uppercase tracking-wider">Scans Today</span>
+                    {/* Activity Indicator - Pulsing Dot */}
+                    {isLaunched && empireStats?.lastActivity && (
+                      <div className="ml-auto">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-lg shadow-green-500/50" 
+                             title={`Last activity: ${new Date(empireStats.lastActivity).toLocaleTimeString()}`} />
+                      </div>
+                    )}
                   </div>
                   <div className="text-2xl md:text-3xl font-bold value-gold value-display">
                     {empireStats?.domainsScanned || stats.decisionsToday || 0}
                   </div>
-                  <div className="text-xs text-yellow-600/40 mt-1">Target: 120,000/day</div>
+                  <div className="text-xs text-yellow-600/40 mt-1">
+                    {empireStats?.lastScanTime 
+                      ? `Last scan: ${formatTimeAgo(empireStats.lastScanTime)}`
+                      : 'Target: 120,000/day'
+                    }
+                  </div>
                 </Card>
               </div>
 
@@ -710,28 +761,64 @@ export default function EmpireDashboard() {
                   </div>
                 </div>
 
-                {/* Launch Button */}
-                <Button
-                  onClick={handleLaunchEmpire}
-                  disabled={isLoading}
-                  className={`w-full py-4 text-lg font-bold transition-all duration-300 ${
-                    isLaunched 
-                      ? 'bg-red-500/20 border-red-500/50 text-red-400 hover:bg-red-500/30' 
-                      : 'btn-gold-premium'
-                  }`}
-                  size="lg"
-                >
-                  {isLoading ? (
-                    <div className="flex items-center gap-2">
+                {/* Launch Button & Test Scan */}
+                <div className="flex gap-3">
+                  <Button
+                    onClick={handleLaunchEmpire}
+                    disabled={isLoading}
+                    className={`flex-1 py-4 text-lg font-bold transition-all duration-300 ${
+                      isLaunched 
+                        ? 'bg-red-500/20 border-red-500/50 text-red-400 hover:bg-red-500/30' 
+                        : 'btn-gold-premium'
+                    }`}
+                    size="lg"
+                  >
+                    {isLoading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        {isLaunched ? 'Stopping...' : 'Launching...'}
+                      </div>
+                    ) : isLaunched ? (
+                      <><Pause size={20} className="mr-2" /> PAUSE EMPIRE</>
+                    ) : (
+                      <><Play size={20} className="mr-2" /> LAUNCH EMPIRE</>
+                    )}
+                  </Button>
+                  <Button
+                    onClick={handleTestScan}
+                    disabled={isTestScanning || !isLaunched}
+                    className="px-6 py-4 bg-blue-500/20 border border-blue-500/50 text-blue-400 hover:bg-blue-500/30 transition-all duration-300"
+                    size="lg"
+                    title="Force an immediate test scan to verify bot is working"
+                  >
+                    {isTestScanning ? (
                       <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                      {isLaunched ? 'Stopping...' : 'Launching...'}
+                    ) : (
+                      <><Crosshair size={20} /> TEST</>
+                    )}
+                  </Button>
+                </div>
+
+                {/* Last Activity Indicator */}
+                {empireStats?.lastActivity && (
+                  <div className="mt-4 p-3 rounded-lg bg-yellow-600/10 border border-yellow-600/20 flex items-center gap-3">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-lg shadow-green-500/50" />
+                    <div className="flex-1">
+                      <div className="text-xs text-yellow-600/60 uppercase tracking-wider">Last Activity</div>
+                      <div className="text-sm font-medium text-yellow-600">
+                        {formatTimeAgo(empireStats.lastActivity)}
+                      </div>
                     </div>
-                  ) : isLaunched ? (
-                    <><Pause size={20} className="mr-2" /> PAUSE EMPIRE</>
-                  ) : (
-                    <><Play size={20} className="mr-2" /> LAUNCH EMPIRE</>
-                  )}
-                </Button>
+                    {empireStats.lastScanTime && (
+                      <div className="text-right">
+                        <div className="text-xs text-yellow-600/60 uppercase tracking-wider">Last Scan</div>
+                        <div className="text-sm font-medium text-yellow-600">
+                          {formatTimeAgo(empireStats.lastScanTime)}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* How Autonomous Mode Works */}
                 <div className="mt-4 p-4 rounded-lg bg-green-500/10 border border-green-500/30">
@@ -779,7 +866,15 @@ export default function EmpireDashboard() {
 
               {/* Live Activity Feed */}
               <Card className="card-obsidian-premium p-6">
-                <h3 className="text-lg font-semibold section-header mb-4">Live Activity Feed</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold section-header">Live Activity Feed</h3>
+                  {isLaunched && (
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-lg shadow-green-500/50" />
+                      <span className="text-xs text-green-500">ACTIVE</span>
+                    </div>
+                  )}
+                </div>
                 {botThoughts.length > 0 ? (
                   <div className="space-y-3 max-h-64 overflow-y-auto">
                     {botThoughts.slice(0, 5).map((thought, i) => (
@@ -803,6 +898,83 @@ export default function EmpireDashboard() {
                     <p>Launch empire to see live activity</p>
                   </div>
                 )}
+              </Card>
+
+              {/* Activity Log Viewer - Detailed Log with Domain Names */}
+              <Card className="card-obsidian-premium p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold section-header">📋 Activity Log</h3>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-yellow-600/50">{activityLog.length} entries</span>
+                    <Button
+                      onClick={() => {
+                        empireBrain.clearActivityLog()
+                        setActivityLog([])
+                        toast.info('Activity log cleared')
+                      }}
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs text-yellow-600/50 hover:text-yellow-600"
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {activityLog.length > 0 ? (
+                    activityLog.map((entry) => {
+                      const typeColors = {
+                        scan: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+                        evaluate: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+                        buy: 'bg-green-500/20 text-green-400 border-green-500/30',
+                        reject: 'bg-red-500/20 text-red-400 border-red-500/30',
+                        watch: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+                        error: 'bg-red-500/20 text-red-400 border-red-500/30',
+                        system: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
+                      }
+                      const typeColor = typeColors[entry.type] || typeColors.system
+                      
+                      return (
+                        <motion.div
+                          key={entry.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className={`p-3 rounded-lg border ${typeColor} flex items-start gap-3`}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Badge className={`text-xs ${typeColor}`}>
+                                {entry.type.toUpperCase()}
+                              </Badge>
+                              {entry.domain && (
+                                <span className="text-sm font-bold text-yellow-600">{entry.domain}</span>
+                              )}
+                              <span className="text-xs text-yellow-600/40 ml-auto">
+                                {new Date(entry.timestamp).toLocaleTimeString()}
+                              </span>
+                            </div>
+                            <p className="text-sm text-yellow-600/80">{entry.message}</p>
+                            {entry.data?.domains && Array.isArray(entry.data.domains) && entry.data.domains.length > 0 && (
+                              <div className="mt-2 flex flex-wrap gap-1">
+                                {entry.data.domains.map((d: string, i: number) => (
+                                  <Badge key={i} className="text-xs bg-yellow-600/10 text-yellow-400">
+                                    {d}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </motion.div>
+                      )
+                    })
+                  ) : (
+                    <div className="text-center py-8 text-yellow-600/40">
+                      <ChartBar size={32} className="mx-auto mb-2 opacity-50" />
+                      <p>No activity logged yet</p>
+                      <p className="text-xs mt-1">Activity will appear here when bot is running</p>
+                    </div>
+                  )}
+                </div>
               </Card>
 
               {/* Quick Stats Grid */}
