@@ -93,10 +93,20 @@ export class MarketplaceLister {
   /**
    * List domain on all configured marketplaces
    * Returns status for each marketplace (including 'not_configured' for missing APIs)
+   * @param selectedChannels - Optional array of marketplace IDs to list on (e.g., ['Afternic', 'Dan'])
    */
-  async listOnAllMarketplaces(domain: string, price: number): Promise<ListingStatus[]> {
+  async listOnAllMarketplaces(domain: string, price: number, selectedChannels?: string[]): Promise<ListingStatus[]> {
     const results: ListingStatus[] = []
-    const activeMarketplaces = MARKETPLACES.filter(m => m.enabled)
+    
+    // Filter by selected channels if provided
+    let activeMarketplaces = MARKETPLACES.filter(m => m.enabled)
+    if (selectedChannels && selectedChannels.length > 0) {
+      // Convert channel names to marketplace IDs (case-insensitive)
+      const channelIds = selectedChannels.map(c => c.toLowerCase())
+      activeMarketplaces = activeMarketplaces.filter(m => 
+        channelIds.includes(m.name.toLowerCase()) || channelIds.includes(m.id.toLowerCase())
+      )
+    }
 
     const configuredCount = activeMarketplaces.filter(m => m.configured).length
     

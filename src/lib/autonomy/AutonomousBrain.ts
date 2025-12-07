@@ -16,6 +16,7 @@ import { realSniper } from '@/lib/buy/RealSniper'
 import { marketplaceLister } from '@/lib/marketplace/autoList'
 import { godScoreEngine } from '@/lib/valuation/GodScore'
 import { masterConfig } from '@/lib/config/MasterConfig'
+import { pipelineSettings } from '@/lib/config/settingsService'
 import { expiredDomainsScanner } from '@/lib/scanner/ExpiredDomainsScanner'
 import { sedoAPI } from '@/lib/api/sedo'
 import { godaddyAPI } from '@/lib/api/godaddyReal'
@@ -205,8 +206,21 @@ class AutonomousBrain {
 
       this.speak(`🔍 Scanning ${allDomains.length} targets (${scanResult.domains.length} auctions + ${expiredDomains.length} expired)...`)
 
+      // Get runtime settings
+      const settings = pipelineSettings.getSettings()
+      const isDryRun = settings.dryRun
+      const minMargin = settings.minMarginMultiplier
+      const perDomainCap = settings.maxSpendPerDomain
+      const allowedTLDs = settings.allowedTLDs
+
       for (const target of allDomains.slice(0, 15)) {
         try {
+          // Check if TLD is allowed
+          const tld = target.domain.substring(target.domain.lastIndexOf('.'))
+          if (!allowedTLDs.includes(tld as any)) {
+            continue // Skip if TLD not allowed
+          }
+
           // REAL AVAILABILITY CHECK for all domains
           const avail = await this.checkAvailability(target.domain)
 
@@ -217,8 +231,8 @@ class AutonomousBrain {
           // Use real availability price
           const actualPrice = avail.price
           
-          // Use dailyBudget as max single buy limit
-          const maxSingleBuy = config.dailyBudget / 2 // Allow up to half of daily budget per domain
+          // Use dailyBudget and pipeline per-domain cap
+          const maxSingleBuy = Math.min(config.dailyBudget / 2, perDomainCap)
           if (actualPrice > maxSingleBuy) {
             continue // Skip if over budget
           }
@@ -234,12 +248,12 @@ class AutonomousBrain {
 
           const roi = valuation.value / actualPrice
 
-          // Decision logic with availability check
+          // Decision logic with pipeline settings
           if (
             avail.available &&
             actualPrice <= maxSingleBuy &&
             godScore.score > 85 &&
-            roi >= config.minROI &&
+            roi >= Math.max(config.minROI, minMargin) && // Use max of config and settings
             valuation.score >= 75
           ) {
             // AUTO-SNIPE if good ROI - convert to proper format
@@ -250,24 +264,33 @@ class AutonomousBrain {
               type: target.type,
               available: true,
             }
-            const result = await realSniper.snipe(snipeTarget)
+            const result = await realSniper.snipe(snipeTarget, undefined, valuation.value)
 
             if (result.success) {
-              this.stats.domainsOwned++
-              this.stats.todayProfit += valuation.value * 0.8
-              this.stats.availableCapital -= result.price
+              const modeLabel = isDryRun ? '[DRY_RUN] ' : ''
+              
+              // Only update stats if not in DRY_RUN
+              if (!isDryRun) {
+                this.stats.domainsOwned++
+                this.stats.todayProfit += valuation.value * 0.8
+                this.stats.availableCapital -= result.price
+              }
 
-              this.speak(`💰 ACQUIRED: ${target.domain} → $${result.price} (${avail.registrar}) → Value $${valuation.value.toLocaleString()}`)
+              this.speak(`💰 ${modeLabel}ACQUIRED: ${target.domain} → $${result.price} (${avail.registrar}) → Value $${valuation.value.toLocaleString()}`)
 
               // Get competitive pricing from Sedo
               const sedoPricing = await sedoAPI.getCompetitivePrice(target.domain, valuation.value)
               const listPrice = sedoPricing > 0 ? sedoPricing : valuation.value * 0.85
 
-              // Auto-list with competitive pricing
-              await marketplaceLister.listOnAllMarketplaces(target.domain, listPrice)
-              this.stats.activeListings++
+              // Auto-list with competitive pricing (only if not DRY_RUN)
+              if (!isDryRun) {
+                // Use selected marketplaces from settings
+                const marketplaces = settings.marketplaceChannels
+                await marketplaceLister.listOnAllMarketplaces(target.domain, listPrice, marketplaces)
+                this.stats.activeListings++
+              }
 
-              this.speak(`📋 LISTED: ${target.domain} at $${listPrice.toLocaleString()} (Sedo competitive pricing)`)
+              this.speak(`📋 ${modeLabel}LISTED: ${target.domain} at $${listPrice.toLocaleString()} on ${settings.marketplaceChannels.join(', ')}`)
             }
           }
         } catch (e) {
