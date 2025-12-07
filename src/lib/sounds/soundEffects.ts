@@ -4,8 +4,13 @@ class SoundEngine {
   private enabled: boolean = true
 
   constructor() {
-    if (typeof window !== 'undefined') {
-      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+    if (typeof window !== 'undefined' && (window.AudioContext || (window as any).webkitAudioContext)) {
+      try {
+        this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+      } catch (error) {
+        // AudioContext not available in test environment
+        this.audioContext = null
+      }
     }
   }
 

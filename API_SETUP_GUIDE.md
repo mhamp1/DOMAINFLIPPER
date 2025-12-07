@@ -188,6 +188,58 @@ VITE_SEDO_API_KEY=your_sedo_api_key
 
 ---
 
+### 9. **Infura** (Optional - for Web3/ENS domains)
+
+**Get your credentials:**
+1. Go to https://infura.io
+2. Sign up (free tier available)
+3. Create a new project
+4. Select "Ethereum" and "Mainnet"
+5. Copy your Project ID
+
+**Add to `.env`:**
+```bash
+VITE_INFURA_PROJECT_ID=your_infura_project_id
+VITE_INFURA_MAINNET_URL=https://mainnet.infura.io/v3/your_project_id
+```
+
+**Why:** 
+- Access Ethereum ENS (.eth) domains
+- Monitor Web3 domain availability
+- Snipe blockchain-based domains
+
+**Rate limit:** 100,000 requests/day (free tier)  
+**Cost:** Free tier available, scales with usage
+
+---
+
+### 10. **Alchemy** (Optional - for Solana/NFT domains)
+
+**Get your credentials:**
+1. Go to https://www.alchemy.com
+2. Sign up (free tier available)
+3. Create a new app
+4. Select "Ethereum" or "Solana"
+5. Copy your API key from the dashboard
+
+**Add to `.env`:**
+```bash
+VITE_ALCHEMY_API_KEY=your_alchemy_api_key
+VITE_ALCHEMY_ETH_MAINNET=https://eth-mainnet.g.alchemy.com/v2/your_api_key
+VITE_ALCHEMY_SOLANA_MAINNET=https://solana-mainnet.g.alchemy.com/v2/your_api_key
+VITE_ALCHEMY_NFT_API=https://eth-mainnet.g.alchemy.com/nft/v2/your_api_key
+```
+
+**Why:** 
+- Access Solana domains (.sol)
+- Monitor NFT domain collections
+- Enhanced Web3 capabilities
+
+**Rate limit:** 300M compute units/month (free tier)  
+**Cost:** Free tier available, scales with usage
+
+---
+
 ## 🚀 **Quick Start**
 
 1. **Copy `.env.example` to `.env`** (create if doesn't exist)
@@ -229,6 +281,8 @@ VITE_SEDO_API_KEY=your_sedo_api_key
 | Apify | 1,000/day | Custom | $19.99/mo+ |
 | Reddit | 60/min | 60/min | Free |
 | Sedo | Varies | Varies | Free to list |
+| Infura | 100k/day | Custom | Free+ |
+| Alchemy | 300M CU/mo | Custom | Free+ |
 
 ---
 
