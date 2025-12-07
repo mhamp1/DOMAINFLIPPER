@@ -720,13 +720,16 @@ export class MarketIntelEngine {
   }
 }
 
-// Export singleton
+// Import MasterConfig for API keys
+import { masterConfig } from '@/lib/config/MasterConfig'
+
+// Export singleton - Uses MasterConfig for API keys
 export const marketIntelEngine = new MarketIntelEngine({
-  googleApiKey: import.meta.env.VITE_GOOGLE_API_KEY,
+  googleApiKey: masterConfig.getGoogle().apiKey || import.meta.env.VITE_GOOGLE_API_KEY,
   semrushApiKey: import.meta.env.VITE_SEMRUSH_API_KEY,
   ahrefsApiKey: import.meta.env.VITE_AHREFS_API_KEY,
   similarWebApiKey: import.meta.env.VITE_SIMILARWEB_API_KEY,
-  twitterBearerToken: import.meta.env.VITE_TWITTER_BEARER_TOKEN,
+  twitterBearerToken: masterConfig.getTwitter().bearerToken || import.meta.env.VITE_TWITTER_BEARER_TOKEN,
   redditClientId: import.meta.env.VITE_REDDIT_CLIENT_ID,
   redditSecret: import.meta.env.VITE_REDDIT_SECRET,
 })

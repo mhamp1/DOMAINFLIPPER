@@ -159,6 +159,90 @@ export default function EmpireDashboard() {
   // Empire Brain stats
   const [empireStats, setEmpireStats] = useState<EmpireStats | null>(null)
 
+  // Intelligence Tab - REAL DATA
+  const [predictiveAlerts, setPredictiveAlerts] = useState<any[]>([])
+  const [intelSourceStats, setIntelSourceStats] = useState<Record<string, { active: boolean; count: number }>>({})
+  const [intelLeads, setIntelLeads] = useState<any[]>([])
+  const [isLoadingIntel, setIsLoadingIntel] = useState(false)
+
+  // Fetch real intelligence data and start monitoring
+  useEffect(() => {
+    const fetchIntelData = async () => {
+      if (activeTab !== 'intelligence') return
+
+      setIsLoadingIntel(true)
+      try {
+        // Start MarketIntelEngine monitoring (safe to call multiple times)
+        await marketIntelEngine.startMonitoring(300000) // Every 5 minutes
+
+        // Start LeadScanner if not already running
+        if (!leadScanner.isActive()) {
+          leadScanner.startScanning(5 * 60 * 1000) // Every 5 minutes
+        }
+
+        // Get predictive alerts from MarketIntelEngine
+        const alerts = marketIntelEngine.getActiveAlerts()
+        setPredictiveAlerts(alerts.slice(0, 10)) // Top 10
+
+        // Get source stats
+        const intelStats = marketIntelEngine.getStats()
+        const googleConfig = masterConfig.getGoogle()
+        const twitterConfig = masterConfig.getTwitter()
+        const usptoConfig = masterConfig.getUSPTO()
+        
+        const sourceMap: Record<string, { active: boolean; count: number }> = {
+          'Google Trends': { 
+            active: !!googleConfig.apiKey, 
+            count: intelStats.signalsCount || 0 
+          },
+          'Twitter/X': { 
+            active: !!twitterConfig.bearerToken, 
+            count: 0 
+          },
+          'Reddit': { 
+            active: true, 
+            count: 0 
+          },
+          'Hacker News': { 
+            active: true, 
+            count: 0 
+          },
+          'Product Hunt': { 
+            active: true, 
+            count: 0 
+          },
+          'USPTO': { 
+            active: !!usptoConfig.apiKey, 
+            count: 0 
+          },
+          'Kickstarter': { 
+            active: false, 
+            count: 0 
+          },
+          'AI Prediction': { 
+            active: true, 
+            count: intelStats.alertsCount || 0 
+          },
+        }
+        setIntelSourceStats(sourceMap)
+
+        // Get leads from LeadScanner
+        const leads = leadScanner.getTopLeads(20)
+        setIntelLeads(leads)
+      } catch (error) {
+        console.error('Failed to fetch intelligence data:', error)
+      } finally {
+        setIsLoadingIntel(false)
+      }
+    }
+
+    fetchIntelData()
+    
+    // Refresh every 30 seconds when on intelligence tab
+    const interval = setInterval(fetchIntelData, 30000)
+    return () => clearInterval(interval)
+  }, [activeTab])
+
   // Auto-resume via TotalAutonomy (handles its own auto-restart)
   // TotalAutonomy checks localStorage and auto-restarts on page load
   useEffect(() => {
@@ -944,81 +1028,152 @@ export default function EmpireDashboard() {
               exit={{ opacity: 0, y: -10 }}
               className="space-y-6"
             >
-              {/* Intelligence Sources Status */}
+              {/* Intelligence Sources Status - REAL DATA */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {[
-                  { name: 'Google Trends', active: true, count: 47 },
-                  { name: 'Twitter/X', active: true, count: 89 },
-                  { name: 'Reddit', active: true, count: 156 },
-                  { name: 'Hacker News', active: true, count: 32 },
-                  { name: 'Product Hunt', active: true, count: 24 },
-                  { name: 'USPTO', active: true, count: 18 },
-                  { name: 'Kickstarter', active: true, count: 12 },
-                  { name: 'AI Prediction', active: true, count: 67 },
-                ].map((source, i) => (
+                {Object.entries(intelSourceStats).map(([name, data], i) => (
                   <Card key={i} className="bg-black/50 border border-yellow-600/20 p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-yellow-600">{source.name}</span>
-                      <div className={`w-2 h-2 rounded-full ${source.active ? 'bg-green-500' : 'bg-red-500'}`} />
+                      <span className="text-sm font-medium text-yellow-600">{name}</span>
+                      <div className={`w-2 h-2 rounded-full ${data.active ? 'bg-green-500' : 'bg-red-500'}`} />
                     </div>
-                    <div className="text-2xl font-bold text-yellow-600">{source.count}</div>
-                    <div className="text-xs text-yellow-600/50">signals/hour</div>
+                    <div className="text-2xl font-bold text-yellow-600">
+                      {isLoadingIntel ? '...' : data.count}
+                    </div>
+                    <div className="text-xs text-yellow-600/50">
+                      {data.active ? 'signals/hour' : 'not configured'}
+                    </div>
                   </Card>
                 ))}
+                {Object.keys(intelSourceStats).length === 0 && (
+                  <div className="col-span-full text-center py-8 text-yellow-600/50">
+                    Loading intelligence sources...
+                  </div>
+                )}
               </div>
 
-              {/* Predictive Alerts */}
+              {/* Predictive Alerts - REAL DATA */}
               <Card className="bg-black/50 border border-yellow-600/20 p-6">
-                <h3 className="text-lg font-semibold text-yellow-600 mb-4">🚨 Predictive Alerts</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-yellow-600">🚨 Predictive Alerts</h3>
+                  {isLoadingIntel && (
+                    <div className="w-4 h-4 border-2 border-yellow-600 border-t-transparent rounded-full animate-spin" />
+                  )}
+                </div>
                 <div className="space-y-3">
-                  {[
-                    { keyword: 'quantum', confidence: 94, urgency: 'critical', domains: ['quantum.ai', 'quantumvault.com'], reason: 'Going VIRAL — detected across 5 platforms with 350% growth' },
-                    { keyword: 'neural', confidence: 88, urgency: 'high', domains: ['neuralvault.ai', 'neuraltech.io'], reason: 'Breaking out — 180% surge on Google & Twitter' },
-                    { keyword: 'sovereign', confidence: 82, urgency: 'high', domains: ['sovereign.ai', 'sovereigntech.com'], reason: 'Trending on Hacker News with 500+ points' },
-                  ].map((alert, i) => (
-                    <div key={i} className="p-4 bg-black/50 rounded-lg border border-yellow-600/10">
-                      <div className="flex items-center gap-3 mb-2">
-                        <Badge className={`text-xs ${alert.urgency === 'critical' ? 'bg-red-500/20 text-red-400' : 'bg-yellow-600/20 text-yellow-600'}`}>
-                          {alert.urgency.toUpperCase()}
-                        </Badge>
-                        <span className="font-bold text-yellow-600">"{alert.keyword}"</span>
-                        <Badge variant="outline" className="text-xs ml-auto">{alert.confidence}% confidence</Badge>
+                  {predictiveAlerts.length > 0 ? (
+                    predictiveAlerts.map((alert) => (
+                      <div key={alert.id} className="p-4 bg-black/50 rounded-lg border border-yellow-600/10">
+                        <div className="flex items-center gap-3 mb-2">
+                          <Badge className={`text-xs ${
+                            alert.urgency === 'critical' ? 'bg-red-500/20 text-red-400' : 
+                            alert.urgency === 'high' ? 'bg-yellow-600/20 text-yellow-600' :
+                            'bg-blue-500/20 text-blue-400'
+                          }`}>
+                            {alert.urgency.toUpperCase()}
+                          </Badge>
+                          <span className="font-bold text-yellow-600">"{alert.keyword}"</span>
+                          <Badge variant="outline" className="text-xs ml-auto">
+                            {alert.confidence}% confidence
+                          </Badge>
+                          {alert.type && (
+                            <Badge className="text-xs bg-purple-500/20 text-purple-400">
+                              {alert.type}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-yellow-600/70 mb-2">{alert.reason}</p>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs text-yellow-600/50">
+                            Est. Value: {formatCurrency(alert.estimatedValue || 0)}
+                          </span>
+                          <span className="text-xs text-yellow-600/50">
+                            Expires: {new Date(alert.expiresAt).toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {alert.domains?.slice(0, 6).map((d: string, j: number) => (
+                            <Badge key={j} className="text-xs bg-green-500/10 text-green-400">{d}</Badge>
+                          ))}
+                        </div>
                       </div>
-                      <p className="text-sm text-yellow-600/70 mb-2">{alert.reason}</p>
-                      <div className="flex flex-wrap gap-2">
-                        {alert.domains.map((d, j) => (
-                          <Badge key={j} className="text-xs bg-green-500/10 text-green-400">{d}</Badge>
-                        ))}
-                      </div>
+                    ))
+                  ) : isLoadingIntel ? (
+                    <div className="text-center py-8 text-yellow-600/50">Loading alerts...</div>
+                  ) : (
+                    <div className="text-center py-8 text-yellow-600/50">
+                      No active alerts. Market intelligence is scanning...
                     </div>
-                  ))}
+                  )}
                 </div>
               </Card>
 
-              {/* Active Strategies */}
-              <Card className="bg-black/50 border border-yellow-600/20 p-6">
-                <h3 className="text-lg font-semibold text-yellow-600 mb-4">10 Active Strategies</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {[
-                    { name: 'Expired Domain Hunter', roi: '12x', success: '87%' },
-                    { name: 'Trademark Sniper', roi: '15x', success: '92%' },
-                    { name: 'Trend Rider', roi: '10x', success: '78%' },
-                    { name: 'Twitter Trend Hawk', roi: '8x', success: '65%' },
-                    { name: 'Startup Sniffer', roi: '20x', success: '94%' },
-                    { name: 'AI Name Generator', roi: '18x', success: '88%' },
-                    { name: 'Short Domain Miner', roi: '25x', success: '96%' },
-                    { name: 'Keyword Stacker', roi: '9x', success: '72%' },
-                    { name: 'Geo-Targeting Pro', roi: '11x', success: '81%' },
-                    { name: 'Premium TLD Flipper', roi: '14x', success: '85%' },
-                  ].map((strategy, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 bg-black/50 rounded-lg border border-yellow-600/10">
-                      <span className="text-sm font-medium text-yellow-600">{strategy.name}</span>
-                      <div className="flex gap-3">
-                        <span className="text-sm text-yellow-600">{strategy.roi}</span>
-                        <span className="text-sm text-green-500">{strategy.success}</span>
+              {/* Active Leads from LeadScanner - REAL DATA */}
+              {intelLeads.length > 0 && (
+                <Card className="bg-black/50 border border-yellow-600/20 p-6">
+                  <h3 className="text-lg font-semibold text-yellow-600 mb-4">🔥 Active Leads Found</h3>
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {intelLeads.slice(0, 10).map((lead) => (
+                      <div key={lead.name} className="p-4 bg-black/50 rounded-lg border border-yellow-600/10">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-bold text-yellow-600">{lead.name}.com</span>
+                          <div className="flex gap-2">
+                            <Badge className="text-xs bg-blue-500/20 text-blue-400">
+                              {lead.source}
+                            </Badge>
+                            <Badge className="text-xs bg-green-500/20 text-green-400">
+                              {lead.confidence}% confidence
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-yellow-600/70">
+                            Potential: {formatCurrency(lead.potentialValue || 0)}
+                          </span>
+                          {lead.url && (
+                            <a 
+                              href={lead.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-xs text-yellow-600/50 hover:text-yellow-600 underline"
+                            >
+                              View Source →
+                            </a>
+                          )}
+                        </div>
+                        {lead.metadata && (
+                          <div className="mt-2 text-xs text-yellow-600/50">
+                            {JSON.stringify(lead.metadata).slice(0, 100)}...
+                          </div>
+                        )}
                       </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
+
+              {/* Active Strategies - Using real strategy definitions */}
+              <Card className="bg-black/50 border border-yellow-600/20 p-6">
+                <h3 className="text-lg font-semibold text-yellow-600 mb-4">Active Strategies</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {STRATEGIES.filter(s => empireSettings.isStrategyEnabled(s.id)).slice(0, 10).map((strategy) => {
+                    const roi = strategy.roi || (strategy.budgetPerDomain > 0 
+                      ? (strategy.expectedProfit / strategy.budgetPerDomain).toFixed(1) 
+                      : 'N/A')
+                    return (
+                      <div key={strategy.id} className="flex items-center justify-between p-3 bg-black/50 rounded-lg border border-yellow-600/10">
+                        <span className="text-sm font-medium text-yellow-600">{strategy.name}</span>
+                        <div className="flex gap-3">
+                          <span className="text-sm text-yellow-600">{roi}x ROI</span>
+                          <Badge className="text-xs bg-green-500/20 text-green-400">Active</Badge>
+                        </div>
+                      </div>
+                    )
+                  })}
+                  {STRATEGIES.filter(s => empireSettings.isStrategyEnabled(s.id)).length === 0 && (
+                    <div className="col-span-full text-center py-4 text-yellow-600/50">
+                      No strategies active. Enable strategies in Control tab.
                     </div>
-                  ))}
+                  )}
                 </div>
               </Card>
             </motion.div>
