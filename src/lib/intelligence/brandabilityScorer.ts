@@ -41,7 +41,7 @@ export interface BrandabilityScore {
 // Common stopwords that reduce brandability
 const STOPWORDS = new Set([
   'the', 'and', 'but', 'for', 'with', 'from', 'this', 'that', 'have',
-  'been', 'have', 'has', 'had', 'can', 'will', 'would', 'could', 'should',
+  'been', 'has', 'had', 'can', 'will', 'would', 'could', 'should',
   'get', 'got', 'make', 'made', 'take', 'use', 'used', 'new', 'old', 'good',
   'great', 'best', 'top', 'free', 'buy', 'sell', 'online', 'web', 'site',
   'home', 'page', 'cheap', 'fast', 'easy', 'simple', 'quick', 'real', 'true'

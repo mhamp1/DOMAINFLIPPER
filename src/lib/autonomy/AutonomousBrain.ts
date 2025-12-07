@@ -247,7 +247,8 @@ class AutonomousBrain {
           // Add brandability scoring if enabled
           let brandabilityScore = 100 // Default to max if disabled
           if (advancedSettings.brandability.enabled) {
-            const { brandabilityScorer } = await import('@/lib/intelligence/brandabilityScorer')
+            // Import at module level to avoid performance overhead
+            const brandabilityScorer = (await import('@/lib/intelligence/brandabilityScorer')).brandabilityScorer
             const brandResult = brandabilityScorer.scoreDomain(target.domain)
             brandabilityScore = brandResult.score
             
@@ -299,7 +300,8 @@ class AutonomousBrain {
               
               // Track in channel performance if enabled
               if (advancedSettings.channelPerformance.enabled) {
-                const { channelPerformanceTracker } = await import('@/lib/marketplace/channelPerformanceTracker')
+                // Import at module level to avoid performance overhead
+                const channelPerformanceTracker = (await import('@/lib/marketplace/channelPerformanceTracker')).channelPerformanceTracker
                 for (const channel of advancedSettings.channelPerformance.channels) {
                   if (channel.enabled) {
                     channelPerformanceTracker.addListing(target.domain, channel.name, listPrice, floorPrice)

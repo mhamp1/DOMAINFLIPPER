@@ -51,7 +51,9 @@ export const DEFAULT_BUYER_MATCH_CONFIG: BuyerMatchConfig = {
   includeCompetitors: false,
 }
 
-// Sample buyer database (in production, this would come from a real database or API)
+// Sample buyer database 
+// TODO: Replace with real database/API integration before production use
+// This is placeholder data for development and testing only
 const SAMPLE_BUYERS: PotentialBuyer[] = [
   {
     id: 'buyer-1',

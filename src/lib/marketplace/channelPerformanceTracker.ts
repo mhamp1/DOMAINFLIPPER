@@ -88,6 +88,8 @@ interface ChannelListing {
   saleDate?: Date
 }
 
+const MS_PER_DAY = 1000 * 60 * 60 * 24
+
 export class ChannelPerformanceTracker {
   private channels: Map<string, ChannelConfig> = new Map()
   private stats: Map<string, ChannelStats> = new Map()
@@ -200,7 +202,7 @@ export class ChannelPerformanceTracker {
     listing.saleDate = new Date()
 
     const daysToSale = Math.max(1,
-      (listing.saleDate.getTime() - listing.listedDate.getTime()) / (1000 * 60 * 60 * 24)
+      (listing.saleDate.getTime() - listing.listedDate.getTime()) / MS_PER_DAY
     )
 
     const stats = this.stats.get(channel)!
@@ -233,9 +235,9 @@ export class ChannelPerformanceTracker {
       const stats = this.stats.get(channel)!
 
       // Check if repricing is due
-      const daysSinceListing = (Date.now() - listing.listedDate.getTime()) / (1000 * 60 * 60 * 24)
+      const daysSinceListing = (Date.now() - listing.listedDate.getTime()) / MS_PER_DAY
       const daysSinceReprice = listing.lastRepricedDate
-        ? (Date.now() - listing.lastRepricedDate.getTime()) / (1000 * 60 * 60 * 24)
+        ? (Date.now() - listing.lastRepricedDate.getTime()) / MS_PER_DAY
         : daysSinceListing
 
       if (daysSinceReprice < config.repricingCadenceDays && !config.autoReprice) {

@@ -47,7 +47,9 @@ export const DEFAULT_SAFETY_CONFIG: SafetyConfig = {
   requireConfirmation: true,      // DEFAULT: REQUIRE CONFIRMATION
 }
 
-// Regional endpoints (examples - in production these would be actual API endpoints)
+// Regional endpoints
+// TODO: Configure actual regional endpoints before production deployment
+// These are example configurations - replace with real registrar endpoints
 const REGIONAL_ENDPOINTS: RegistrarEndpoint[] = [
   {
     registrar: 'GoDaddy',
