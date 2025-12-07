@@ -125,7 +125,7 @@ export function loadRuntimeConfig(): RuntimeConfig {
                        import.meta.env.GODADDY_API_KEY ||
                        import.meta.env.NAMECHEAP_API_KEY,
     REGISTRAR_API_SECRET: import.meta.env.VITE_GODADDY_API_SECRET || 
-                          import.meta.env.VITE_NAMECHEAP_API_KEY ||
+                          import.meta.env.VITE_NAMECHEAP_API_SECRET ||
                           import.meta.env.GODADDY_API_SECRET ||
                           import.meta.env.NAMECHEAP_API_SECRET,
     

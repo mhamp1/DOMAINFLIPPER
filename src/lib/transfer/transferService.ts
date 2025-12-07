@@ -223,7 +223,7 @@ export class StubTransferProvider implements TransferProvider {
     await new Promise(resolve => setTimeout(resolve, 500))
 
     return {
-      id: `TRF-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `TRF-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
       domain,
       fromRegistrar: 'stub-current',
       toRegistrar,
@@ -262,7 +262,7 @@ export class StubTransferProvider implements TransferProvider {
     await new Promise(resolve => setTimeout(resolve, 300))
 
     return {
-      authCode: `AUTH-${Math.random().toString(36).substr(2, 12).toUpperCase()}`,
+      authCode: `AUTH-${Math.random().toString(36).slice(2, 14).toUpperCase()}`,
     }
   }
 

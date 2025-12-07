@@ -92,7 +92,7 @@ export class StubRegistrarProvider implements RegistrarProvider {
         success: true,
         domain: options.domain,
         price,
-        transactionId: `STUB-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        transactionId: `STUB-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
         registrar: this.name,
         timestamp: new Date(),
         dryRun: true,

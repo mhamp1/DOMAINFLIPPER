@@ -72,7 +72,7 @@ export class StubPaymentProvider implements PaymentProvider {
     const success = Math.random() > 0.05
 
     return {
-      id: `PAY-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `PAY-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
       amount,
       currency,
       status: success ? 'completed' : 'failed',
@@ -106,7 +106,7 @@ export class StubPaymentProvider implements PaymentProvider {
 
     return {
       success: true,
-      refundId: `REF-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      refundId: `REF-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
     }
   }
 

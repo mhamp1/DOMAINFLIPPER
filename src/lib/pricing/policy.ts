@@ -50,8 +50,8 @@ class PricingPolicy {
     },
     market: {
       name: 'Market',
-      listPriceMultiplier: 1.13, // List at 13% below market (competitive)
-      floorPriceMultiplier: 1.0, // Accept break-even
+      listPriceMultiplier: 0.87, // List at 13% below market (competitive)
+      floorPriceMultiplier: 0.75, // Accept 25% below estimated value
       description: 'Price to match or beat market average',
     },
   }

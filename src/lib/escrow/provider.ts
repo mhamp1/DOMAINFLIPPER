@@ -74,7 +74,7 @@ export class StubEscrowProvider implements EscrowProvider {
     await new Promise(resolve => setTimeout(resolve, 300))
 
     return {
-      id: `ESC-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `ESC-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
       domain,
       buyer,
       seller,

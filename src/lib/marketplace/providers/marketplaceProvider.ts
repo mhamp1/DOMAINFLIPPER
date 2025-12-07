@@ -99,7 +99,7 @@ export class StubMarketplaceProvider implements MarketplaceProvider {
         success: true,
         domain: options.domain,
         marketplace: this.name,
-        listingId: `STUB-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        listingId: `STUB-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
         listPrice: options.listPrice,
         timestamp: new Date(),
       }
