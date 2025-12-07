@@ -135,6 +135,59 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 ---
 
+### 7. **Reddit API** (Optional - for domain leads and market research)
+
+**Get your credentials:**
+1. Go to https://www.reddit.com/prefs/apps
+2. Click "Create App" or "Create Another App"
+3. Select "script" as the app type
+4. Fill in details:
+   - Name: DomainFlipper Bot
+   - Description: Domain flipping research bot
+   - Redirect URI: http://localhost:8080
+5. Click "Create app"
+6. Copy your **Client ID** (under app name) and **Client Secret**
+
+**Add to `.env`:**
+```bash
+VITE_REDDIT_CLIENT_ID=your_reddit_client_id
+VITE_REDDIT_CLIENT_SECRET=your_reddit_client_secret
+VITE_REDDIT_USERNAME=your_reddit_username
+VITE_REDDIT_PASSWORD=your_reddit_password
+VITE_REDDIT_USER_AGENT=DomainFlipper:v1.0.0
+```
+
+**Why:** Find domain opportunities from subreddits like r/Entrepreneur, r/Domains, r/Flipping  
+**Rate limit:** 60 requests/minute  
+**Cost:** Free
+
+---
+
+### 8. **Sedo Marketplace** (Optional - for competitive pricing & listing)
+
+**Get your credentials:**
+1. Go to https://sedo.com
+2. Create account or log in
+3. Navigate to Account → API Access (if available)
+4. Generate API credentials
+
+**Add to `.env`:**
+```bash
+VITE_SEDO_USERNAME=your_sedo_username
+VITE_SEDO_PASSWORD=your_sedo_password
+VITE_SEDO_API_KEY=your_sedo_api_key
+```
+
+**Why:** 
+- Automatically finds similar domains on Sedo
+- Gets competitive pricing (lists 10-15% cheaper than market average)
+- Auto-lists domains on Sedo marketplace
+
+**Rate limit:** Varies  
+**Cost:** Free to list, 10-15% commission on sales
+
+---
+
 ## 🚀 **Quick Start**
 
 1. **Copy `.env.example` to `.env`** (create if doesn't exist)
@@ -157,6 +210,11 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 3. **Rotate keys regularly** (every 90 days)
 4. **Use sandbox mode** for testing (GoDaddy/Namecheap)
 5. **Monitor API usage** to avoid rate limits
+6. **⚠️ IMPORTANT FOR PRODUCTION**: Reddit and Sedo credentials should be handled server-side only
+   - Do NOT use `VITE_` prefix for sensitive credentials in production
+   - Proxy API calls through a backend service
+   - Never expose passwords, secrets, or API keys to the client-side bundle
+7. **Use API proxies** for Reddit, Sedo, and other third-party APIs in production environments
 
 ---
 
@@ -169,6 +227,8 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 | Namecheap | 100/min | Unlimited | $99/mo |
 | DropCatch | 1,000/day | Varies | Varies |
 | Apify | 1,000/day | Custom | $19.99/mo+ |
+| Reddit | 60/min | 60/min | Free |
+| Sedo | Varies | Varies | Free to list |
 
 ---
 
