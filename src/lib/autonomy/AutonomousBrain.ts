@@ -207,6 +207,15 @@ class AutonomousBrain {
 
       for (const target of allDomains.slice(0, 15)) {
         try {
+          // Get advanced settings from masterConfig
+          const advancedSettings = masterConfig.getAdvancedSettings()
+          const safetySettings = advancedSettings.safety
+          
+          // Check safety guardrails first
+          if (safetySettings.dryRun) {
+            continue // Skip in DRY_RUN mode
+          }
+          
           // REAL AVAILABILITY CHECK for all domains
           const avail = await this.checkAvailability(target.domain)
 
@@ -217,8 +226,11 @@ class AutonomousBrain {
           // Use real availability price
           const actualPrice = avail.price
           
-          // Use dailyBudget as max single buy limit
-          const maxSingleBuy = config.dailyBudget / 2 // Allow up to half of daily budget per domain
+          // Use safety caps from settings
+          const maxSingleBuy = Math.min(
+            config.dailyBudget / 2, 
+            safetySettings.perDomainCapUSD
+          )
           if (actualPrice > maxSingleBuy) {
             continue // Skip if over budget
           }
@@ -231,16 +243,33 @@ class AutonomousBrain {
           }
           const valuation = await valuationEngine.predictValue(domainForValuation)
           const godScore = await godScoreEngine.calculate(target.domain)
+          
+          // Add brandability scoring if enabled
+          let brandabilityScore = 100 // Default to max if disabled
+          if (advancedSettings.brandability.enabled) {
+            const { brandabilityScorer } = await import('@/lib/intelligence/brandabilityScorer')
+            const brandResult = brandabilityScorer.scoreDomain(target.domain)
+            brandabilityScore = brandResult.score
+            
+            // Skip if below minimum brandability score
+            if (brandabilityScore < advancedSettings.brandability.minScore) {
+              continue
+            }
+          }
 
           const roi = valuation.value / actualPrice
+          
+          // Check margin requirement from safety settings
+          const meetsMargin = roi >= safetySettings.minMargin
 
-          // Decision logic with availability check
+          // Decision logic with availability check and new criteria
           if (
             avail.available &&
             actualPrice <= maxSingleBuy &&
             godScore.score > 85 &&
-            roi >= config.minROI &&
-            valuation.score >= 75
+            meetsMargin &&
+            valuation.score >= 75 &&
+            brandabilityScore >= advancedSettings.brandability.minScore
           ) {
             // AUTO-SNIPE if good ROI - convert to proper format
             const snipeTarget = {
@@ -262,10 +291,21 @@ class AutonomousBrain {
               // Get competitive pricing from Sedo
               const sedoPricing = await sedoAPI.getCompetitivePrice(target.domain, valuation.value)
               const listPrice = sedoPricing > 0 ? sedoPricing : valuation.value * 0.85
+              const floorPrice = actualPrice * safetySettings.minMargin // Ensure minimum margin
 
               // Auto-list with competitive pricing
               await marketplaceLister.listOnAllMarketplaces(target.domain, listPrice)
               this.stats.activeListings++
+              
+              // Track in channel performance if enabled
+              if (advancedSettings.channelPerformance.enabled) {
+                const { channelPerformanceTracker } = await import('@/lib/marketplace/channelPerformanceTracker')
+                for (const channel of advancedSettings.channelPerformance.channels) {
+                  if (channel.enabled) {
+                    channelPerformanceTracker.addListing(target.domain, channel.name, listPrice, floorPrice)
+                  }
+                }
+              }
 
               this.speak(`📋 LISTED: ${target.domain} at $${listPrice.toLocaleString()} (Sedo competitive pricing)`)
             }
