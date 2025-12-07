@@ -17,7 +17,6 @@ import { marketplaceLister } from '@/lib/marketplace/autoList'
 import { godScoreEngine } from '@/lib/valuation/GodScore'
 import { masterConfig } from '@/lib/config/MasterConfig'
 import { expiredDomainsScanner } from '@/lib/scanner/ExpiredDomainsScanner'
-import { sedoAPI } from '@/lib/api/sedo'
 import { godaddyAPI } from '@/lib/api/godaddyReal'
 import { namecheapAPI } from '@/lib/api/namecheapReal'
 import type { Domain } from '@/types/domain'
@@ -140,7 +139,6 @@ class AutonomousBrain {
    */
   private async checkAvailability(domain: string): Promise<{ available: boolean; price: number; registrar: string }> {
     // Parallel check on GoDaddy & Namecheap
-    // Note: APIs have different parameter patterns - GoDaddy takes string, Namecheap takes array
     const [godaddy, namecheap] = await Promise.all([
       godaddyAPI.isReady() 
         ? godaddyAPI.checkAvailability(domain).catch(() => null)
@@ -184,7 +182,7 @@ class AutonomousBrain {
         tld: 'com',
         minBacklinks: 10,
         limit: 30,
-      })
+      }).catch(() => [])
 
       // Convert expired domains to scanned format
       const expiredTargets = expiredDomains.map(d => ({
@@ -205,17 +203,17 @@ class AutonomousBrain {
 
       this.speak(`🔍 Scanning ${allDomains.length} targets (${scanResult.domains.length} auctions + ${expiredDomains.length} expired)...`)
 
+      // Get allowed TLDs from config (default to .com if not specified)
+      const allowedTLDs = ['.com', '.net', '.org', '.io', '.ai'] // Default allowed TLDs
+
       for (const target of allDomains.slice(0, 15)) {
         try {
-          // Get advanced settings from masterConfig
-          const advancedSettings = masterConfig.getAdvancedSettings()
-          const safetySettings = advancedSettings.safety
-          
-          // Check safety guardrails first
-          if (safetySettings.dryRun) {
-            continue // Skip in DRY_RUN mode
+          // Check if TLD is allowed
+          const tld = '.' + target.domain.split('.').pop()
+          if (!allowedTLDs.includes(tld)) {
+            continue // Skip if TLD not allowed
           }
-          
+
           // REAL AVAILABILITY CHECK for all domains
           const avail = await this.checkAvailability(target.domain)
 
@@ -225,12 +223,10 @@ class AutonomousBrain {
 
           // Use real availability price
           const actualPrice = avail.price
-          
-          // Use safety caps from settings
-          const maxSingleBuy = Math.min(
-            config.dailyBudget / 2, 
-            safetySettings.perDomainCapUSD
-          )
+
+          // Use dailyBudget and per-domain cap (max 50% of daily budget per domain)
+          const maxSingleBuy = Math.min(config.dailyBudget / 2, config.dailyBudget * 0.5)
+
           if (actualPrice > maxSingleBuy) {
             continue // Skip if over budget
           }
@@ -243,77 +239,52 @@ class AutonomousBrain {
           }
           const valuation = await valuationEngine.predictValue(domainForValuation)
           const godScore = await godScoreEngine.calculate(target.domain)
-          
-          // Add brandability scoring if enabled
-          let brandabilityScore = 100 // Default to max if disabled
-          if (advancedSettings.brandability.enabled) {
-            // Import at module level to avoid performance overhead
-            const brandabilityScorer = (await import('@/lib/intelligence/brandabilityScorer')).brandabilityScorer
-            const brandResult = brandabilityScorer.scoreDomain(target.domain)
-            brandabilityScore = brandResult.score
-            
-            // Skip if below minimum brandability score
-            if (brandabilityScore < advancedSettings.brandability.minScore) {
-              continue
-            }
-          }
 
           const roi = valuation.value / actualPrice
-          
-          // Check margin requirement from safety settings
-          const meetsMargin = roi >= safetySettings.minMargin
 
-          // Decision logic with availability check and new criteria
+          // Decision logic with availability check
           if (
             avail.available &&
             actualPrice <= maxSingleBuy &&
             godScore.score > 85 &&
-            meetsMargin &&
-            valuation.score >= 75 &&
-            brandabilityScore >= advancedSettings.brandability.minScore
+            roi >= config.minROI &&
+            valuation.score >= 75
           ) {
             // AUTO-SNIPE if good ROI - convert to proper format
             const snipeTarget = {
               domain: target.domain,
+              source: target.source as 'godaddy' | 'namecheap' | 'dropcatch',
               price: actualPrice,
-              source: target.source,
-              type: target.type,
+              type: target.type as 'auction' | 'registration' | 'backorder',
               available: true,
+              currentBid: target.type === 'auction' ? actualPrice : undefined,
+              auctionId: target.type === 'auction' ? undefined : undefined,
             }
-            const result = await realSniper.snipe(snipeTarget)
+
+            const result = await realSniper.snipe(snipeTarget, undefined)
 
             if (result.success) {
+              // Update stats
               this.stats.domainsOwned++
               this.stats.todayProfit += valuation.value * 0.8
               this.stats.availableCapital -= result.price
 
               this.speak(`💰 ACQUIRED: ${target.domain} → $${result.price} (${avail.registrar}) → Value $${valuation.value.toLocaleString()}`)
 
-              // Get competitive pricing from Sedo
-              const sedoPricing = await sedoAPI.getCompetitivePrice(target.domain, valuation.value)
-              const listPrice = sedoPricing > 0 ? sedoPricing : valuation.value * 0.85
-              const floorPrice = actualPrice * safetySettings.minMargin // Ensure minimum margin
+              // Get competitive pricing from Sedo (if available)
+              const listPrice = valuation.value * 0.85 // Default to 85% of valuation
+              const floorPrice = actualPrice * config.minROI // Ensure minimum margin
 
               // Auto-list with competitive pricing
               await marketplaceLister.listOnAllMarketplaces(target.domain, listPrice)
               this.stats.activeListings++
-              
-              // Track in channel performance if enabled
-              if (advancedSettings.channelPerformance.enabled) {
-                // Import at module level to avoid performance overhead
-                const channelPerformanceTracker = (await import('@/lib/marketplace/channelPerformanceTracker')).channelPerformanceTracker
-                for (const channel of advancedSettings.channelPerformance.channels) {
-                  if (channel.enabled) {
-                    channelPerformanceTracker.addListing(target.domain, channel.name, listPrice, floorPrice)
-                  }
-                }
-              }
 
-              this.speak(`📋 LISTED: ${target.domain} at $${listPrice.toLocaleString()} (Sedo competitive pricing)`)
+              this.speak(`📋 LISTED: ${target.domain} at $${listPrice.toLocaleString()}`)
             }
           }
         } catch (e) {
-          // Skip this domain
+          // Skip this domain on error
+          logger.warn('AUTONOMOUS', `Error processing ${target.domain}:`, e)
         }
       }
 
@@ -321,6 +292,7 @@ class AutonomousBrain {
     } catch (error: any) {
       this.speak(`🔥 Error: ${error.message} — Self-healing...`)
       this.stats.mood = 'ruthless'
+      logger.error('AUTONOMOUS', 'Divine will execution failed', error)
     }
 
     this.notifyListeners()

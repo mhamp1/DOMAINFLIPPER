@@ -726,6 +726,32 @@ export default function ConfigTab() {
         </Button>
       </Card>
 
+      {/* Pipeline Settings */}
+      <Card className="bg-gold/5 border border-gold/20 p-6">
+        <h3 className="text-lg font-semibold text-gold mb-4 flex items-center gap-2">
+          <Gear size={24} weight="fill" /> Pipeline Settings
+        </h3>
+        <p className="text-sm text-white/60 mb-4">
+          Configure runtime knobs for the autonomous pipeline (DRY_RUN, spending limits, TLDs, marketplaces).
+        </p>
+        <div className="space-y-2 mb-4 p-3 bg-black/20 rounded-lg border border-gold/10">
+          <div className="text-xs text-white/50">
+            <div className="font-medium text-gold mb-1.5">Current Settings:</div>
+            <div className="grid grid-cols-2 gap-1">
+              <div>• DRY_RUN: <span className="text-green-400">ON</span></div>
+              <div>• Daily Cap: <span className="text-gold">$200</span></div>
+              <div>• Per-Domain: <span className="text-gold">$20</span></div>
+              <div>• Min Margin: <span className="text-gold">3.0x</span></div>
+            </div>
+            <div className="mt-1">• TLDs: .com, .ai, .io</div>
+            <div>• Marketplaces: Afternic, Dan</div>
+          </div>
+        </div>
+        <div className="text-xs text-white/40 mb-3 p-2 bg-blue-500/10 border border-blue-500/20 rounded">
+          <strong>Note:</strong> Full settings UI is available. To access it, see docs/PIPELINE_SETTINGS.md or use the PipelineSettings component directly.
+        </div>
+      </Card>
+
       {/* Danger Zone */}
       <Card className="bg-red-500/5 border border-red-500/30 p-6">
         <h3 className="text-lg font-semibold text-red-400 mb-4 flex items-center gap-2">

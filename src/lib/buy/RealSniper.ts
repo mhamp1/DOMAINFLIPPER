@@ -7,6 +7,7 @@
 import { godaddyAPI } from '@/lib/api/godaddyReal'
 import { namecheapAPI } from '@/lib/api/namecheapReal'
 import { empireSettings } from '@/lib/config/EmpireSettings'
+import { pipelineSettings } from '@/lib/config/settingsService'
 import { logger } from '@/lib/utils/logger'
 import { toast } from 'sonner'
 import type { ScannedDomain } from '@/lib/scanner/RealDomainScanner'
@@ -30,10 +31,40 @@ class RealSniper {
   }
 
   /**
-   * Snipe a domain — REAL PURCHASE
+   * Snipe a domain — REAL PURCHASE (respects DRY_RUN and settings)
    */
-  async snipe(domain: ScannedDomain, maxBid?: number): Promise<SnipeResult> {
+  async snipe(domain: ScannedDomain, maxBid?: number, estimatedValue?: number): Promise<SnipeResult> {
+    // Check DRY_RUN mode first
+    const isDryRun = pipelineSettings.isDryRun()
+    if (isDryRun) {
+      logger.info('SNIPER', `[DRY_RUN] Would snipe ${domain.domain} for $${domain.price}`)
+      return {
+        success: true,
+        domain: domain.domain,
+        source: domain.source,
+        price: domain.price,
+        message: '[DRY_RUN] Simulated purchase',
+        type: domain.type === 'auction' ? 'bid' : 'purchase',
+      }
+    }
+
+    // Check against pipeline settings
+    if (estimatedValue) {
+      const purchaseCheck = pipelineSettings.canPurchase(domain.domain, domain.price, estimatedValue)
+      if (!purchaseCheck.allowed) {
+        return {
+          success: false,
+          domain: domain.domain,
+          source: domain.source,
+          price: domain.price,
+          message: purchaseCheck.reason || 'Blocked by settings',
+          type: domain.type === 'auction' ? 'bid' : 'purchase',
+        }
+      }
+    }
+
     const budget = maxBid || empireSettings.get('dailyBudget')
+    const dailyLimit = pipelineSettings.getDailySpendLimit()
     
     // Check if we have enough capital
     const available = empireSettings.getAvailableCapital()
@@ -48,7 +79,19 @@ class RealSniper {
       }
     }
 
-    // Check daily budget
+    // Check daily budget from settings
+    if (domain.price > dailyLimit) {
+      return {
+        success: false,
+        domain: domain.domain,
+        source: domain.source,
+        price: domain.price,
+        message: `Exceeds daily limit: $${domain.price} > $${dailyLimit}`,
+        type: domain.type === 'auction' ? 'bid' : 'purchase',
+      }
+    }
+
+    // Check daily budget from empire settings
     if (domain.price > budget) {
       return {
         success: false,
