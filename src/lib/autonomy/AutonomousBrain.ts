@@ -133,23 +133,30 @@ class AutonomousBrain {
 
   // ==================== AVAILABILITY CHECKER ====================
 
+  /**
+   * Check domain availability across multiple registrars
+   * @param domain - Domain name to check
+   * @returns Availability status, price, and registrar info
+   */
   private async checkAvailability(domain: string): Promise<{ available: boolean; price: number; registrar: string }> {
     // Parallel check on GoDaddy & Namecheap
+    // Note: APIs have different parameter patterns - GoDaddy takes string, Namecheap takes array
     const [godaddy, namecheap] = await Promise.all([
       godaddyAPI.isReady() 
         ? godaddyAPI.checkAvailability(domain).catch(() => null)
         : Promise.resolve(null),
       namecheapAPI.isReady()
-        ? namecheapAPI.checkAvailability([domain]).catch(() => null)
+        ? namecheapAPI.checkAvailability([domain]).then(results => results[0] || null).catch(() => null)
         : Promise.resolve(null),
     ])
 
+    // Return first available result (GoDaddy has priority)
     if (godaddy?.available) {
       return { available: true, price: godaddy.price || 10, registrar: 'GoDaddy' }
     }
 
-    if (namecheap && namecheap[0]?.available) {
-      return { available: true, price: namecheap[0].price, registrar: 'Namecheap' }
+    if (namecheap?.available) {
+      return { available: true, price: namecheap.price, registrar: 'Namecheap' }
     }
 
     return { available: false, price: 0, registrar: 'None' }

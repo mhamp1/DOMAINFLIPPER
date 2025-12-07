@@ -70,7 +70,14 @@ class ExpiredDomainsScanner {
           const domainText = cells.eq(0).text().trim() || cells.eq(1).text().trim()
           if (!domainText || !domainText.includes('.')) return
 
-          // Extract backlinks (look for numeric values in cells)
+          // Safely parse domain parts
+          const domainParts = domainText.split('.')
+          if (domainParts.length < 2) return // Invalid domain
+
+          const tldPart = domainParts[domainParts.length - 1]
+          const namePart = domainParts.slice(0, -1).join('.')
+
+          // Extract metrics from cells - use text matching for robustness
           let backlinks = 0
           let traffic = 0
           let da = 0
@@ -80,23 +87,27 @@ class ExpiredDomainsScanner {
             const text = $(cell).text().trim()
             const num = parseInt(text.replace(/,/g, ''))
             
-            // Heuristic: backlinks are usually larger numbers
-            if (!isNaN(num)) {
-              if (idx === 2 || idx === 3) backlinks = Math.max(backlinks, num)
-              if (idx === 4 || idx === 5) traffic = Math.max(traffic, num)
-              if (idx === 6 || idx === 7) da = Math.max(da, num)
-              if (idx === 8 || idx === 9) age = Math.max(age, num)
+            // More robust: look for patterns in cell content
+            if (!isNaN(num) && num > 0) {
+              // Backlinks are typically in earlier columns and larger numbers
+              if (idx >= 2 && idx <= 4 && num > backlinks) backlinks = num
+              // Traffic typically follows backlinks
+              if (idx >= 4 && idx <= 6 && num > traffic && num !== backlinks) traffic = num
+              // DA/PA are typically smaller numbers (0-100 range)
+              if (idx >= 6 && idx <= 8 && num <= 100 && num > da) da = num
+              // Age is typically in years (0-30 range usually)
+              if (idx >= 8 && idx <= 10 && num <= 50 && num > age) age = num
             }
           })
 
           const domain: ExpiredDomain = {
-            name: domainText.split('.')[0],
+            name: namePart,
             domain: domainText,
             backlinks,
             traffic,
             age,
             da,
-            tld: '.' + domainText.split('.').pop(),
+            tld: '.' + tldPart,
           }
 
           // Apply filters

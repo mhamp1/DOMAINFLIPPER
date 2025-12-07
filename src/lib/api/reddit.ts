@@ -38,7 +38,8 @@ class RedditAPI {
     if (config) {
       this.config = config
     } else {
-      // Load from environment
+      // Load from environment - Note: These should be server-side only in production
+      // For browser use, Reddit API should be proxied through a backend service
       const clientId = import.meta.env.VITE_REDDIT_CLIENT_ID
       const clientSecret = import.meta.env.VITE_REDDIT_CLIENT_SECRET
       const username = import.meta.env.VITE_REDDIT_USERNAME

@@ -210,6 +210,11 @@ VITE_SEDO_API_KEY=your_sedo_api_key
 3. **Rotate keys regularly** (every 90 days)
 4. **Use sandbox mode** for testing (GoDaddy/Namecheap)
 5. **Monitor API usage** to avoid rate limits
+6. **⚠️ IMPORTANT FOR PRODUCTION**: Reddit and Sedo credentials should be handled server-side only
+   - Do NOT use `VITE_` prefix for sensitive credentials in production
+   - Proxy API calls through a backend service
+   - Never expose passwords, secrets, or API keys to the client-side bundle
+7. **Use API proxies** for Reddit, Sedo, and other third-party APIs in production environments
 
 ---
 

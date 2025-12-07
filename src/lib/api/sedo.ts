@@ -37,6 +37,8 @@ class SedoAPI {
   private baseUrl = 'https://sedo.com'
 
   constructor(config: SedoConfig = {}) {
+    // Note: Sedo credentials should be server-side only in production
+    // For browser use, Sedo API should be proxied through a backend service
     this.config = config
   }
 
@@ -197,7 +199,8 @@ let sedoAPIInstance: SedoAPI | null = null
 
 export const getSedoAPI = (config?: SedoConfig): SedoAPI => {
   if (!sedoAPIInstance) {
-    // Load from environment
+    // Load from environment - Note: These should be server-side only in production
+    // For browser use, proxy Sedo API calls through a backend service
     const envConfig: SedoConfig = {
       username: import.meta.env.VITE_SEDO_USERNAME,
       password: import.meta.env.VITE_SEDO_PASSWORD,
