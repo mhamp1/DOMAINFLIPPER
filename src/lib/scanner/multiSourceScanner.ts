@@ -98,10 +98,18 @@ async function scanGoDaddyAuctions(options: { limit: number; tlds: string[] }): 
   try {
     await rateLimiter.waitIfNeeded('godaddy')
 
-    // Use HARDCODED credentials (NEVER empty)
+    // Get credentials from environment variables
+    const apiKey = import.meta.env.VITE_GODADDY_API_KEY || import.meta.env.VITE_GODADDY_KEY
+    const apiSecret = import.meta.env.VITE_GODADDY_API_SECRET || import.meta.env.VITE_GODADDY_SECRET
+    
+    if (!apiKey || !apiSecret) {
+      console.warn('GoDaddy API credentials not configured, skipping scan')
+      return []
+    }
+    
     const godaddy = createGoDaddyClient({
-      apiKey: import.meta.env.VITE_GODADDY_KEY || 'h2eWy65jfMPV_KSxuT2Q44RY27P3n9YqiA6',
-      apiSecret: import.meta.env.VITE_GODADDY_SECRET || 'LuKboxc1tZ3UGAFJFDvtAE',
+      apiKey,
+      apiSecret,
       useOAuth: import.meta.env.VITE_GODADDY_USE_OAUTH === 'true',
       clientId: import.meta.env.VITE_GODADDY_CLIENT_ID,
       clientSecret: import.meta.env.VITE_GODADDY_CLIENT_SECRET,
@@ -134,11 +142,20 @@ async function scanNamecheapExpired(options: { limit: number; tlds: string[] }):
   try {
     await rateLimiter.waitIfNeeded('namecheap')
 
-    // Use HARDCODED credentials (NEVER empty)
+    // Get credentials from environment variables
+    const apiUser = import.meta.env.VITE_NAMECHEAP_API_USER
+    const apiKey = import.meta.env.VITE_NAMECHEAP_API_KEY
+    const clientIp = import.meta.env.VITE_NAMECHEAP_CLIENT_IP
+    
+    if (!apiUser || !apiKey || !clientIp) {
+      console.warn('Namecheap API credentials not configured, skipping scan')
+      return []
+    }
+    
     const namecheap = createNamecheapClient({
-      apiUser: import.meta.env.VITE_NAMECHEAP_API_USER || 'mhamp1',
-      apiKey: import.meta.env.VITE_NAMECHEAP_API_KEY || 'c2cd72c359c74ac49b15e32bb98b4143',
-      clientIp: import.meta.env.VITE_NAMECHEAP_CLIENT_IP || '68.106.44.20',
+      apiUser,
+      apiKey,
+      clientIp,
     })
 
     const expired = await namecheap.searchExpiringDomains({
