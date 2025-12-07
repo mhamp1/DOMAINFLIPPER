@@ -39,6 +39,9 @@ export const DEFAULT_FILTER_SETTINGS: FilterSettings = {
 
 /**
  * Profanity and offensive terms blocklist
+ * NOTE: This is a minimal list. Some terms like 'casino' may have legitimate uses.
+ * Use the customBlocklist in FilterSettings for domain-specific filtering.
+ * In production, consider using a professional content filtering service.
  */
 const PROFANITY_LIST = [
   // Common profanity (keep list minimal and professional)

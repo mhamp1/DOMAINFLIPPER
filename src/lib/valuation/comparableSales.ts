@@ -55,6 +55,8 @@ export async function fetchComparables(
   const length = name.length
   
   // Check for external feed configuration
+  // NOTE: NameBio API should be called from server-side proxy in production
+  // to avoid exposing API key to client. For development, use VITE_NAMEBIO_API_KEY
   const nameBioApiKey = import.meta.env.VITE_NAMEBIO_API_KEY
   
   if (nameBioApiKey) {
@@ -71,6 +73,8 @@ export async function fetchComparables(
 
 /**
  * Fetch from NameBio API (external feed)
+ * SECURITY NOTE: In production, this should be called from a server-side proxy
+ * to avoid exposing the API key in the client bundle
  */
 async function fetchFromNameBio(
   name: string,
@@ -82,9 +86,18 @@ async function fetchFromNameBio(
   const timeoutId = setTimeout(() => controller.abort(), 5000)
   
   try {
+    // Use POST with Authorization header instead of GET with query params
     const response = await fetch(
-      `https://namebio.com/api/domains?tld=${tld}&length=${length}&key=${apiKey}`,
-      { signal: controller.signal }
+      'https://namebio.com/api/domains',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ tld, length }),
+        signal: controller.signal,
+      }
     )
     
     clearTimeout(timeoutId)

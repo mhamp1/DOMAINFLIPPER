@@ -200,8 +200,8 @@ async function updateChannelAPI(
   // Simulate API call delay
   await new Promise(resolve => setTimeout(resolve, 100))
   
-  // Simulate occasional failures for testing
-  if (Math.random() < 0.05) { // 5% failure rate
+  // Simulate occasional failures for testing (only in development)
+  if (import.meta.env.DEV && Math.random() < 0.05) { // 5% failure rate in dev only
     throw new Error(`${channel} API temporarily unavailable`)
   }
   

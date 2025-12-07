@@ -288,8 +288,13 @@ export class AnomalyDetector {
     message: string
     details: Record<string, any>
   }): void {
+    // Generate unique ID (use crypto.randomUUID if available, fallback to timestamp+random)
+    const id = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    
     const alert: AnomalyAlert = {
-      id: `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id,
       ...data,
       timestamp: new Date(),
       acknowledged: false,
