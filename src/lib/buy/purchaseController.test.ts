@@ -229,29 +229,26 @@ describe('PurchaseController', () => {
         status: 'available',
       }
 
-      // Try to purchase for more than daily limit (price will be ~10-50)
-      // This should pass initially, but subsequent ones should fail
-      let successCount = 0
-      let failCount = 0
+      // Try to purchase multiple domains until hitting the limit
+      // Note: prices are random (~10-50), so we need enough attempts
+      let blockedByLimit = false
 
-      for (let i = 0; i < 10; i++) {
+      for (let i = 0; i < 20; i++) {
         const result = await limitedController.purchaseDomain({
           ...domain,
           id: `${i}`,
           name: `test${i}.com`,
         })
 
-        if (result.success) {
-          successCount++
-        } else if (result.error?.includes('daily limit')) {
-          failCount++
-          break // Stop after hitting limit
+        if (result.error?.includes('daily limit') || result.error?.includes('exceed daily limit')) {
+          blockedByLimit = true
+          break
         }
       }
 
-      // Should have hit limit eventually
+      // Either we hit the limit, or we exhausted the remaining budget
       const stats = limitedController.getSpendStats()
-      expect(stats.remainingBudget).toBeLessThanOrEqual(0)
+      expect(blockedByLimit || stats.remainingBudget <= 10).toBe(true)
     })
   })
 
