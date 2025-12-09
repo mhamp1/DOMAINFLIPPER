@@ -42,6 +42,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { empireEngine } from '@/lib/autonomy/EmpireEngine'
 import { autonomousBrain } from '@/lib/autonomy/AutonomousBrain'
+import { productionBrain, type BrainState } from '@/lib/autonomy/ProductionBrain'
 import { totalAutonomy } from '@/lib/autonomy/TotalAutonomy'
 import { autoFundEngine } from '@/lib/funding/AutoFundEngine'
 import { compoundEngine } from '@/lib/empire/CompoundEngine'
@@ -77,14 +78,16 @@ import { STRATEGIES, getStrategiesForBudget } from '@/lib/strategies/strategyDef
 import { godaddyAPI } from '@/lib/api/godaddyReal'
 import { namecheapAPI } from '@/lib/api/namecheapReal'
 import { ownerAuth } from '@/lib/auth/OwnerAuth'
-import { SignOut, Crown, Fire, Cpu, WifiHigh, Heartbeat } from '@phosphor-icons/react'
+import { SignOut, Crown, Fire, Cpu, WifiHigh, Heartbeat, Handshake } from '@phosphor-icons/react'
 import ConfigTab from '@/components/config/ConfigTab'
 import EmpireControlCenter from '@/pages/EmpireControlCenter'
+import ProductionControlPanel from '@/components/production/ProductionControlPanel'
+import NegotiationManager from '@/components/production/NegotiationManager'
 import { supabaseDB } from '@/lib/database/supabase'
 import type { Domain } from '@/types/domain'
 
 // Tab types
-type TabType = 'empire' | 'vault' | 'strategies' | 'intelligence' | 'portfolio' | 'revenue' | 'risk' | 'finance' | 'swarm' | 'control' | 'config'
+type TabType = 'empire' | 'vault' | 'strategies' | 'intelligence' | 'portfolio' | 'revenue' | 'risk' | 'finance' | 'swarm' | 'control' | 'production' | 'negotiations' | 'config'
 
 // API Status Bar Component - Updates automatically from MasterConfig
 function APIStatusBar() {
@@ -616,6 +619,8 @@ export default function EmpireDashboard() {
           <div className="flex gap-2 min-w-max py-2">
             {[
               { id: 'empire', label: 'Empire', icon: Lightning },
+              { id: 'production', label: '🧠 Production', icon: Cpu },
+              { id: 'negotiations', label: 'Deals', icon: Handshake },
               { id: 'vault', label: 'Vault', icon: Wallet },
               { id: 'strategies', label: 'Strategies', icon: Target },
               { id: 'intelligence', label: 'Intel', icon: Brain },
@@ -1189,36 +1194,8 @@ export default function EmpireDashboard() {
               </div>
 
               {/* Strategy Stats */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card className="card-obsidian-premium p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Lightning size={18} className="text-yellow-500" />
-                    <span className="text-xs text-yellow-600/60 uppercase tracking-wider">Active</span>
-                  </div>
-                  <div className="text-3xl font-bold value-gold value-display">7/10</div>
-                  <div className="text-xs text-yellow-600/40 mt-1">Strategies running</div>
-                </Card>
-                <Card className="card-obsidian-premium p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <TrendUp size={18} className="text-green-500" />
-                    <span className="text-xs text-yellow-600/60 uppercase tracking-wider">Success Rate</span>
-                  </div>
-                  <div className="text-3xl font-bold value-green value-display">83.8%</div>
-                  <div className="text-xs text-green-500/60 mt-1">Average across all</div>
-                </Card>
-                <Card className="card-obsidian-premium p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Coins size={18} className="text-yellow-500" />
-                    <span className="text-xs text-yellow-600/60 uppercase tracking-wider">Total Profit</span>
-                  </div>
-                  <div className="text-3xl font-bold value-gold value-display">{formatCurrency(compoundStats.totalProfit)}</div>
-                  <div className="text-xs text-yellow-600/40 mt-1">From all strategies</div>
-                </Card>
-              </div>
-
-              {/* Strategy Cards */}
-              <div className="space-y-4">
-                {[
+              {(() => {
+                const strategies = [
                   { name: 'Expired Domain Hunter', desc: 'Scan 120k+ expired domains daily for hidden gems with existing backlinks and traffic', roi: '12x', success: '87%', profit: 0, active: true },
                   { name: 'Trademark Sniper', desc: 'Monitor USPTO filings and secure domains before trademark registration completes', roi: '15x', success: '92%', profit: 0, active: true },
                   { name: 'Trend Rider', desc: 'Analyze Google Trends, Twitter, and Reddit for emerging keywords and brands', roi: '20x', success: '78%', profit: 0, active: true },
@@ -1229,7 +1206,42 @@ export default function EmpireDashboard() {
                   { name: 'Geographic Domain Hunter', desc: 'Target city, region, and country-specific domains with local value', roi: '8x', success: '89%', profit: 0, active: true },
                   { name: 'Industry Keyword Sniper', desc: 'Focus on high-CPC industry keywords with proven commercial intent', roi: '15x', success: '82%', profit: 0, active: true },
                   { name: 'Typo Domain Finder', desc: 'Find common misspellings of popular brands and websites', roi: '5x', success: '95%', profit: 0, active: true },
-                ].map((strategy, i) => (
+                ]
+                const activeCount = strategies.filter(s => s.active).length
+                const totalCount = strategies.length
+                
+                return (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <Card className="card-obsidian-premium p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Lightning size={18} className="text-yellow-500" />
+                          <span className="text-xs text-yellow-600/60 uppercase tracking-wider">Active</span>
+                        </div>
+                        <div className="text-3xl font-bold value-gold value-display">{activeCount}/{totalCount}</div>
+                        <div className="text-xs text-yellow-600/40 mt-1">Strategies running</div>
+                      </Card>
+                      <Card className="card-obsidian-premium p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <TrendUp size={18} className="text-green-500" />
+                          <span className="text-xs text-yellow-600/60 uppercase tracking-wider">Success Rate</span>
+                        </div>
+                        <div className="text-3xl font-bold value-green value-display">83.8%</div>
+                        <div className="text-xs text-green-500/60 mt-1">Average across all</div>
+                      </Card>
+                      <Card className="card-obsidian-premium p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Coins size={18} className="text-yellow-500" />
+                          <span className="text-xs text-yellow-600/60 uppercase tracking-wider">Total Profit</span>
+                        </div>
+                        <div className="text-3xl font-bold value-gold value-display">{formatCurrency(compoundStats.totalProfit)}</div>
+                        <div className="text-xs text-yellow-600/40 mt-1">From all strategies</div>
+                      </Card>
+                    </div>
+
+                    {/* Strategy Cards */}
+                    <div className="space-y-4 mt-6">
+                      {strategies.map((strategy, i) => (
                   <Card key={i} className="card-obsidian-premium p-6">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
@@ -1261,8 +1273,11 @@ export default function EmpireDashboard() {
                       {strategy.active ? '● ACTIVE' : '○ PAUSED'}
                     </div>
                   </Card>
-                ))}
-              </div>
+                      ))}
+                    </div>
+                  </>
+                )
+              })()}
             </motion.div>
           )}
 
@@ -1914,6 +1929,30 @@ export default function EmpireDashboard() {
           {/* ===== CONTROL TAB ===== */}
           {activeTab === 'control' && (
             <EmpireControlCenter />
+          )}
+
+          {/* ===== PRODUCTION TAB - NEW PRODUCTION BRAIN ===== */}
+          {activeTab === 'production' && (
+            <motion.div
+              key="production"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              <ProductionControlPanel />
+            </motion.div>
+          )}
+
+          {/* ===== NEGOTIATIONS TAB ===== */}
+          {activeTab === 'negotiations' && (
+            <motion.div
+              key="negotiations"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              <NegotiationManager />
+            </motion.div>
           )}
 
           {/* ===== CONFIG TAB ===== */}

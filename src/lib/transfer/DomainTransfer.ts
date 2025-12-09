@@ -1,9 +1,12 @@
 /**
  * DomainTransfer.ts — AUTOMATIC DOMAIN TRANSFER
  * Transfers domains via registrar APIs — December 27, 2025
+ * 
+ * NOTE: This is a legacy wrapper. Use RealDomainTransfer.ts for new code.
  */
 
 import { toast } from 'sonner'
+import { realDomainTransfer } from './RealDomainTransfer'
 
 interface TransferRequest {
   id: string

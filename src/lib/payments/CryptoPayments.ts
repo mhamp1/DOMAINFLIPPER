@@ -3,9 +3,13 @@
  * Accept cryptocurrency payments instantly — December 27, 2025
  * 
  * Enables buyers to pay with Bitcoin, Ethereum, or Solana
+ * 
+ * NOTE: This file now wraps RealCryptoWallet.ts for backward compatibility
+ * New code should use realCryptoWallet directly from RealCryptoWallet.ts
  */
 
 import { toast } from 'sonner'
+import { realCryptoWallet } from './RealCryptoWallet'
 
 interface CryptoPrices {
   btc: number

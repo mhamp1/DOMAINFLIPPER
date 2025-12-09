@@ -363,6 +363,109 @@ export class SupabaseDB {
   }
 
   /**
+   * Get owned domain by name
+   */
+  async getOwnedDomainByName(domainName: string): Promise<OwnedDomain | null> {
+    if (this.isDemoMode) {
+      return demoOwnedDomains.find(d => d.domain === domainName) || null
+    }
+
+    const { data, error } = await this.client!
+      .from('owned_domains')
+      .select('*')
+      .eq('domain', domainName)
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') return null // Not found
+      throw error
+    }
+    return data as OwnedDomain
+  }
+
+  /**
+   * Mark domain as sold (by name)
+   */
+  async markDomainAsSold(domainName: string, salePrice: number): Promise<void> {
+    if (this.isDemoMode) {
+      const domain = demoOwnedDomains.find(d => d.domain === domainName)
+      if (domain) {
+        domain.sold = true
+        domain.sale_price = salePrice
+        domain.sale_date = new Date().toISOString()
+        domain.updated_at = new Date().toISOString()
+        
+        demoTransactions.push({
+          id: `tx-${demoIdCounter++}`,
+          type: 'sell',
+          domain: domainName,
+          amount: salePrice,
+          date: new Date().toISOString(),
+          strategy_id: domain.strategy_id,
+          status: 'completed',
+        })
+      }
+      return
+    }
+
+    const { error } = await this.client!
+      .from('owned_domains')
+      // @ts-ignore - Supabase type inference issue
+      .update({
+        sold: true,
+        sale_price: salePrice,
+        sale_date: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      } as any)
+      .eq('domain', domainName)
+
+    if (error) throw error
+  }
+
+  /**
+   * Add a transaction (simplified interface)
+   */
+  async addTransaction(transaction: {
+    type: 'purchase' | 'sale' | 'buy' | 'sell'
+    domain: string
+    amount: number
+    date: string
+    status: 'pending' | 'completed' | 'failed'
+    details?: Record<string, any>
+  }): Promise<void> {
+    const txType = transaction.type === 'purchase' ? 'buy' : 
+                   transaction.type === 'sale' ? 'sell' : 
+                   transaction.type
+
+    if (this.isDemoMode) {
+      demoTransactions.push({
+        id: `tx-${demoIdCounter++}`,
+        type: txType,
+        domain: transaction.domain,
+        amount: transaction.amount,
+        date: transaction.date,
+        strategy_id: 'default',
+        status: transaction.status,
+        marketplace: transaction.details?.marketplace,
+      })
+      return
+    }
+
+    const { error } = await this.client!
+      .from('transactions')
+      .insert({
+        type: txType,
+        domain: transaction.domain,
+        amount: transaction.amount,
+        date: transaction.date,
+        status: transaction.status,
+        details: transaction.details,
+      } as any)
+
+    if (error) throw error
+  }
+
+  /**
    * Get portfolio stats
    */
   async getPortfolioStats(): Promise<{

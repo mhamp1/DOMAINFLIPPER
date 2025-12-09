@@ -1,14 +1,17 @@
 /**
- * Drop-Catch Sniper Engine
+ * Drop-Catch Sniper Engine — REAL IMPLEMENTATION
  * Unbeatable precision - snipes at T+0.001s with parallel bids across 5 registrars
  * Only buys predicted 10x+ domains
+ * December 2025
  */
 
 import type { Domain } from '@/types/domain'
-import { createDropCatchClient } from '@/lib/api/dropcatch'
+import { dropCatchAPI, createDropCatchClient } from '@/lib/api/dropcatch'
 import { valuationEngine } from '@/lib/ai/valuationEngine'
 import { generateId } from '@/lib/utils'
 import { soundEngine } from '@/lib/sounds/soundEffects'
+import { logger } from '@/lib/utils/logger'
+import { metrics } from '@/lib/infrastructure/Metrics'
 
 interface DropCatchSniperConfig {
   apiKey: string
@@ -41,13 +44,15 @@ export class DropCatchSniper {
   }
 
   /**
-   * Monitor domain and schedule snipe for exact drop time
+   * Monitor domain and schedule snipe for exact drop time — REAL API
    */
   async monitorDomain(domain: string): Promise<boolean> {
     try {
-      // Get exact drop time
+      // Get exact drop time from DropCatch API
       const dropInfo = await this.dropCatchClient.getDropTime(domain)
       const dropTime = new Date(dropInfo.dropTime)
+
+      logger.info('SNIPER', `Monitoring ${domain}, drops at ${dropTime.toISOString()}`)
 
       // Valuate domain
       const domainData: Partial<Domain> = {
@@ -63,20 +68,26 @@ export class DropCatchSniper {
       const roi = (estimatedValue - maxBid) / maxBid
 
       if (roi < this.config.minROI) {
-        console.log(`Skipping ${domain}: ROI ${roi}x < ${this.config.minROI}x`)
+        logger.debug('SNIPER', `Skipping ${domain}: ROI ${roi.toFixed(1)}x < ${this.config.minROI}x`)
         return false
       }
 
-      // Place backorder
-      await this.dropCatchClient.placeBackorder(domain, 'high')
+      // Place backorder via real API
+      const backorderResult = await this.dropCatchClient.placeBackorder(domain, 'high')
+      
+      if (!backorderResult.success) {
+        logger.warn('SNIPER', `Backorder failed for ${domain}: ${backorderResult.message}`)
+      }
 
       // Schedule snipe for T+0.001s (1ms after drop)
       this.scheduleSnipe(domain, dropTime, maxBid)
 
-      console.log(`🎯 SNIPE SCHEDULED: ${domain} at ${dropTime.toISOString()}`)
+      metrics.increment('snipes_scheduled')
+      logger.info('SNIPER', `🎯 SNIPE SCHEDULED: ${domain} at ${dropTime.toISOString()} (max bid: $${maxBid})`)
+      
       return true
-    } catch (error) {
-      console.error(`Failed to monitor ${domain}:`, error)
+    } catch (error: any) {
+      logger.error('SNIPER', `Failed to monitor ${domain}`, { error: error.message })
       return false
     }
   }
@@ -109,16 +120,18 @@ export class DropCatchSniper {
   }
 
   /**
-   * Execute snipe with parallel bids across multiple registrars
+   * Execute snipe with parallel bids across multiple registrars — REAL API
    */
   private async executeSnipe(domain: string, maxBid: number) {
     if (this.activeSnipes.has(domain)) {
-      console.log(`Snipe already in progress for ${domain}`)
+      logger.debug('SNIPER', `Snipe already in progress for ${domain}`)
       return
     }
 
     this.activeSnipes.add(domain)
     soundEngine.snipeAlert()
+    
+    logger.info('SNIPER', `🎯 EXECUTING SNIPE: ${domain} (max bid: $${maxBid})`)
 
     try {
       // Parallel bids across all registrars for maximum success rate
@@ -129,19 +142,27 @@ export class DropCatchSniper {
       const results = await Promise.allSettled(bidPromises)
       
       // Check if any bid succeeded
-      const success = results.some(result => 
+      const successfulBids = results.filter(result => 
         result.status === 'fulfilled' && result.value.success
       )
+      const success = successfulBids.length > 0
 
       if (success) {
-        console.log(`✅ SNIPE SUCCESS: ${domain}`)
+        const winningRegistrars = successfulBids.map(r => 
+          r.status === 'fulfilled' ? r.value.registrar : ''
+        ).join(', ')
+        
+        logger.critical('SNIPER', `✅ SNIPE SUCCESS: ${domain} via ${winningRegistrars}`)
+        metrics.increment('snipes_won')
         soundEngine.success()
       } else {
-        console.log(`❌ SNIPE FAILED: ${domain}`)
+        logger.warn('SNIPER', `❌ SNIPE FAILED: ${domain} - all ${this.config.registrars.length} registrars missed`)
+        metrics.increment('snipes_lost')
         soundEngine.error()
       }
-    } catch (error) {
-      console.error(`Snipe error for ${domain}:`, error)
+    } catch (error: any) {
+      logger.error('SNIPER', `Snipe error for ${domain}`, { error: error.message })
+      metrics.increment('snipe_errors')
       soundEngine.error()
     } finally {
       this.activeSnipes.delete(domain)
@@ -149,22 +170,65 @@ export class DropCatchSniper {
   }
 
   /**
-   * Place bid on specific registrar
+   * Place bid on specific registrar — REAL API CALLS
    */
   private async placeBidOnRegistrar(
     domain: string,
     amount: number,
     registrar: string
   ): Promise<{ success: boolean; registrar: string }> {
-    // In production, this would call the actual registrar API
-    // For now, simulate with high success rate for drop-catch
-    
-    await new Promise(resolve => setTimeout(resolve, 10)) // Simulate network delay
-
-    // 95% success rate for drop-catch (we're fast!)
-    const success = Math.random() > 0.05
-
-    return { success, registrar }
+    try {
+      switch (registrar.toLowerCase()) {
+        case 'dropcatch':
+          const dcResult = await this.dropCatchClient.placeBid(domain, amount)
+          return { success: dcResult.success, registrar }
+        
+        case 'namejet':
+          // NameJet API
+          const njResponse = await fetch('https://api.namejet.com/v1/bids', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${import.meta.env.VITE_NAMEJET_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ domain, bid_amount: amount }),
+          })
+          return { success: njResponse.ok, registrar }
+        
+        case 'snapnames':
+          // SnapNames API
+          const snResponse = await fetch('https://api.snapnames.com/v1/bids', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${import.meta.env.VITE_SNAPNAMES_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ domain, amount }),
+          })
+          return { success: snResponse.ok, registrar }
+        
+        case 'godaddy':
+          // GoDaddy Auctions API
+          const gdKey = import.meta.env.VITE_GODADDY_KEY || 'h2eWy65jfMPV_KSxuT2Q44RY27P3n9YqiA6'
+          const gdSecret = import.meta.env.VITE_GODADDY_SECRET || 'LuKboxc1tZ3UGAFJFDvtAE'
+          const gdResponse = await fetch(`https://api.godaddy.com/v1/auctions/${domain}/bid`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `sso-key ${gdKey}:${gdSecret}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ price: amount }),
+          })
+          return { success: gdResponse.ok, registrar }
+        
+        default:
+          console.warn(`Unknown registrar: ${registrar}`)
+          return { success: false, registrar }
+      }
+    } catch (error) {
+      console.error(`Bid failed on ${registrar}:`, error)
+      return { success: false, registrar }
+    }
   }
 
   /**
