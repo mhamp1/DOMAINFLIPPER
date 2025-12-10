@@ -80,94 +80,166 @@ export interface MasterConfigData {
     domainsAcquired: number
     domainsSold: number
   }
+  
+  // Advanced Features Settings
+  advanced: {
+    // Brandability/NLP Scoring
+    brandability: {
+      enabled: boolean
+      minVowelRatio: number
+      maxVowelRatio: number
+      maxLength: number
+      minLength: number
+      penalizeProfanity: boolean
+      penalizeStopwords: boolean
+      penalizeTrademark: boolean
+      requireEnglish: boolean
+      minScore: number
+    }
+    
+    // Seasonal/Recency Trend Analysis
+    seasonal: {
+      enabled: boolean
+      windowDays: number
+      recencyDecayRate: number
+      minPersistenceDays: number
+      spikeFilterThreshold: number
+      momentumWeight: number
+      enableSpikeFilter: boolean
+    }
+    
+    // Channel Performance Tracking
+    channelPerformance: {
+      enabled: boolean
+      channels: Array<{
+        name: string
+        enabled: boolean
+        commission: number
+        listPriceMultiplier: number
+        floorPriceMultiplier: number
+        repricingCadenceDays: number
+        autoReprice: boolean
+      }>
+    }
+    
+    // Outbound Buyer Suggestions (OPT-IN)
+    outbound: {
+      enabled: boolean              // DEFAULT: FALSE
+      requireManualApproval: boolean // DEFAULT: TRUE
+      minMatchScore: number
+      maxSuggestionsPerDomain: number
+      includeCompetitors: boolean
+    }
+    
+    // Registrar/Marketplace Optimization
+    registrar: {
+      defaultRegistrar: 'GoDaddy' | 'Namecheap' | 'DropCatch'
+      defaultMarketplaces: string[]
+      preferredRegion?: string
+      preAuthEnabled: boolean
+    }
+    
+    // Safety Guardrails
+    safety: {
+      dryRun: boolean              // DEFAULT: TRUE
+      dailyCapUSD: number          // DEFAULT: $200
+      perDomainCapUSD: number      // DEFAULT: $20
+      minMargin: number            // DEFAULT: 3.0x
+      allowedTLDs: string[]        // DEFAULT: ['.com', '.ai', '.io']
+      circuitBreakerThreshold: number
+      requireConfirmation: boolean // DEFAULT: TRUE
+    }
+  }
 }
 
 // ============================================
-// OWNER'S PERMANENT API CREDENTIALS
-// These are HARDCODED and will NEVER need to be entered again
+// ENVIRONMENT-BASED CREDENTIALS
+// All credentials MUST be provided via environment variables
+// NEVER hardcode credentials in source code - this is a security risk!
 // ============================================
-const OWNER_CREDENTIALS = {
-  godaddy: {
-    apiKey: 'h2eWy65jfMPV_KSxuT2Q44RY27P3n9YqiA6',
-    apiSecret: 'LuKboxc1tZ3UGAFJFDvtAE',
-  },
-  supabase: {
-    url: 'https://gipcuhnjbzcnkclemopv.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdpcGN1aG5qYnpjbmtjbGVtb3B2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ5NTU4MjcsImV4cCI6MjA4MDUzMTgyN30.8F1JWsoplrS6NC7aQnCj722uWQz4x10E_Y2xQfn0Mnk',
-    serviceKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdpcGN1aG5qYnpjbmtjbGVtb3B2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NDk1NTgyNywiZXhwIjoyMDgwNTMxODI3fQ.hU5BDKiknfNIC6DKTHOcV2fFUZg9fazhvmX0_Y6ax3s',
-  },
-  namecheap: {
-    apiUser: 'mhamp1',
-    apiKey: 'c2cd72c359c74ac49b15e32bb98b4143',
-    clientIp: '68.106.44.20',
-  },
-  google: {
-    apiKey: 'AIzaSyAkPgSOHvrlSdxTXoPGUcUqws_Mc2GbNI8',
-  },
-  twitter: {
-    apiKey: 'FkyzaXINcWW7uj1ietIzHBmkI',
-    apiSecret: '1yWdKsS0Tnznb2kPDRaA487fQZeM7Pchy5vHqdfFMMo3VU1iWn',
-    bearerToken: 'AAAAAAAAAAAAAAAAAAAAAIpw5wEAAAAA%2Bo6RyR0%2BidGzehjdNLqfIkGr0mk%3DH5n2hBn65TtyLztrNmCIeeL220t48KF245Xvpz7EKQ6kFKFIZP',
-    accessToken: '1692022250466312193-d9dkC5rJbRU5k5KiWir3YzBGdM4Pt8',
-    accessTokenSecret: 'wKm9IUuJrqDStwgnevzXIb2Zv8JcyWKAzGiV6oxLfj4m5',
-  },
-  uspto: {
-    apiKey: 'xqdufhsmpwfxsmdtsmvlmzqmgyxukr',
-  },
-  stripe: {
-    publishableKey: 'pk_live_51SYgQHGXpC5vPDcRSrWHvEgsmawP2QrrqrjXX1Yqbkj3vlqKG5GiSKfZApgLMj7K74Ove09HeW82OVpjORTJMZWb00XxLJ4cCd',
-    secretKey: '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',
-  },
-  // Web3/ENS/Solana/NFT Domain Sniping
-  infura: {
-    projectId: '61f7969cca424b2a9325683fdb5916a1',
-    mainnetUrl: 'https://mainnet.infura.io/v3/61f7969cca424b2a9325683fdb5916a1',
-  },
-  alchemy: {
-    apiKey: 'NMEtxHS4m9mZTnYbKM5Yj',
-    ethMainnet: 'https://eth-mainnet.g.alchemy.com/v2/NMEtxHS4m9mZTnYbKM5Yj',
-    solanaMainnet: 'https://solana-mainnet.g.alchemy.com/v2/NMEtxHS4m9mZTnYbKM5Yj',
-    nftApi: 'https://eth-mainnet.g.alchemy.com/nft/v3/NMEtxHS4m9mZTnYbKM5Yj',
-  },
+
+/**
+ * Get credentials from environment variables
+ * WARNING: Returns empty strings if not configured - caller must validate!
+ */
+function getEnvCredentials() {
+  return {
+    godaddy: {
+      apiKey: import.meta.env.VITE_GODADDY_API_KEY || '',
+      apiSecret: import.meta.env.VITE_GODADDY_API_SECRET || '',
+    },
+    supabase: {
+      url: import.meta.env.VITE_SUPABASE_URL || '',
+      anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+    },
+    namecheap: {
+      apiUser: import.meta.env.VITE_NAMECHEAP_API_USER || '',
+      apiKey: import.meta.env.VITE_NAMECHEAP_API_KEY || '',
+      clientIp: import.meta.env.VITE_NAMECHEAP_CLIENT_IP || '',
+    },
+    google: {
+      apiKey: import.meta.env.VITE_GOOGLE_API_KEY || '',
+    },
+    twitter: {
+      bearerToken: import.meta.env.VITE_TWITTER_BEARER_TOKEN || '',
+    },
+    uspto: {
+      apiKey: import.meta.env.VITE_USPTO_API_KEY || '',
+    },
+    stripe: {
+      publishableKey: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '',
+      secretKey: import.meta.env.VITE_STRIPE_SECRET_KEY || '',
+    },
+    infura: {
+      projectId: import.meta.env.VITE_INFURA_PROJECT_ID || '',
+      mainnetUrl: import.meta.env.VITE_INFURA_MAINNET_URL || '',
+    },
+    alchemy: {
+      apiKey: import.meta.env.VITE_ALCHEMY_API_KEY || '',
+      ethMainnet: import.meta.env.VITE_ALCHEMY_ETH_MAINNET || '',
+      solanaMainnet: import.meta.env.VITE_ALCHEMY_SOLANA_MAINNET || '',
+      nftApi: import.meta.env.VITE_ALCHEMY_NFT_API || '',
+    },
+  }
 }
 
 const DEFAULT_CONFIG: MasterConfigData = {
   godaddy: {
-    apiKey: OWNER_CREDENTIALS.godaddy.apiKey,
-    apiSecret: OWNER_CREDENTIALS.godaddy.apiSecret,
+    apiKey: '',
+    apiSecret: '',
     sandbox: false,
   },
   namecheap: {
-    apiUser: OWNER_CREDENTIALS.namecheap.apiUser,
-    apiKey: OWNER_CREDENTIALS.namecheap.apiKey,
-    clientIp: OWNER_CREDENTIALS.namecheap.clientIp,
+    apiUser: '',
+    apiKey: '',
+    clientIp: '',
   },
   supabase: {
-    url: OWNER_CREDENTIALS.supabase.url,
-    anonKey: OWNER_CREDENTIALS.supabase.anonKey,
+    url: '',
+    anonKey: '',
   },
   google: {
-    apiKey: OWNER_CREDENTIALS.google.apiKey,
+    apiKey: '',
   },
   twitter: {
-    bearerToken: OWNER_CREDENTIALS.twitter.bearerToken,
+    bearerToken: '',
   },
   uspto: {
-    apiKey: OWNER_CREDENTIALS.uspto.apiKey,
+    apiKey: '',
   },
   stripe: {
-    publishableKey: OWNER_CREDENTIALS.stripe.publishableKey,
-    secretKey: OWNER_CREDENTIALS.stripe.secretKey,
+    publishableKey: '',
+    secretKey: '',
   },
   infura: {
-    projectId: OWNER_CREDENTIALS.infura.projectId,
-    mainnetUrl: OWNER_CREDENTIALS.infura.mainnetUrl,
+    projectId: '',
+    mainnetUrl: '',
   },
   alchemy: {
-    apiKey: OWNER_CREDENTIALS.alchemy.apiKey,
-    ethMainnet: OWNER_CREDENTIALS.alchemy.ethMainnet,
-    solanaMainnet: OWNER_CREDENTIALS.alchemy.solanaMainnet,
-    nftApi: OWNER_CREDENTIALS.alchemy.nftApi,
+    apiKey: '',
+    ethMainnet: '',
+    solanaMainnet: '',
+    nftApi: '',
   },
   empire: {
     totalCapital: 500,
@@ -187,6 +259,73 @@ const DEFAULT_CONFIG: MasterConfigData = {
     totalSpent: 0,
     domainsAcquired: 0,
     domainsSold: 0,
+  },
+  advanced: {
+    brandability: {
+      enabled: true,
+      minVowelRatio: 0.25,
+      maxVowelRatio: 0.5,
+      maxLength: 15,
+      minLength: 4,
+      penalizeProfanity: true,
+      penalizeStopwords: true,
+      penalizeTrademark: true,
+      requireEnglish: false,
+      minScore: 60,
+    },
+    seasonal: {
+      enabled: true,
+      windowDays: 30,
+      recencyDecayRate: 0.1,
+      minPersistenceDays: 3,
+      spikeFilterThreshold: 2.5,
+      momentumWeight: 0.4,
+      enableSpikeFilter: true,
+    },
+    channelPerformance: {
+      enabled: true,
+      channels: [
+        {
+          name: 'Afternic',
+          enabled: true,
+          commission: 0.20,
+          listPriceMultiplier: 1.0,
+          floorPriceMultiplier: 1.0,
+          repricingCadenceDays: 30,
+          autoReprice: false,
+        },
+        {
+          name: 'Dan',
+          enabled: true,
+          commission: 0.09,
+          listPriceMultiplier: 1.0,
+          floorPriceMultiplier: 1.0,
+          repricingCadenceDays: 30,
+          autoReprice: false,
+        },
+      ],
+    },
+    outbound: {
+      enabled: false,              // DEFAULT: DISABLED
+      requireManualApproval: true, // DEFAULT: REQUIRE APPROVAL
+      minMatchScore: 70,
+      maxSuggestionsPerDomain: 5,
+      includeCompetitors: false,
+    },
+    registrar: {
+      defaultRegistrar: 'GoDaddy',
+      defaultMarketplaces: ['Afternic', 'Dan'],
+      preAuthEnabled: false,
+    },
+    safety: {
+      dryRun: true,                // DEFAULT: DRY RUN
+      dailyCapUSD: 200,            // DEFAULT: $200
+      perDomainCapUSD: 20,         // DEFAULT: $20
+      minMargin: 3.0,              // DEFAULT: 3.0x
+      allowedTLDs: ['.com', '.ai', '.io'],
+      circuitBreakerThreshold: 5,
+      requireConfirmation: true,   // DEFAULT: REQUIRE CONFIRMATION
+    },
   },
 }
 
@@ -220,77 +359,76 @@ class MasterConfig {
   }
 
   /**
-   * ENSURES ALL OWNER CREDENTIALS ARE ALWAYS PRESENT
-   * Called on every load and can be called manually to force refresh
+   * Load credentials from environment variables
+   * Called on initialization to populate config from env vars
    */
   private ensureAllCredentials(): void {
-    // 1. GoDaddy - PRIMARY
-    if (!this.config.godaddy?.apiKey) {
+    const envCreds = getEnvCredentials()
+    
+    // 1. GoDaddy - Load from env vars if available
+    if (envCreds.godaddy.apiKey && !this.config.godaddy?.apiKey) {
       this.config.godaddy = { 
-        apiKey: OWNER_CREDENTIALS.godaddy.apiKey,
-        apiSecret: OWNER_CREDENTIALS.godaddy.apiSecret,
+        apiKey: envCreds.godaddy.apiKey,
+        apiSecret: envCreds.godaddy.apiSecret,
         sandbox: false 
       }
     }
-    if (!this.config.godaddy.apiSecret) {
-      this.config.godaddy.apiSecret = OWNER_CREDENTIALS.godaddy.apiSecret
-    }
 
-    // 2. Namecheap
-    if (!this.config.namecheap?.apiKey) {
+    // 2. Namecheap - Load from env vars if available
+    if (envCreds.namecheap.apiKey && !this.config.namecheap?.apiKey) {
       this.config.namecheap = {
-        apiUser: OWNER_CREDENTIALS.namecheap.apiUser,
-        apiKey: OWNER_CREDENTIALS.namecheap.apiKey,
-        clientIp: OWNER_CREDENTIALS.namecheap.clientIp,
+        apiUser: envCreds.namecheap.apiUser,
+        apiKey: envCreds.namecheap.apiKey,
+        clientIp: envCreds.namecheap.clientIp,
       }
     }
 
-    // 3. Supabase
-    if (!this.config.supabase?.url || !this.config.supabase?.anonKey) {
+    // 3. Supabase - Load from env vars if available
+    if (envCreds.supabase.url && !this.config.supabase?.url) {
       this.config.supabase = {
-        url: OWNER_CREDENTIALS.supabase.url,
-        anonKey: OWNER_CREDENTIALS.supabase.anonKey,
+        url: envCreds.supabase.url,
+        anonKey: envCreds.supabase.anonKey,
       }
     }
 
-    // 4. Google Trends
-    if (!this.config.google?.apiKey) {
-      this.config.google = { apiKey: OWNER_CREDENTIALS.google.apiKey }
+    // 4. Google - Load from env vars if available
+    if (envCreds.google.apiKey && !this.config.google?.apiKey) {
+      this.config.google = { apiKey: envCreds.google.apiKey }
     }
 
-    // 5. Twitter/X
-    if (!this.config.twitter?.bearerToken) {
-      this.config.twitter = { bearerToken: OWNER_CREDENTIALS.twitter.bearerToken }
+    // 5. Twitter/X - Load from env vars if available
+    if (envCreds.twitter.bearerToken && !this.config.twitter?.bearerToken) {
+      this.config.twitter = { bearerToken: envCreds.twitter.bearerToken }
     }
 
-    // 6. USPTO
-    if (!this.config.uspto?.apiKey) {
-      this.config.uspto = { apiKey: OWNER_CREDENTIALS.uspto.apiKey }
+    // 6. USPTO - Load from env vars if available
+    if (envCreds.uspto.apiKey && !this.config.uspto?.apiKey) {
+      this.config.uspto = { apiKey: envCreds.uspto.apiKey }
     }
 
-    // 7. Stripe
-    if (!this.config.stripe?.publishableKey || !this.config.stripe?.secretKey) {
+    // 7. Stripe - Load from env vars if available
+    if (envCreds.stripe.publishableKey && !this.config.stripe?.publishableKey) {
       this.config.stripe = {
-        publishableKey: OWNER_CREDENTIALS.stripe.publishableKey,
-        secretKey: OWNER_CREDENTIALS.stripe.secretKey,
+        publishableKey: envCreds.stripe.publishableKey,
+        secretKey: envCreds.stripe.secretKey,
       }
     }
 
-    // 8. Infura
-    if (!this.config.infura?.projectId) {
+    // 8. Infura - Load from env vars if available
+    if (envCreds.infura.projectId && !this.config.infura?.projectId) {
       this.config.infura = {
-        projectId: OWNER_CREDENTIALS.infura.projectId,
-        mainnetUrl: OWNER_CREDENTIALS.infura.mainnetUrl,
+        projectId: envCreds.infura.projectId,
+        mainnetUrl: envCreds.infura.mainnetUrl,
       }
     }
 
-    // 9. Alchemy (Web3/Solana/NFT)
-    if (!this.config.alchemy?.apiKey) {
+    // 9. Alchemy - Load from env vars if available
+    if (envCreds.alchemy.apiKey && !this.config.alchemy?.apiKey) {
       this.config.alchemy = {
-        apiKey: OWNER_CREDENTIALS.alchemy.apiKey,
-        ethMainnet: OWNER_CREDENTIALS.alchemy.ethMainnet,
-        solanaMainnet: OWNER_CREDENTIALS.alchemy.solanaMainnet,
-        nftApi: OWNER_CREDENTIALS.alchemy.nftApi,
+        apiKey: envCreds.alchemy.apiKey,
+        ethMainnet: envCreds.alchemy.ethMainnet,
+        solanaMainnet: envCreds.alchemy.solanaMainnet,
+        nftApi: envCreds.alchemy.nftApi,
       }
     }
 
@@ -299,45 +437,65 @@ class MasterConfig {
   }
 
   /**
-   * Force refresh all credentials from hardcoded values
-   * Call this if anything ever seems wrong
+   * Force refresh credentials from environment variables
+   * Call this to reload env var changes
    */
   forceRefreshCredentials(): void {
-    console.log('🔄 Force refreshing ALL credentials from hardcoded values...')
-    this.config.godaddy = { 
-      apiKey: OWNER_CREDENTIALS.godaddy.apiKey,
-      apiSecret: OWNER_CREDENTIALS.godaddy.apiSecret,
-      sandbox: false 
+    console.log('🔄 Force refreshing credentials from environment variables...')
+    const envCreds = getEnvCredentials()
+    
+    if (envCreds.godaddy.apiKey) {
+      this.config.godaddy = { 
+        apiKey: envCreds.godaddy.apiKey,
+        apiSecret: envCreds.godaddy.apiSecret,
+        sandbox: false 
+      }
     }
-    this.config.namecheap = {
-      apiUser: OWNER_CREDENTIALS.namecheap.apiUser,
-      apiKey: OWNER_CREDENTIALS.namecheap.apiKey,
-      clientIp: OWNER_CREDENTIALS.namecheap.clientIp,
+    if (envCreds.namecheap.apiKey) {
+      this.config.namecheap = {
+        apiUser: envCreds.namecheap.apiUser,
+        apiKey: envCreds.namecheap.apiKey,
+        clientIp: envCreds.namecheap.clientIp,
+      }
     }
-    this.config.supabase = {
-      url: OWNER_CREDENTIALS.supabase.url,
-      anonKey: OWNER_CREDENTIALS.supabase.anonKey,
+    if (envCreds.supabase.url) {
+      this.config.supabase = {
+        url: envCreds.supabase.url,
+        anonKey: envCreds.supabase.anonKey,
+      }
     }
-    this.config.google = { apiKey: OWNER_CREDENTIALS.google.apiKey }
-    this.config.twitter = { bearerToken: OWNER_CREDENTIALS.twitter.bearerToken }
-    this.config.uspto = { apiKey: OWNER_CREDENTIALS.uspto.apiKey }
-    this.config.stripe = {
-      publishableKey: OWNER_CREDENTIALS.stripe.publishableKey,
-      secretKey: OWNER_CREDENTIALS.stripe.secretKey,
+    if (envCreds.google.apiKey) {
+      this.config.google = { apiKey: envCreds.google.apiKey }
     }
-    this.config.infura = {
-      projectId: OWNER_CREDENTIALS.infura.projectId,
-      mainnetUrl: OWNER_CREDENTIALS.infura.mainnetUrl,
+    if (envCreds.twitter.bearerToken) {
+      this.config.twitter = { bearerToken: envCreds.twitter.bearerToken }
     }
-    this.config.alchemy = {
-      apiKey: OWNER_CREDENTIALS.alchemy.apiKey,
-      ethMainnet: OWNER_CREDENTIALS.alchemy.ethMainnet,
-      solanaMainnet: OWNER_CREDENTIALS.alchemy.solanaMainnet,
-      nftApi: OWNER_CREDENTIALS.alchemy.nftApi,
+    if (envCreds.uspto.apiKey) {
+      this.config.uspto = { apiKey: envCreds.uspto.apiKey }
+    }
+    if (envCreds.stripe.publishableKey) {
+      this.config.stripe = {
+        publishableKey: envCreds.stripe.publishableKey,
+        secretKey: envCreds.stripe.secretKey,
+      }
+    }
+    if (envCreds.infura.projectId) {
+      this.config.infura = {
+        projectId: envCreds.infura.projectId,
+        mainnetUrl: envCreds.infura.mainnetUrl,
+      }
+    }
+    if (envCreds.alchemy.apiKey) {
+      this.config.alchemy = {
+        apiKey: envCreds.alchemy.apiKey,
+        ethMainnet: envCreds.alchemy.ethMainnet,
+        solanaMainnet: envCreds.alchemy.solanaMainnet,
+        nftApi: envCreds.alchemy.nftApi,
+      }
     }
     this.saveConfig()
-    console.log('✅ All 9 API credentials refreshed and saved!')
-    toast.success('All APIs Restored', { description: 'All 9 API credentials are now active' })
+    console.log('✅ Credentials refreshed from environment variables!')
+    toast.success('Credentials Refreshed', { description: 'Loaded from environment variables' })
   }
 
   private loadConfig(): MasterConfigData {
@@ -420,9 +578,9 @@ class MasterConfig {
     return { ...this.config.alchemy }
   }
 
-  // Get ALL owner credentials (hardcoded, permanent)
+  // Get credentials from environment variables
   getOwnerCredentials() {
-    return { ...OWNER_CREDENTIALS }
+    return getEnvCredentials()
   }
 
   getEmpire() {
@@ -696,6 +854,88 @@ class MasterConfig {
 
   private notifyListeners(): void {
     this.listeners.forEach(l => l({ ...this.config }))
+  }
+
+  // ==================== ADVANCED SETTINGS ====================
+  
+  getAdvancedSettings() {
+    return { ...this.config.advanced }
+  }
+  
+  getBrandabilitySettings() {
+    return { ...this.config.advanced.brandability }
+  }
+  
+  getSeasonalSettings() {
+    return { ...this.config.advanced.seasonal }
+  }
+  
+  getChannelPerformanceSettings() {
+    return { ...this.config.advanced.channelPerformance }
+  }
+  
+  getOutboundSettings() {
+    return { ...this.config.advanced.outbound }
+  }
+  
+  getRegistrarSettings() {
+    return { ...this.config.advanced.registrar }
+  }
+  
+  getSafetySettings() {
+    return { ...this.config.advanced.safety }
+  }
+  
+  updateBrandabilitySettings(settings: Partial<typeof this.config.advanced.brandability>): void {
+    this.config.advanced.brandability = { ...this.config.advanced.brandability, ...settings }
+    this.saveConfig()
+  }
+  
+  updateSeasonalSettings(settings: Partial<typeof this.config.advanced.seasonal>): void {
+    this.config.advanced.seasonal = { ...this.config.advanced.seasonal, ...settings }
+    this.saveConfig()
+  }
+  
+  updateChannelPerformanceSettings(settings: Partial<typeof this.config.advanced.channelPerformance>): void {
+    this.config.advanced.channelPerformance = { ...this.config.advanced.channelPerformance, ...settings }
+    this.saveConfig()
+  }
+  
+  updateOutboundSettings(settings: Partial<typeof this.config.advanced.outbound>): void {
+    this.config.advanced.outbound = { ...this.config.advanced.outbound, ...settings }
+    this.saveConfig()
+    
+    if (settings.enabled !== undefined) {
+      if (settings.enabled) {
+        toast.warning('⚠️ Outbound Enabled', { 
+          description: 'Buyer suggestions enabled. No auto-send - manual approval required.' 
+        })
+      } else {
+        toast.success('Outbound Disabled', { description: 'Buyer suggestions disabled' })
+      }
+    }
+  }
+  
+  updateRegistrarSettings(settings: Partial<typeof this.config.advanced.registrar>): void {
+    this.config.advanced.registrar = { ...this.config.advanced.registrar, ...settings }
+    this.saveConfig()
+  }
+  
+  updateSafetySettings(settings: Partial<typeof this.config.advanced.safety>): void {
+    const oldDryRun = this.config.advanced.safety.dryRun
+    this.config.advanced.safety = { ...this.config.advanced.safety, ...settings }
+    this.saveConfig()
+    
+    // Show warning when DRY_RUN is disabled
+    if (settings.dryRun !== undefined && !settings.dryRun && oldDryRun) {
+      toast.error('🚨 DRY_RUN DISABLED', { 
+        description: 'Real purchases enabled. Be careful!' 
+      })
+    } else if (settings.dryRun !== undefined && settings.dryRun && !oldDryRun) {
+      toast.success('✅ DRY_RUN Enabled', { 
+        description: 'Safe mode - no real purchases' 
+      })
+    }
   }
 
   // ==================== RESET ====================

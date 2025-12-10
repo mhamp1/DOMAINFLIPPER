@@ -378,7 +378,7 @@ class RealCryptoWallet {
           }
         }
       } catch (error: any) {
-        logger.debug('CRYPTO_WALLET', 'Payment check error', { error: error.message })
+        logger.debug('CRYPTO_WALLET', `Payment check error: ${error.message}`)
       }
     }, 30000) // Check every 30 seconds
 
@@ -412,7 +412,7 @@ class RealCryptoWallet {
         return { paid: true, txHash, amount: balanceBTC }
       }
     } catch (error: any) {
-      logger.debug('CRYPTO_WALLET', 'BTC check failed', { error: error.message })
+      logger.debug('CRYPTO_WALLET', `BTC check failed: ${error.message}`)
     }
 
     return { paid: false }
@@ -448,7 +448,7 @@ class RealCryptoWallet {
         return { paid: true, txHash, amount: balanceETH }
       }
     } catch (error: any) {
-      logger.debug('CRYPTO_WALLET', 'ETH check failed', { error: error.message })
+      logger.debug('CRYPTO_WALLET', `ETH check failed: ${error.message}`)
     }
 
     return { paid: false }
@@ -495,7 +495,7 @@ class RealCryptoWallet {
         return { paid: true, txHash, amount: balanceSOL }
       }
     } catch (error: any) {
-      logger.debug('CRYPTO_WALLET', 'SOL check failed', { error: error.message })
+      logger.debug('CRYPTO_WALLET', `SOL check failed: ${error.message}`)
     }
 
     return { paid: false }

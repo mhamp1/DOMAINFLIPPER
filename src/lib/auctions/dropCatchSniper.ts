@@ -87,7 +87,7 @@ export class DropCatchSniper {
       
       return true
     } catch (error: any) {
-      logger.error('SNIPER', `Failed to monitor ${domain}`, { error: error.message })
+      logger.error('SNIPER', `Failed to monitor ${domain}: ${error.message}`)
       return false
     }
   }
@@ -161,7 +161,7 @@ export class DropCatchSniper {
         soundEngine.error()
       }
     } catch (error: any) {
-      logger.error('SNIPER', `Snipe error for ${domain}`, { error: error.message })
+      logger.error('SNIPER', `Snipe error for ${domain}: ${error.message}`)
       metrics.increment('snipe_errors')
       soundEngine.error()
     } finally {

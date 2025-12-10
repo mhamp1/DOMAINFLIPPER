@@ -535,3 +535,148 @@ SELECT
   COUNT(*) FILTER (WHERE sold) * 100.0 / NULLIF(COUNT(*), 0) as sell_rate
 FROM owned_domains
 GROUP BY user_id, strategy_id;
+
+-- ============================================
+-- ADVANCED FEATURES TABLES
+-- ============================================
+
+-- User Settings Table (for persisting advanced settings)
+CREATE TABLE IF NOT EXISTS user_settings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  settings_json JSONB NOT NULL DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id)
+);
+
+-- Channel Listings Table (tracks listings per channel with stats)
+CREATE TABLE IF NOT EXISTS channel_listings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  domain TEXT NOT NULL,
+  channel TEXT NOT NULL, -- 'Afternic', 'Dan', 'Lander'
+  list_price DECIMAL(12, 2) NOT NULL,
+  floor_price DECIMAL(12, 2) NOT NULL,
+  listed_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  last_repriced_date TIMESTAMPTZ,
+  views INTEGER DEFAULT 0,
+  inquiries INTEGER DEFAULT 0,
+  sold BOOLEAN DEFAULT FALSE,
+  sale_price DECIMAL(12, 2),
+  sale_date TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, domain, channel)
+);
+
+-- Channel Performance Stats Table
+CREATE TABLE IF NOT EXISTS channel_stats (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  channel TEXT NOT NULL,
+  total_listings INTEGER DEFAULT 0,
+  total_views INTEGER DEFAULT 0,
+  total_inquiries INTEGER DEFAULT 0,
+  total_sales INTEGER DEFAULT 0,
+  total_revenue DECIMAL(12, 2) DEFAULT 0,
+  avg_sale_price DECIMAL(12, 2) DEFAULT 0,
+  avg_days_to_sale DECIMAL(8, 2) DEFAULT 0,
+  conversion_rate DECIMAL(5, 2) DEFAULT 0,
+  inquiry_rate DECIMAL(5, 2) DEFAULT 0,
+  close_rate DECIMAL(5, 2) DEFAULT 0,
+  last_updated TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, channel)
+);
+
+-- Buyer Suggestions Table (opt-in only)
+CREATE TABLE IF NOT EXISTS buyer_suggestions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  domain TEXT NOT NULL,
+  buyer_name TEXT NOT NULL,
+  buyer_industry TEXT,
+  buyer_email TEXT,
+  match_score INTEGER NOT NULL, -- 0-100
+  match_type TEXT NOT NULL, -- 'keyword', 'industry', 'competitor', 'similar'
+  suggested_price DECIMAL(12, 2) NOT NULL,
+  reasoning TEXT,
+  confidence INTEGER, -- 0-100
+  approved BOOLEAN DEFAULT FALSE,
+  contacted BOOLEAN DEFAULT FALSE,
+  contacted_date TIMESTAMPTZ,
+  response_received BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes for new tables
+CREATE INDEX IF NOT EXISTS idx_channel_listings_domain ON channel_listings(domain);
+CREATE INDEX IF NOT EXISTS idx_channel_listings_channel ON channel_listings(channel);
+CREATE INDEX IF NOT EXISTS idx_channel_listings_sold ON channel_listings(sold);
+CREATE INDEX IF NOT EXISTS idx_channel_stats_channel ON channel_stats(channel);
+CREATE INDEX IF NOT EXISTS idx_buyer_suggestions_domain ON buyer_suggestions(domain);
+CREATE INDEX IF NOT EXISTS idx_buyer_suggestions_approved ON buyer_suggestions(approved);
+CREATE INDEX IF NOT EXISTS idx_buyer_suggestions_contacted ON buyer_suggestions(contacted);
+
+-- RLS for new tables
+ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE channel_listings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE channel_stats ENABLE ROW LEVEL SECURITY;
+ALTER TABLE buyer_suggestions ENABLE ROW LEVEL SECURITY;
+
+-- Policies for user_settings
+CREATE POLICY "Users can view own settings" ON user_settings
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own settings" ON user_settings
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own settings" ON user_settings
+  FOR UPDATE USING (auth.uid() = user_id);
+
+-- Policies for channel_listings
+CREATE POLICY "Users can view own channel listings" ON channel_listings
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own channel listings" ON channel_listings
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own channel listings" ON channel_listings
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own channel listings" ON channel_listings
+  FOR DELETE USING (auth.uid() = user_id);
+
+-- Policies for channel_stats
+CREATE POLICY "Users can view own channel stats" ON channel_stats
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own channel stats" ON channel_stats
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own channel stats" ON channel_stats
+  FOR UPDATE USING (auth.uid() = user_id);
+
+-- Policies for buyer_suggestions
+CREATE POLICY "Users can view own buyer suggestions" ON buyer_suggestions
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own buyer suggestions" ON buyer_suggestions
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own buyer suggestions" ON buyer_suggestions
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own buyer suggestions" ON buyer_suggestions
+  FOR DELETE USING (auth.uid() = user_id);
+
+-- Triggers for new tables
+CREATE TRIGGER update_user_settings_updated_at BEFORE UPDATE ON user_settings
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_channel_listings_updated_at BEFORE UPDATE ON channel_listings
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_buyer_suggestions_updated_at BEFORE UPDATE ON buyer_suggestions
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

@@ -170,18 +170,24 @@ class AutomatedSaleFlow {
     logger.info('SALE_FLOW', `Starting negotiation for ${inquiry.domain}`)
 
     try {
-      // Use the negotiation bot
-      const session = await negotiationBot.startNegotiation(inquiry.domain, {
-        askingPrice,
-        floorPrice: minAcceptable,
-        targetPrice: askingPrice * 0.85, // Target 85% of asking
-        initialOffer: inquiry.offerAmount || 0,
+      // Use the negotiation bot - start a session
+      const session = negotiationBot.startSession(inquiry.domain, askingPrice, {
         buyerEmail: inquiry.buyerEmail,
-        maxRounds: this.config.maxNegotiationRounds,
-        autoAcceptAbove: askingPrice * this.config.autoAcceptAbove,
+        metadata: {
+          floorPrice: minAcceptable,
+          targetPrice: askingPrice * 0.85,
+          initialOffer: inquiry.offerAmount || 0,
+        },
       })
 
       sale.negotiation = session
+
+      // Process initial offer if provided
+      if (inquiry.offerAmount) {
+        await negotiationBot.processOffer(session.id, inquiry.offerAmount, {
+          email: inquiry.buyerEmail,
+        })
+      }
 
       // Subscribe to negotiation completion
       const checkInterval = setInterval(async () => {
@@ -192,9 +198,9 @@ class AutomatedSaleFlow {
           return
         }
 
-        if (currentSession.state === 'deal_reached') {
+        if (currentSession.state === 'accepted') {
           clearInterval(checkInterval)
-          await this.acceptOffer(sale, currentSession.currentOffer)
+          await this.acceptOffer(sale, currentSession.currentOffer || currentSession.finalPrice || askingPrice)
         } else if (currentSession.state === 'rejected' || currentSession.state === 'expired') {
           clearInterval(checkInterval)
           sale.status = 'failed'
@@ -203,7 +209,7 @@ class AutomatedSaleFlow {
       }, 5000) // Check every 5 seconds
 
     } catch (error: any) {
-      logger.error('SALE_FLOW', 'Negotiation failed', { error: error.message })
+      logger.error('SALE_FLOW', `Negotiation failed: ${error.message}`)
       
       // Fall back to sending asking price
       await this.sendCounterOffer(inquiry, askingPrice)
@@ -225,7 +231,7 @@ class AutomatedSaleFlow {
         // Add other marketplaces as needed
       }
     } catch (error: any) {
-      logger.error('SALE_FLOW', 'Failed to send counter offer', { error: error.message })
+      logger.error('SALE_FLOW', `Failed to send counter offer: ${error.message}`)
     }
   }
 
@@ -326,7 +332,7 @@ class AutomatedSaleFlow {
       })
 
     } catch (error: any) {
-      logger.error('SALE_FLOW', 'Escrow creation failed', { error: error.message })
+      logger.error('SALE_FLOW', `Escrow creation failed: ${error.message}`)
       sale.status = 'accepted' // Fall back
     }
 
@@ -358,7 +364,7 @@ Thank you for your purchase!
         // Add other marketplaces
       }
     } catch (error: any) {
-      logger.error('SALE_FLOW', 'Failed to send payment link', { error: error.message })
+      logger.error('SALE_FLOW', `Failed to send payment link: ${error.message}`)
     }
   }
 
@@ -462,7 +468,7 @@ Thank you for your purchase!
       }
 
     } catch (error: any) {
-      logger.error('SALE_FLOW', 'Transfer failed', { error: error.message })
+      logger.error('SALE_FLOW', `Transfer failed: ${error.message}`)
       sale.status = 'paid' // Fall back - still got paid
     }
 
@@ -497,7 +503,7 @@ Thank you!
           break
       }
     } catch (error: any) {
-      logger.error('SALE_FLOW', 'Failed to send transfer info', { error: error.message })
+      logger.error('SALE_FLOW', `Failed to send transfer info: ${error.message}`)
     }
   }
 

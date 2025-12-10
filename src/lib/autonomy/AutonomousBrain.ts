@@ -17,6 +17,7 @@ import { marketplaceLister } from '@/lib/marketplace/autoList'
 import { godScoreEngine } from '@/lib/valuation/GodScore'
 import { masterConfig } from '@/lib/config/MasterConfig'
 import { empireSettings } from '@/lib/config/EmpireSettings'
+import { expiredDomainsScanner } from '@/lib/scanner/ExpiredDomainsScanner'
 import { godaddyAPI } from '@/lib/api/godaddyReal'
 import { namecheapAPI } from '@/lib/api/namecheapReal'
 import type { Domain } from '@/types/domain'
@@ -192,23 +193,42 @@ class AutonomousBrain {
         return
       }
 
-      // Scan for opportunities
+      // Scan for opportunities from multiple sources
       const scanResult = await realDomainScanner.scan({
         maxPrice: Math.min(config.dailyBudget, availableCapital),
         maxResults: 50,
       })
 
-      if (scanResult.domains.length === 0) {
+      // Also scan expired domains with high backlinks
+      const expiredDomains = await expiredDomainsScanner.scanExpiredDomains({
+        tld: 'com',
+        minBacklinks: 10,
+        limit: 30,
+      }).catch(() => [])
+
+      // Convert expired domains to scanned format
+      const expiredTargets = expiredDomains.map(d => ({
+        domain: d.domain,
+        source: 'expireddomains' as const,
+        price: 10, // Base registration price
+        type: 'registration' as const,
+        available: true,
+      }))
+
+      // Combine all sources
+      const allDomains = [...scanResult.domains, ...expiredTargets]
+
+      if (allDomains.length === 0) {
         this.speak('👁️ No prey found this cycle. Waiting...')
         return
       }
 
-      this.speak(`🔍 Evaluating ${scanResult.domains.length} targets...`)
+      this.speak(`🔍 Evaluating ${allDomains.length} targets (${scanResult.domains.length} auctions + ${expiredDomains.length} expired)...`)
 
       let acquiredThisCycle = 0
       const maxPerCycle = Math.min(15, Math.floor(availableCapital / (config.dailyBudget * 0.1)))
 
-      for (const target of scanResult.domains.slice(0, maxPerCycle)) {
+      for (const target of allDomains.slice(0, maxPerCycle)) {
         try {
           this.stats.domainsEvaluated++
 
@@ -262,14 +282,14 @@ class AutonomousBrain {
             // Convert to proper ScannedDomain format for sniper
             const snipeTarget: ScannedDomain = {
               domain: target.domain,
-              source: target.source,
+              source: target.source as ScannedDomain['source'],
               price: actualPrice,
               type: target.type,
               available: true,
-              currentBid: target.currentBid,
-              auctionId: target.auctionId,
-              auctionEndTime: target.auctionEndTime,
-              bidCount: target.bidCount,
+              currentBid: 'currentBid' in target ? target.currentBid : undefined,
+              auctionId: 'auctionId' in target ? target.auctionId : undefined,
+              auctionEndTime: 'auctionEndTime' in target ? target.auctionEndTime : undefined,
+              bidCount: 'bidCount' in target ? target.bidCount : undefined,
             }
 
             const result = await realSniper.snipe(snipeTarget, maxSingleBuy)

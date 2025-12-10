@@ -8,6 +8,7 @@ import { logger } from '@/lib/utils/logger'
 import { auditLog } from '@/lib/infrastructure/AuditLog'
 import { killSwitches } from '@/lib/infrastructure/KillSwitches'
 import { metrics } from '@/lib/infrastructure/Metrics'
+import { thoughtStream } from '@/lib/autonomy/ThoughtStream'
 import { toast } from 'sonner'
 
 // ==================== TYPES ====================
@@ -206,6 +207,16 @@ class NegotiationBot {
       return { action: 'reject', message: `Negotiation already ${session.state}` }
     }
 
+    // Start thinking about this negotiation
+    thoughtStream.startThinking(`Negotiation: ${session.domain}`, session.domain)
+
+    thoughtStream.think('negotiation', `New offer received for ${session.domain}`, [
+      `Offer Amount: $${offerAmount.toLocaleString()}`,
+      `Our Asking: $${session.askingPrice.toLocaleString()}`,
+      `Floor Price: $${session.floorPrice.toLocaleString()}`,
+      `Buyer: ${buyerInfo?.email || 'Anonymous'}`,
+    ], { domain: session.domain, offerAmount })
+
     // Update buyer info if provided
     if (buyerInfo?.email) session.buyerEmail = buyerInfo.email
     if (buyerInfo?.name) session.buyerName = buyerInfo.name
@@ -216,6 +227,13 @@ class NegotiationBot {
 
     // Evaluate the offer
     const evaluation = this.evaluateOffer(session, offerAmount)
+
+    thoughtStream.think('calculation', `Evaluating offer against thresholds`, [
+      `Offer vs Ask: ${((offerAmount / session.askingPrice) * 100).toFixed(1)}%`,
+      `Offer vs Floor: ${((offerAmount / session.floorPrice) * 100).toFixed(1)}%`,
+      `BATNA (Best Alternative): $${evaluation.batna.toLocaleString()}`,
+      `ZOPA: $${evaluation.zopa.min.toLocaleString()} - $${evaluation.zopa.max.toLocaleString()}`,
+    ], { domain: session.domain })
 
     // Record round
     const roundNumber = session.rounds.length + 1
@@ -236,6 +254,12 @@ class NegotiationBot {
       session.outcome = 'sold'
       session.finalPrice = offerAmount
 
+      thoughtStream.think('decision', `✅ ACCEPTING offer of $${offerAmount.toLocaleString()}`, [
+        `Reasoning: ${evaluation.reasoning}`,
+        `Round: ${roundNumber}`,
+        'Proceeding to escrow...',
+      ], { domain: session.domain, decision: 'ACCEPT' })
+
       response = {
         action: 'accept',
         amount: offerAmount,
@@ -248,6 +272,8 @@ class NegotiationBot {
       toast.success(`💰 Offer Accepted: ${session.domain}`, {
         description: `$${offerAmount.toLocaleString()} - Deal closed!`,
       })
+
+      thoughtStream.concludeThinking(`Deal closed at $${offerAmount.toLocaleString()}`)
     } else if (evaluation.counter && roundNumber < this.config.maxRounds) {
       // Counter offer
       round.action = 'counter_sent'
@@ -255,11 +281,20 @@ class NegotiationBot {
       session.ourLastCounter = evaluation.counter
       session.state = 'counter_offered'
 
+      thoughtStream.think('strategy', `Countering at $${evaluation.counter.toLocaleString()}`, [
+        `Their offer: $${offerAmount.toLocaleString()} (${((offerAmount / session.askingPrice) * 100).toFixed(0)}% of ask)`,
+        `Our counter: $${evaluation.counter.toLocaleString()} (${((evaluation.counter / session.askingPrice) * 100).toFixed(0)}% of ask)`,
+        `Round ${roundNumber} of ${this.config.maxRounds}`,
+        `Reasoning: ${evaluation.reasoning}`,
+      ], { domain: session.domain, decision: 'COUNTER', amount: evaluation.counter })
+
       response = {
         action: 'counter',
         amount: evaluation.counter,
         message: this.generateCounterMessage(session, offerAmount, evaluation.counter, roundNumber),
       }
+
+      thoughtStream.concludeThinking(`Counter sent: $${evaluation.counter.toLocaleString()}`)
     } else {
       // Reject (max rounds or below floor)
       if (roundNumber >= this.config.maxRounds) {
@@ -268,10 +303,19 @@ class NegotiationBot {
         session.state = 'rejected'
         session.outcome = 'no_deal'
 
+        thoughtStream.think('evaluation', `Negotiation ended - max rounds reached`, [
+          `Final offer: $${offerAmount.toLocaleString()}`,
+          `Our floor: $${session.floorPrice.toLocaleString()}`,
+          `Rounds completed: ${roundNumber}`,
+          'No deal - buyer did not meet minimum',
+        ], { domain: session.domain, decision: 'REJECT' })
+
         response = {
           action: 'reject',
           message: this.generateFinalOfferMessage(session),
         }
+
+        thoughtStream.concludeThinking(`No deal - buyer rejected`)
       } else {
         // Below floor, make final counter at floor
         round.action = 'counter_sent'
@@ -279,11 +323,19 @@ class NegotiationBot {
         session.ourLastCounter = session.floorPrice
         session.state = 'counter_offered'
 
+        thoughtStream.think('strategy', `Offer below floor - sending floor price`, [
+          `Their offer: $${offerAmount.toLocaleString()}`,
+          `Our floor: $${session.floorPrice.toLocaleString()}`,
+          'This is our minimum acceptable price',
+        ], { domain: session.domain, decision: 'COUNTER', amount: session.floorPrice })
+
         response = {
           action: 'counter',
           amount: session.floorPrice,
           message: this.generateFloorMessage(session),
         }
+
+        thoughtStream.concludeThinking(`Floor price sent: $${session.floorPrice.toLocaleString()}`)
       }
     }
 
@@ -351,7 +403,7 @@ class NegotiationBot {
     // Decision logic
     let accept = false
     let counter: number | undefined
-    let reasoning: string
+    let reasoning: string = 'No decision made'
 
     // Auto-accept conditions
     if (offerAmount >= acceptThreshold) {
@@ -368,7 +420,7 @@ class NegotiationBot {
     // Counter logic
     if (!accept && offerAmount >= session.floorPrice) {
       // Calculate counter based on midpoint negotiation
-      const midpoint = (offerAmount + session.ourLastCounter || session.askingPrice) / 2
+      const midpoint = (offerAmount + (session.ourLastCounter ?? session.askingPrice)) / 2
       const ladderCounter = session.askingPrice * (1 - (ladderEntry.discountPercent + this.config.counterIncrement) / 100)
       
       counter = Math.max(midpoint, ladderCounter, session.floorPrice)
@@ -496,6 +548,114 @@ class NegotiationBot {
     const sessions = Array.from(this.sessions.values())
       .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
     return limit ? sessions.slice(0, limit) : sessions
+  }
+
+  getAllSessions(): NegotiationSession[] {
+    return Array.from(this.sessions.values())
+  }
+
+  getStats(): {
+    totalSessions: number
+    activeSessions: number
+    completedDeals: number
+    totalVolume: number
+    avgDiscount: number
+    successRate: number
+  } {
+    const all = Array.from(this.sessions.values())
+    const completed = all.filter(s => s.outcome === 'sold')
+    const discounts = completed.map(s => 
+      s.finalPrice ? (1 - s.finalPrice / s.askingPrice) * 100 : 0
+    )
+    
+    return {
+      totalSessions: all.length,
+      activeSessions: this.getActiveSessions().length,
+      completedDeals: completed.length,
+      totalVolume: completed.reduce((sum, s) => sum + (s.finalPrice || 0), 0),
+      avgDiscount: discounts.length > 0 ? discounts.reduce((a, b) => a + b, 0) / discounts.length : 0,
+      successRate: all.length > 0 ? (completed.length / all.length) * 100 : 0,
+    }
+  }
+
+  async manualOverride(
+    sessionId: string, 
+    action: { type: 'counter'; price: number } | { type: 'accept' } | { type: 'reject' }
+  ): Promise<{ success: boolean; message: string }> {
+    const session = this.sessions.get(sessionId)
+    if (!session) {
+      return { success: false, message: 'Session not found' }
+    }
+
+    const now = new Date()
+    
+    if (action.type === 'counter') {
+      session.ourLastCounter = action.price
+      session.state = 'counter_offered'
+      session.rounds.push({
+        roundNumber: session.rounds.length + 1,
+        ourCounter: action.price,
+        action: 'counter_sent',
+        timestamp: now,
+        notes: 'Manual counter by user',
+      })
+      session.updatedAt = now
+      this.sessions.set(sessionId, session)
+      this.notifyListeners(session)
+      this.saveState()
+      return { success: true, message: `Counter offer of $${action.price} sent` }
+    }
+    
+    if (action.type === 'accept') {
+      session.state = 'accepted'
+      session.outcome = 'sold'
+      session.finalPrice = session.currentOffer
+      session.rounds.push({
+        roundNumber: session.rounds.length + 1,
+        action: 'accepted',
+        timestamp: now,
+        notes: 'Manual accept by user',
+      })
+      session.updatedAt = now
+      this.sessions.set(sessionId, session)
+      this.notifyListeners(session)
+      this.saveState()
+      return { success: true, message: 'Offer accepted' }
+    }
+    
+    if (action.type === 'reject') {
+      session.state = 'rejected'
+      session.outcome = 'no_deal'
+      session.rounds.push({
+        roundNumber: session.rounds.length + 1,
+        action: 'rejected',
+        timestamp: now,
+        notes: 'Manual rejection by user',
+      })
+      session.updatedAt = now
+      this.sessions.set(sessionId, session)
+      this.notifyListeners(session)
+      this.saveState()
+      return { success: true, message: 'Offer rejected' }
+    }
+
+    return { success: false, message: 'Unknown action' }
+  }
+
+  escalateToHuman(sessionId: string, reason: string): void {
+    const session = this.sessions.get(sessionId)
+    if (!session) return
+
+    session.state = 'escalated'
+    session.outcome = 'escalated'
+    session.metadata = { ...session.metadata, escalationReason: reason }
+    session.updatedAt = new Date()
+    
+    this.sessions.set(sessionId, session)
+    this.notifyListeners(session)
+    this.saveState()
+    
+    logger.info('NEGOTIATION', `Session escalated: ${session.domain}`, { sessionId, reason })
   }
 
   // ==================== CONFIG ====================

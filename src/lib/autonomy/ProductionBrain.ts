@@ -46,6 +46,9 @@ import { automatedSaleFlow } from '@/lib/sales/AutomatedSaleFlow'
 import { saleMonitor } from '@/lib/sales/SaleMonitor'
 import { autoSeller } from '@/lib/empire/AutoSeller'
 
+// Thought stream for visible reasoning
+import { thoughtStream } from '@/lib/autonomy/ThoughtStream'
+
 // ==================== TYPES ====================
 
 export interface ProductionConfig {
@@ -383,11 +386,18 @@ class ProductionBrain {
 
     // Check kill switches
     if (!killSwitches.canAcquire()) {
+      thoughtStream.think('warning', 'Acquisitions blocked by kill switch', [
+        'Global acquisition pause is active',
+        'Waiting for manual reset',
+      ])
       this.speak('⚠️ Acquisitions paused by kill switch')
       return
     }
 
     const correlationId = `cycle_${Date.now()}`
+
+    // Start thinking session for this cycle
+    thoughtStream.startThinking(`Scan Cycle #${this.state.cyclesCompleted + 1}`)
 
     try {
       this.state.mood = 'scanning'
@@ -399,15 +409,32 @@ class ProductionBrain {
       this.state.availableCapital = empireSettings.getAvailableCapital()
       this.state.todaySpent = spendGuards.getTodaySpent()
 
+      thoughtStream.think('observation', 'Checking financial status', [
+        `Available Capital: $${this.state.availableCapital.toLocaleString()}`,
+        `Today's Spent: $${this.state.todaySpent.toLocaleString()}`,
+        `Mode: ${this.config.dryRun ? 'DRY RUN' : 'PRODUCTION'}`,
+      ])
+
       // Check available budget
       const remaining = spendGuards.getRemainingBudget()
       if (remaining.daily < this.config.maxPricePerDomain * 0.5) {
+        thoughtStream.think('warning', 'Budget constraint detected', [
+          `Daily remaining: $${remaining.daily.toLocaleString()}`,
+          `Below threshold for acquisitions`,
+          'Pausing until budget resets',
+        ])
         this.speak('💸 Daily budget nearly exhausted')
         this.state.mood = 'cautious'
+        thoughtStream.concludeThinking('Budget exhausted - waiting for reset')
         return
       }
 
       // Scan for opportunities
+      thoughtStream.think('action', 'Initiating marketplace scan', [
+        `Sources: ${this.config.scanSources.join(', ')}`,
+        `Looking for undervalued domains...`,
+      ])
+
       auditLog.logScan('started', { 
         sources: this.config.scanSources,
         correlationId,
@@ -415,46 +442,89 @@ class ProductionBrain {
 
       const scanStartTime = Date.now()
       const scanResult = await this.scan(correlationId)
+      const scanDuration = Date.now() - scanStartTime
       
       auditLog.logScan('completed', {
         sources: this.config.scanSources,
         domainsFound: scanResult.length,
-        duration: Date.now() - scanStartTime,
+        duration: scanDuration,
         correlationId,
       })
+
+      thoughtStream.think('result', `Scan completed in ${(scanDuration / 1000).toFixed(1)}s`, [
+        `Domains found: ${scanResult.length}`,
+        `Sources checked: ${this.config.scanSources.length}`,
+      ])
 
       metrics.increment('domains_scanned', scanResult.length)
       this.state.domainsScanned += scanResult.length
 
       if (scanResult.length === 0) {
+        thoughtStream.think('observation', 'No viable opportunities detected', [
+          'Markets may be quiet or highly competitive',
+          'Will retry next cycle',
+        ])
         this.speak('👁️ No opportunities this cycle')
+        thoughtStream.concludeThinking('No opportunities found - cycle complete')
         return
       }
 
+      thoughtStream.think('opportunity', `Found ${scanResult.length} potential candidates`, [
+        'Beginning evaluation phase...',
+        'Applying valuation model and compliance checks',
+      ])
       this.speak(`🔍 Found ${scanResult.length} candidates`)
       this.state.mood = 'hunting'
 
       // Evaluate each candidate
       const candidates = await this.evaluateCandidates(scanResult, correlationId)
       
+      if (candidates.length > 0) {
+        const topCandidate = candidates[0]
+        const roi = topCandidate ? (topCandidate.valuation.value / topCandidate.price * 100) : 0
+        thoughtStream.think('analysis', `${candidates.length} candidates passed evaluation`, [
+          `Approval rate: ${((candidates.length / scanResult.length) * 100).toFixed(1)}%`,
+          `Top candidate: ${topCandidate?.domain || 'N/A'}`,
+          `Best ROI: ${roi.toFixed(1)}%`,
+        ])
+      } else {
+        thoughtStream.think('evaluation', 'All candidates filtered out', [
+          'None met ROI or compliance thresholds',
+          'Maintaining high standards',
+        ])
+      }
+
       // Process acquisition decisions
       const acquired = await this.processAcquisitions(candidates)
 
       if (acquired > 0) {
         this.state.mood = 'triumphant'
+        thoughtStream.think('decision', `SUCCESS: Acquired ${acquired} domain(s)`, [
+          'Domains added to portfolio',
+          'Initiating marketplace listing...',
+        ])
         this.speak(`✅ Acquired ${acquired} domain(s)`)
       }
 
       // Update metrics
       this.updateMetrics()
+      
+      thoughtStream.concludeThinking(`Cycle complete: Scanned ${scanResult.length}, Acquired ${acquired}`)
 
     } catch (error: any) {
       this.state.lastError = error.message
       this.state.lastErrorAt = new Date()
       this.state.mood = 'cautious'
       
+      thoughtStream.think('warning', `Cycle error: ${error.message}`, [
+        'Will retry next cycle',
+        'Checking API health...',
+      ])
+      
       this.speak(`❌ Error: ${error.message}`)
       logger.error('BRAIN', 'Cycle failed', error)
+      
+      thoughtStream.concludeThinking(`Error occurred: ${error.message}`)
       
       // Check for repeated failures
       metrics.increment('api_calls')
@@ -511,7 +581,7 @@ class ProductionBrain {
 
         metrics.increment('domains_filtered')
       } catch (error: any) {
-        logger.warn('BRAIN', `Evaluation failed: ${domain.domain}`, { error: error.message })
+        logger.warn('BRAIN', `Evaluation failed: ${domain.domain}: ${error.message}`)
         this.state.domainsRejected++
       }
     }
@@ -535,23 +605,47 @@ class ProductionBrain {
   ): Promise<AcquisitionCandidate> {
     const domainName = scanned.domain
 
+    // Start detailed evaluation thinking
+    thoughtStream.think('analysis', `Evaluating: ${domainName}`, [
+      `Source: ${scanned.source}`,
+      `Initial Price: $${scanned.price?.toLocaleString() || 'Unknown'}`,
+    ], { domain: domainName })
+
     // 1. TLD check
     const tld = '.' + domainName.split('.').pop()?.toLowerCase()
     if (!this.config.enabledTLDs.includes(tld)) {
+      thoughtStream.think('evaluation', `Skipping ${domainName}`, [
+        `TLD "${tld}" is not in enabled list`,
+        `Enabled TLDs: ${this.config.enabledTLDs.join(', ')}`,
+      ], { domain: domainName })
       return this.createSkipCandidate(scanned, correlationId, `TLD ${tld} not enabled`)
     }
 
     // 2. Check availability and get real price
     const availability = await this.checkAvailability(domainName)
     if (!availability.available) {
+      thoughtStream.think('observation', `${domainName} not available`, [
+        'Domain is already registered or reserved',
+      ], { domain: domainName })
       return this.createSkipCandidate(scanned, correlationId, 'Not available')
     }
 
     const price = availability.price
 
     // 3. Compliance check
+    thoughtStream.think('analysis', `Running compliance checks on ${domainName}`, [
+      'Checking trademark conflicts...',
+      'Checking brand impersonation...',
+      'Checking UDRP risk...',
+    ], { domain: domainName })
+
     const compliance = await complianceEngine.check(domainName, correlationId)
     if (!compliance.passed && this.config.complianceEnabled) {
+      thoughtStream.think('warning', `Compliance FAILED for ${domainName}`, [
+        `Risk Level: ${compliance.riskLevel}`,
+        `Blocked by: ${compliance.blockedBy?.join(', ')}`,
+        'Too risky for acquisition',
+      ], { domain: domainName })
       auditLog.logCompliance(domainName, 'block', {
         checks: Object.fromEntries(compliance.checks.map(c => [c.name, c.passed])),
         riskLevel: compliance.riskLevel,
@@ -562,9 +656,15 @@ class ProductionBrain {
     }
 
     // 4. Extract features and valuate
+    thoughtStream.think('calculation', `Extracting features for ${domainName}`, [
+      `Length: ${domainName.split('.')[0].length} chars`,
+      `TLD: ${tld}`,
+      'Analyzing keywords, brandability, search data...',
+    ], { domain: domainName })
+
     const features = await featureStore.extractFeatures(domainName, {
-      monthlyTraffic: scanned.traffic,
-      backlinks: scanned.backlinks,
+      monthlyTraffic: 0,
+      backlinks: 0,
     })
 
     const valuation = featureStore.predict(features)
@@ -581,6 +681,14 @@ class ProductionBrain {
       ? valuation.calibratedValue / price
       : valuation.value / price
 
+    thoughtStream.think('calculation', `Valuation complete for ${domainName}`, [
+      `Estimated Value: $${valuation.value.toLocaleString()}`,
+      `Purchase Price: $${price.toLocaleString()}`,
+      `Expected ROI: ${roi.toFixed(1)}x (${((roi - 1) * 100).toFixed(0)}% profit)`,
+      `God Score: ${godScore}/100`,
+      `Confidence: ${(valuation.confidence * 100).toFixed(0)}%`,
+    ], { domain: domainName, value: valuation.value, roi })
+
     // 8. Kelly sizing (if enabled)
     let kellySize: number | undefined
     if (this.config.kellySizingEnabled) {
@@ -594,21 +702,55 @@ class ProductionBrain {
 
     if (!spendCheck.allowed) {
       reasoning = spendCheck.reason || 'Spend check failed'
+      thoughtStream.think('evaluation', `PASS on ${domainName}`, [
+        `Reason: ${reasoning}`,
+        'Budget constraints prevent acquisition',
+      ], { domain: domainName, decision: 'skip' })
     } else if (godScore < this.config.minGodScore) {
       reasoning = `God Score ${godScore} < ${this.config.minGodScore}`
+      thoughtStream.think('evaluation', `PASS on ${domainName}`, [
+        `God Score: ${godScore} (min: ${this.config.minGodScore})`,
+        'Domain quality below threshold',
+      ], { domain: domainName, decision: 'skip' })
     } else if (roi < this.config.minROI) {
       reasoning = `ROI ${roi.toFixed(1)}x < ${this.config.minROI}x`
+      thoughtStream.think('evaluation', `PASS on ${domainName}`, [
+        `ROI: ${roi.toFixed(1)}x (min: ${this.config.minROI}x)`,
+        'Profit margin too thin',
+      ], { domain: domainName, decision: 'skip' })
     } else if (valuation.confidence < this.config.minConfidence) {
       reasoning = `Confidence ${(valuation.confidence * 100).toFixed(0)}% < ${this.config.minConfidence * 100}%`
+      thoughtStream.think('evaluation', `PASS on ${domainName}`, [
+        `Confidence: ${(valuation.confidence * 100).toFixed(0)}% (min: ${this.config.minConfidence * 100}%)`,
+        'Valuation too uncertain',
+      ], { domain: domainName, decision: 'skip' })
     } else if (price > this.config.humanApprovalThreshold && this.config.requireHumanApproval) {
       decision = 'human_review'
       reasoning = `Price $${price} requires human approval`
+      thoughtStream.think('strategy', `HUMAN REVIEW needed for ${domainName}`, [
+        `Price: $${price.toLocaleString()} exceeds auto-approval threshold`,
+        `Estimated Value: $${valuation.value.toLocaleString()}`,
+        `ROI: ${roi.toFixed(1)}x`,
+        'Awaiting manual approval...',
+      ], { domain: domainName, decision: 'human_review' })
     } else {
       decision = 'acquire'
       reasoning = `ROI: ${roi.toFixed(1)}x, Score: ${godScore}, Confidence: ${(valuation.confidence * 100).toFixed(0)}%`
+      thoughtStream.think('opportunity', `🎯 ACQUIRE SIGNAL for ${domainName}`, [
+        `✓ Price: $${price.toLocaleString()} (within budget)`,
+        `✓ ROI: ${roi.toFixed(1)}x (${((roi - 1) * 100).toFixed(0)}% profit potential)`,
+        `✓ God Score: ${godScore} (above ${this.config.minGodScore})`,
+        `✓ Confidence: ${(valuation.confidence * 100).toFixed(0)}%`,
+        `✓ Compliance: PASSED`,
+        `→ Recommending acquisition`,
+      ], { domain: domainName, decision: 'acquire', roi, godScore })
     }
 
     // Log valuation
+    // Map human_review to 'watch' for audit log compatibility
+    const auditDecision: 'acquire' | 'skip' | 'watch' = 
+      decision === 'human_review' ? 'watch' : decision
+    
     auditLog.logValuation(
       domainName,
       { features, price, source: scanned.source },
@@ -618,7 +760,7 @@ class ProductionBrain {
         confidence: valuation.confidence,
       },
       {
-        made: decision,
+        made: auditDecision,
         reasoning,
         thresholds: {
           minGodScore: this.config.minGodScore,
@@ -745,13 +887,17 @@ class ProductionBrain {
       })
 
       // Execute through circuit breaker
+      const validSource = (['godaddy', 'namecheap', 'dropcatch', 'expireddomains'].includes(candidate.source) 
+        ? candidate.source 
+        : 'godaddy') as ScannedDomain['source']
+      
       const result = await circuitBreaker.execute(
         candidate.source,
         async () => realSniper.snipe({
           domain,
-          source: candidate.source,
+          source: validSource,
           price,
-          type: 'buy_now',
+          type: 'registration',
           available: true,
         }, price)
       )
@@ -845,9 +991,9 @@ class ProductionBrain {
       auditLog.log('list_failed', `Failed to list ${domain}`, {
         domain,
         correlationId,
-        outputs: { error: error.message },
+        outputs: { errorMessage: error.message },
       })
-      logger.warn('BRAIN', `Listing failed: ${domain}`, { error: error.message })
+      logger.warn('BRAIN', `Listing failed: ${domain}: ${error.message}`)
     }
   }
 

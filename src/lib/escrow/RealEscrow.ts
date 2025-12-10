@@ -187,7 +187,7 @@ class RealEscrow {
       return transaction
 
     } catch (error: any) {
-      logger.warn('ESCROW', 'API failed, using manual escrow', { error: error.message })
+      logger.warn('ESCROW', `API failed, using manual escrow: ${error.message}`)
       
       // Fallback to manual escrow
       return this.createManualEscrow(options)
@@ -271,7 +271,7 @@ class RealEscrow {
           logger.info('ESCROW', `Transaction ${transaction.escrowId} status: ${oldStatus} → ${status}`)
         }
       } catch (error: any) {
-        logger.debug('ESCROW', 'Status check failed', { error: error.message })
+        logger.debug('ESCROW', `Status check failed: ${error.message}`)
       }
     }
   }
@@ -380,7 +380,7 @@ class RealEscrow {
         return true
       }
     } catch (error: any) {
-      logger.error('ESCROW', 'Accept failed', { error: error.message })
+      logger.error('ESCROW', `Accept failed: ${error.message}`)
     }
 
     return false
@@ -414,7 +414,7 @@ class RealEscrow {
         return true
       }
     } catch (error: any) {
-      logger.error('ESCROW', 'Ship marking failed', { error: error.message })
+      logger.error('ESCROW', `Ship marking failed: ${error.message}`)
     }
 
     return false

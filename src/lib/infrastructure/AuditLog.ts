@@ -23,6 +23,9 @@ export type AuditEventType =
   | 'api_call' | 'api_error'
   | 'config_changed'
   | 'human_override'
+  | 'offer_received' | 'payment_received'
+  | 'payment_request_created' | 'payment_confirmed'
+  | 'escrow_created' | 'escrow_completed'
 
 export interface AuditEntry {
   id: string

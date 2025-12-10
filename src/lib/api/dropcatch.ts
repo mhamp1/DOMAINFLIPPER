@@ -271,6 +271,7 @@ class DropCatchAPI {
       }
     }, async () => ({
       success: false,
+      orderId: null,
       domain,
       priority,
       price: 0,
@@ -370,6 +371,7 @@ class DropCatchAPI {
       }
     }, async () => ({
       success: false,
+      bidId: null,
       domain,
       bidAmount: amount,
       currentHighBid: 0,

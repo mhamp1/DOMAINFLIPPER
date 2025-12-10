@@ -182,7 +182,7 @@ export class AutoSeller {
           }
         }
       } catch (error) {
-        logger.error('AUTOSELLER', 'Monitoring error', error)
+        logger.error('AUTOSELLER', 'Monitoring error', error as Error)
       }
     }, 30000)
   }
@@ -207,7 +207,7 @@ export class AutoSeller {
           return this.fetchFlippaInquiries()
       }
     } catch (error: any) {
-      logger.debug('AUTOSELLER', `${marketplace} fetch failed`, { error: error.message })
+      logger.debug('AUTOSELLER', `${marketplace} fetch failed: ${error.message}`)
     }
 
     return inquiries
@@ -435,7 +435,7 @@ export class AutoSeller {
       this.monitorEscrowPayment(inquiry, escrow.id, price)
 
     } catch (error: any) {
-      logger.error('AUTOSELLER', 'Escrow creation failed', { error: error.message })
+      logger.error('AUTOSELLER', `Escrow creation failed: ${error.message}`)
     }
   }
 
@@ -463,7 +463,7 @@ export class AutoSeller {
           await this.transferDomain(inquiry, escrowId)
         }
       } catch (error: any) {
-        logger.debug('AUTOSELLER', 'Payment check', { error: error.message })
+        logger.debug('AUTOSELLER', `Payment check: ${error.message}`)
       }
     }, 30000)
 
@@ -498,7 +498,7 @@ export class AutoSeller {
       }
 
     } catch (error: any) {
-      logger.error('AUTOSELLER', 'Transfer failed', { error: error.message })
+      logger.error('AUTOSELLER', `Transfer failed: ${error.message}`)
     }
   }
 
@@ -585,7 +585,7 @@ Our minimum acceptable price is significantly higher. If you'd like to make a mo
 
       logger.debug('AUTOSELLER', `Message sent to ${marketplace}`)
     } catch (error: any) {
-      logger.error('AUTOSELLER', `Failed to send message to ${marketplace}`, { error: error.message })
+      logger.error('AUTOSELLER', `Failed to send message to ${marketplace}: ${error.message}`)
     }
   }
 

@@ -58,6 +58,7 @@ import { multiBotSwarm } from '@/lib/scalability/MultiBotSwarm'
 import { empireBrain, type EmpireStats, type EmpireThought } from '@/lib/empire/EmpireBrain'
 import { empireSettings } from '@/lib/config/EmpireSettings'
 import { masterConfig } from '@/lib/config/MasterConfig'
+import { BrainFeed } from '@/components/BrainFeed'
 import { leadScanner } from '@/lib/intelligence/LeadScanner'
 import { godScoreEngine } from '@/lib/valuation/GodScore'
 import { formatCurrency } from '@/lib/utils'
@@ -82,12 +83,13 @@ import { SignOut, Crown, Fire, Cpu, WifiHigh, Heartbeat, Handshake } from '@phos
 import ConfigTab from '@/components/config/ConfigTab'
 import EmpireControlCenter from '@/pages/EmpireControlCenter'
 import ProductionControlPanel from '@/components/production/ProductionControlPanel'
+import { MiningDashboard } from '@/components/miners'
 import NegotiationManager from '@/components/production/NegotiationManager'
 import { supabaseDB } from '@/lib/database/supabase'
 import type { Domain } from '@/types/domain'
 
 // Tab types
-type TabType = 'empire' | 'vault' | 'strategies' | 'intelligence' | 'portfolio' | 'revenue' | 'risk' | 'finance' | 'swarm' | 'control' | 'production' | 'negotiations' | 'config'
+type TabType = 'empire' | 'vault' | 'strategies' | 'intelligence' | 'portfolio' | 'revenue' | 'risk' | 'finance' | 'swarm' | 'control' | 'production' | 'negotiations' | 'config' | 'miners'
 
 // API Status Bar Component - Updates automatically from MasterConfig
 function APIStatusBar() {
@@ -619,6 +621,7 @@ export default function EmpireDashboard() {
           <div className="flex gap-2 min-w-max py-2">
             {[
               { id: 'empire', label: 'Empire', icon: Lightning },
+              { id: 'miners', label: '⛏️ Miners', icon: Sparkle },
               { id: 'production', label: '🧠 Production', icon: Cpu },
               { id: 'negotiations', label: 'Deals', icon: Handshake },
               { id: 'vault', label: 'Vault', icon: Wallet },
@@ -904,6 +907,13 @@ export default function EmpireDashboard() {
                   </div>
                 )}
               </Card>
+
+              {/* AI Brain Feed - Real-time Reasoning Display */}
+              <BrainFeed 
+                className="mb-6" 
+                maxHeight="400px"
+                showControls={true}
+              />
 
               {/* Activity Log Viewer - Detailed Log with Domain Names */}
               <Card className="card-obsidian-premium p-6">
@@ -1958,6 +1968,18 @@ export default function EmpireDashboard() {
           {/* ===== CONFIG TAB ===== */}
           {activeTab === 'config' && (
             <ConfigTab />
+          )}
+
+          {/* ===== MINERS TAB - DOMAIN MINING EMPIRE ===== */}
+          {activeTab === 'miners' && (
+            <motion.div
+              key="miners"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              <MiningDashboard />
+            </motion.div>
           )}
         </AnimatePresence>
       </main>

@@ -122,7 +122,7 @@ class RealDomainTransfer {
       request.status = 'failed'
       request.error = error.message
 
-      logger.error('TRANSFER', `Transfer failed: ${domain}`, { error: error.message })
+      logger.error('TRANSFER', `Transfer failed: ${domain}: ${error.message}`)
 
       return {
         success: false,
@@ -354,7 +354,7 @@ class RealDomainTransfer {
         message: `Domain unlocked. Auth code: ${authCode}. Send to ${buyerEmail}`,
         estimatedCompletion: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
       }
-    }, () => ({
+    }, (): TransferResult => ({
       success: false,
       transferId: request.id,
       domain,
@@ -421,7 +421,7 @@ class RealDomainTransfer {
         }
       }
     } catch (error: any) {
-      logger.debug('TRANSFER', 'Status check', { error: error.message })
+      logger.debug('TRANSFER', `Status check: ${error.message}`)
     }
   }
 

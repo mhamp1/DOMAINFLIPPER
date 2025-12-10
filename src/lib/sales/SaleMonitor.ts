@@ -132,7 +132,7 @@ class SaleMonitor {
       metrics.increment('sale_monitor_polls')
 
     } catch (error: any) {
-      logger.error('SALE_MONITOR', 'Poll failed', { error: error.message })
+      logger.error('SALE_MONITOR', `Poll failed: ${error.message}`)
       metrics.increment('sale_monitor_errors')
     }
   }
@@ -156,7 +156,7 @@ class SaleMonitor {
       this.lastPollTime.set('godaddy', new Date())
 
     } catch (error: any) {
-      logger.warn('SALE_MONITOR', 'GoDaddy poll failed', { error: error.message })
+      logger.warn('SALE_MONITOR', `GoDaddy poll failed: ${error.message}`)
     }
   }
 
@@ -220,7 +220,7 @@ class SaleMonitor {
 
     } catch (error: any) {
       // Don't throw - just log
-      logger.debug('SALE_MONITOR', 'GoDaddy inquiries check', { error: error.message })
+      logger.debug('SALE_MONITOR', `GoDaddy inquiries check: ${error.message}`)
     }
   }
 
@@ -266,7 +266,7 @@ class SaleMonitor {
       }
 
     } catch (error: any) {
-      logger.debug('SALE_MONITOR', 'GoDaddy auctions check', { error: error.message })
+      logger.debug('SALE_MONITOR', `GoDaddy auctions check: ${error.message}`)
     }
   }
 
@@ -324,7 +324,7 @@ class SaleMonitor {
       }
 
     } catch (error: any) {
-      logger.debug('SALE_MONITOR', 'GoDaddy sales check', { error: error.message })
+      logger.debug('SALE_MONITOR', `GoDaddy sales check: ${error.message}`)
     }
   }
 
@@ -377,7 +377,7 @@ class SaleMonitor {
       this.lastPollTime.set('sedo', new Date())
 
     } catch (error: any) {
-      logger.debug('SALE_MONITOR', 'Sedo poll', { error: error.message })
+      logger.debug('SALE_MONITOR', `Sedo poll: ${error.message}`)
     }
   }
 
@@ -428,7 +428,7 @@ class SaleMonitor {
       this.lastPollTime.set('afternic', new Date())
 
     } catch (error: any) {
-      logger.debug('SALE_MONITOR', 'Afternic poll', { error: error.message })
+      logger.debug('SALE_MONITOR', `Afternic poll: ${error.message}`)
     }
   }
 
@@ -481,7 +481,7 @@ class SaleMonitor {
       this.lastPollTime.set('dan', new Date())
 
     } catch (error: any) {
-      logger.debug('SALE_MONITOR', 'DAN.com poll', { error: error.message })
+      logger.debug('SALE_MONITOR', `DAN.com poll: ${error.message}`)
     }
   }
 
@@ -531,7 +531,7 @@ class SaleMonitor {
       this.lastPollTime.set('flippa', new Date())
 
     } catch (error: any) {
-      logger.debug('SALE_MONITOR', 'Flippa poll', { error: error.message })
+      logger.debug('SALE_MONITOR', `Flippa poll: ${error.message}`)
     }
   }
 
@@ -581,7 +581,7 @@ class SaleMonitor {
       metrics.histogram('roi_per_sale', sale.roi)
 
     } catch (error: any) {
-      logger.error('SALE_MONITOR', 'Failed to record sale', { error: error.message, sale })
+      logger.error('SALE_MONITOR', `Failed to record sale: ${error.message}`, error as Error)
     }
   }
 

@@ -35,14 +35,14 @@ import { formatCurrency } from '@/lib/utils'
 
 // State colors
 const stateColors: Record<NegotiationState, { bg: string; text: string }> = {
-  initial: { bg: 'bg-blue-500/20', text: 'text-blue-400' },
+  idle: { bg: 'bg-gray-500/20', text: 'text-gray-400' },
+  waiting_for_offer: { bg: 'bg-blue-500/20', text: 'text-blue-400' },
+  evaluating_offer: { bg: 'bg-cyan-500/20', text: 'text-cyan-400' },
   counter_offered: { bg: 'bg-purple-500/20', text: 'text-purple-400' },
-  awaiting_response: { bg: 'bg-yellow-500/20', text: 'text-yellow-400' },
-  in_negotiation: { bg: 'bg-cyan-500/20', text: 'text-cyan-400' },
-  deal_reached: { bg: 'bg-green-500/20', text: 'text-green-400' },
+  accepted: { bg: 'bg-green-500/20', text: 'text-green-400' },
   rejected: { bg: 'bg-red-500/20', text: 'text-red-400' },
   expired: { bg: 'bg-zinc-500/20', text: 'text-zinc-400' },
-  human_override: { bg: 'bg-orange-500/20', text: 'text-orange-400' },
+  escalated: { bg: 'bg-orange-500/20', text: 'text-orange-400' },
 }
 
 export default function NegotiationManager() {
@@ -67,34 +67,34 @@ export default function NegotiationManager() {
 
   const filteredSessions = sessions.filter(s => {
     if (filter === 'active') {
-      return ['initial', 'counter_offered', 'awaiting_response', 'in_negotiation', 'human_override'].includes(s.state)
+      return ['idle', 'waiting_for_offer', 'evaluating_offer', 'counter_offered', 'escalated'].includes(s.state)
     }
     if (filter === 'completed') {
-      return ['deal_reached', 'rejected', 'expired'].includes(s.state)
+      return ['accepted', 'rejected', 'expired'].includes(s.state)
     }
     return true
   })
 
   const handleManualCounter = async (sessionId: string, amount: number) => {
     const result = await negotiationBot.manualOverride(sessionId, { type: 'counter', price: amount })
-    if (result) {
+    if (result.success) {
       toast.success('Counter offer sent', { description: `$${amount.toLocaleString()}` })
       setManualOffer('')
     } else {
-      toast.error('Failed to send counter offer')
+      toast.error('Failed to send counter offer', { description: result.message })
     }
   }
 
   const handleAccept = async (sessionId: string) => {
     const result = await negotiationBot.manualOverride(sessionId, { type: 'accept' })
-    if (result) {
+    if (result.success) {
       toast.success('Offer accepted!', { description: 'Deal closed' })
     }
   }
 
   const handleReject = async (sessionId: string) => {
     const result = await negotiationBot.manualOverride(sessionId, { type: 'reject' })
-    if (result) {
+    if (result.success) {
       toast.info('Offer rejected')
     }
   }
@@ -103,6 +103,9 @@ export default function NegotiationManager() {
     negotiationBot.escalateToHuman(sessionId, 'Manual escalation by user')
     toast.warning('Escalated to human review')
   }
+
+  const isActiveState = (state: NegotiationState) => 
+    ['idle', 'waiting_for_offer', 'evaluating_offer', 'counter_offered', 'escalated'].includes(state)
 
   return (
     <div className="space-y-6">
@@ -113,35 +116,35 @@ export default function NegotiationManager() {
             <Handshake size={16} className="text-cyan-500" />
             <span className="text-xs text-zinc-500 uppercase">Active</span>
           </div>
-          <div className="text-2xl font-bold text-cyan-500">{stats.activeNegotiations}</div>
+          <div className="text-2xl font-bold text-cyan-500">{stats.activeSessions}</div>
         </Card>
         <Card className="bg-zinc-900/50 border-zinc-800 p-4">
           <div className="flex items-center gap-2 mb-1">
             <CheckCircle size={16} className="text-green-500" />
             <span className="text-xs text-zinc-500 uppercase">Closed</span>
           </div>
-          <div className="text-2xl font-bold text-green-500">{stats.dealsCompleted}</div>
+          <div className="text-2xl font-bold text-green-500">{stats.completedDeals}</div>
         </Card>
         <Card className="bg-zinc-900/50 border-zinc-800 p-4">
           <div className="flex items-center gap-2 mb-1">
             <CurrencyDollar size={16} className="text-green-500" />
             <span className="text-xs text-zinc-500 uppercase">Total Value</span>
           </div>
-          <div className="text-2xl font-bold text-green-500">{formatCurrency(stats.totalValueNegotiated)}</div>
+          <div className="text-2xl font-bold text-green-500">{formatCurrency(stats.totalVolume)}</div>
         </Card>
         <Card className="bg-zinc-900/50 border-zinc-800 p-4">
           <div className="flex items-center gap-2 mb-1">
             <ChartLine size={16} className="text-purple-500" />
-            <span className="text-xs text-zinc-500 uppercase">Avg Improvement</span>
+            <span className="text-xs text-zinc-500 uppercase">Avg Discount</span>
           </div>
-          <div className="text-2xl font-bold text-purple-500">{stats.avgNegotiationImprovement.toFixed(1)}%</div>
+          <div className="text-2xl font-bold text-purple-500">{stats.avgDiscount.toFixed(1)}%</div>
         </Card>
         <Card className="bg-zinc-900/50 border-zinc-800 p-4">
           <div className="flex items-center gap-2 mb-1">
             <Fire size={16} className="text-yellow-500" />
             <span className="text-xs text-zinc-500 uppercase">Win Rate</span>
           </div>
-          <div className="text-2xl font-bold text-yellow-500">{stats.negotiationWinRate.toFixed(1)}%</div>
+          <div className="text-2xl font-bold text-yellow-500">{stats.successRate.toFixed(1)}%</div>
         </Card>
       </div>
 
@@ -158,8 +161,8 @@ export default function NegotiationManager() {
             }`}
           >
             {f.charAt(0).toUpperCase() + f.slice(1)}
-            {f === 'active' && stats.activeNegotiations > 0 && (
-              <Badge className="ml-2 bg-cyan-500">{stats.activeNegotiations}</Badge>
+            {f === 'active' && stats.activeSessions > 0 && (
+              <Badge className="ml-2 bg-cyan-500">{stats.activeSessions}</Badge>
             )}
           </button>
         ))}
@@ -179,7 +182,7 @@ export default function NegotiationManager() {
           <AnimatePresence mode="popLayout">
             {filteredSessions.map(session => {
               const isSelected = selectedSession === session.id
-              const stateStyle = stateColors[session.state]
+              const stateStyle = stateColors[session.state] || stateColors.idle
               const lastRound = session.rounds[session.rounds.length - 1]
               
               return (
@@ -203,7 +206,7 @@ export default function NegotiationManager() {
                         <Badge className={`${stateStyle.bg} ${stateStyle.text}`}>
                           {session.state.replace(/_/g, ' ')}
                         </Badge>
-                        {session.escalatedToHuman && (
+                        {session.state === 'escalated' && (
                           <Badge className="bg-orange-500/20 text-orange-400">
                             <User size={12} className="mr-1" />
                             Human Review
@@ -212,7 +215,7 @@ export default function NegotiationManager() {
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-zinc-500">
-                          Round {session.currentRound}/{session.config.maxRounds}
+                          Round {session.rounds.length}
                         </span>
                       </div>
                     </div>
@@ -224,16 +227,16 @@ export default function NegotiationManager() {
                         <div className="text-white font-bold">{formatCurrency(session.askingPrice)}</div>
                       </div>
                       <div className="p-2 bg-zinc-800/50 rounded">
-                        <div className="text-xs text-zinc-500">First Offer</div>
-                        <div className="text-yellow-500 font-bold">{formatCurrency(session.initialOffer)}</div>
+                        <div className="text-xs text-zinc-500">Floor</div>
+                        <div className="text-red-400 font-bold">{formatCurrency(session.floorPrice)}</div>
                       </div>
                       <div className="p-2 bg-zinc-800/50 rounded">
                         <div className="text-xs text-zinc-500">Current Offer</div>
-                        <div className="text-cyan-500 font-bold">{formatCurrency(session.currentOffer)}</div>
+                        <div className="text-cyan-500 font-bold">{formatCurrency(session.currentOffer || 0)}</div>
                       </div>
                       <div className="p-2 bg-zinc-800/50 rounded">
-                        <div className="text-xs text-zinc-500">Floor</div>
-                        <div className="text-red-400 font-bold">{formatCurrency(session.config.floorPrice)}</div>
+                        <div className="text-xs text-zinc-500">Our Counter</div>
+                        <div className="text-purple-400 font-bold">{formatCurrency(session.ourLastCounter || 0)}</div>
                       </div>
                     </div>
 
@@ -242,7 +245,7 @@ export default function NegotiationManager() {
                       <div 
                         className="h-full bg-gradient-to-r from-yellow-600 to-green-500 transition-all"
                         style={{ 
-                          width: `${Math.min(100, ((session.currentOffer - session.initialOffer) / (session.askingPrice - session.initialOffer)) * 100)}%` 
+                          width: `${Math.min(100, ((session.currentOffer || 0) / session.askingPrice) * 100)}%` 
                         }}
                       />
                     </div>
@@ -263,17 +266,19 @@ export default function NegotiationManager() {
                               <div 
                                 key={i}
                                 className={`flex items-center gap-3 p-2 rounded ${
-                                  round.party === 'buyer' ? 'bg-blue-500/10' : 'bg-green-500/10'
+                                  round.theirOffer ? 'bg-blue-500/10' : 'bg-green-500/10'
                                 }`}
                               >
-                                {round.party === 'buyer' ? (
+                                {round.theirOffer ? (
                                   <User size={16} className="text-blue-400" />
                                 ) : (
                                   <Robot size={16} className="text-green-400" />
                                 )}
-                                <span className="text-sm text-zinc-400">{round.message}</span>
+                                <span className="text-sm text-zinc-400">
+                                  {round.action.replace(/_/g, ' ')}
+                                </span>
                                 <span className="ml-auto font-bold">
-                                  {formatCurrency(round.offer)}
+                                  {formatCurrency(round.theirOffer || round.ourCounter || 0)}
                                 </span>
                               </div>
                             ))}
@@ -281,7 +286,7 @@ export default function NegotiationManager() {
                         </div>
 
                         {/* Action Buttons */}
-                        {['initial', 'counter_offered', 'awaiting_response', 'in_negotiation', 'human_override'].includes(session.state) && (
+                        {isActiveState(session.state) && (
                           <div className="space-y-3">
                             {/* Manual Counter */}
                             <div className="flex gap-2">
@@ -325,13 +330,13 @@ export default function NegotiationManager() {
                                   e.stopPropagation()
                                   handleReject(session.id)
                                 }}
-                                variant="destructive"
-                                className="flex-1"
+                                variant="outline"
+                                className="flex-1 border-red-500 text-red-500 hover:bg-red-500/10"
                               >
                                 <XCircle size={16} className="mr-1" />
                                 Walk Away
                               </Button>
-                              {!session.escalatedToHuman && (
+                              {session.state !== 'escalated' && (
                                 <Button
                                   onClick={(e) => {
                                     e.stopPropagation()
@@ -349,33 +354,32 @@ export default function NegotiationManager() {
                             <div className="p-3 bg-zinc-800/50 rounded-lg">
                               <div className="text-xs text-zinc-500 mb-1">Zone of Possible Agreement (ZOPA)</div>
                               <div className="flex items-center justify-between">
-                                <span className="text-red-400">{formatCurrency(session.config.floorPrice)}</span>
+                                <span className="text-red-400">{formatCurrency(session.floorPrice)}</span>
                                 <div className="flex-1 mx-3 h-2 bg-zinc-700 rounded-full relative">
                                   <div 
                                     className="absolute h-full bg-green-500/50 rounded-full"
                                     style={{
-                                      left: `${((session.config.floorPrice - session.config.floorPrice) / (session.askingPrice - session.config.floorPrice)) * 100}%`,
-                                      width: `${((session.config.targetPrice - session.config.floorPrice) / (session.askingPrice - session.config.floorPrice)) * 100}%`,
+                                      left: '0%',
+                                      width: `${((session.ceilingPrice - session.floorPrice) / (session.askingPrice - session.floorPrice)) * 100}%`,
                                     }}
                                   />
-                                  <div 
-                                    className="absolute w-2 h-full bg-yellow-500 rounded-full"
-                                    style={{
-                                      left: `${Math.min(100, Math.max(0, ((session.currentOffer - session.config.floorPrice) / (session.askingPrice - session.config.floorPrice)) * 100))}%`,
-                                    }}
-                                  />
+                                  {session.currentOffer && (
+                                    <div 
+                                      className="absolute w-2 h-full bg-yellow-500 rounded-full"
+                                      style={{
+                                        left: `${Math.min(100, Math.max(0, ((session.currentOffer - session.floorPrice) / (session.askingPrice - session.floorPrice)) * 100))}%`,
+                                      }}
+                                    />
+                                  )}
                                 </div>
                                 <span className="text-green-400">{formatCurrency(session.askingPrice)}</span>
-                              </div>
-                              <div className="text-xs text-zinc-500 mt-1 text-center">
-                                Target: {formatCurrency(session.config.targetPrice)} | BATNA: {formatCurrency(session.config.batna)}
                               </div>
                             </div>
                           </div>
                         )}
 
                         {/* Completed Session Info */}
-                        {session.state === 'deal_reached' && (
+                        {session.state === 'accepted' && (
                           <div className="p-4 bg-green-500/10 rounded-lg border border-green-500/30">
                             <div className="flex items-center gap-2 mb-2">
                               <CheckCircle size={20} className="text-green-500" />
@@ -384,12 +388,12 @@ export default function NegotiationManager() {
                             <div className="grid grid-cols-2 gap-4 text-sm">
                               <div>
                                 <div className="text-zinc-500">Final Price</div>
-                                <div className="text-white font-bold">{formatCurrency(session.currentOffer)}</div>
+                                <div className="text-white font-bold">{formatCurrency(session.finalPrice || 0)}</div>
                               </div>
                               <div>
                                 <div className="text-zinc-500">vs Asking</div>
                                 <div className="text-green-400 font-bold">
-                                  {((session.currentOffer / session.askingPrice) * 100).toFixed(0)}%
+                                  {session.finalPrice ? ((session.finalPrice / session.askingPrice) * 100).toFixed(0) : 0}%
                                 </div>
                               </div>
                             </div>

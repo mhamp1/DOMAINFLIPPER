@@ -146,7 +146,7 @@ export default function ProductionControlPanel() {
               <Badge variant={brainState.isRunning ? 'success' : 'outline'}>
                 {brainState.isRunning ? (brainState.isPaused ? '⏸️ PAUSED' : '🟢 RUNNING') : '⚫ STOPPED'}
               </Badge>
-              <Badge variant={config.dryRun ? 'outline' : 'destructive'} className={config.dryRun ? 'border-blue-500 text-blue-400' : ''}>
+              <Badge variant={config.dryRun ? 'outline' : 'warning'} className={config.dryRun ? 'border-blue-500 text-blue-400' : 'bg-red-500/20 text-red-400 border-red-500/50'}>
                 {config.dryRun ? '🔵 DRY RUN' : '🔴 PRODUCTION'}
               </Badge>
               <span className="text-sm text-zinc-500">Mood: {brainState.mood}</span>
