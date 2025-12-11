@@ -13,6 +13,7 @@ import { logger } from '@/lib/utils/logger'
 export class DomainScanner {
   private scanInterval: number | null = null
   private isScanning: boolean = false
+  private currentDomains: Domain[] = []
   private godaddyClient: ReturnType<typeof createGoDaddyClient> | null = null
   private namecheapClient: ReturnType<typeof createNamecheapClient> | null = null
 
@@ -206,13 +207,24 @@ export class DomainScanner {
     logger.info('SCANNER', `Starting continuous scanning every ${intervalMs / 1000}s`)
 
     // Initial scan
-    this.scan().then(callback)
+    this.scan().then(domains => {
+      this.currentDomains = domains
+      callback(domains)
+    })
 
     // Set up interval
     this.scanInterval = window.setInterval(async () => {
       const domains = await this.scan()
+      this.currentDomains = domains
       callback(domains)
     }, intervalMs)
+  }
+
+  /**
+   * Get currently cached domains
+   */
+  getCurrentDomains(): Domain[] {
+    return [...this.currentDomains]
   }
 
   /**

@@ -7,6 +7,7 @@
 import { generateId } from '@/lib/utils'
 import { valuationEngine } from '@/lib/ai/valuationEngine'
 import { miningCache } from './MiningCache'
+import { advancedAnalytics } from '@/lib/analytics/advancedAnalytics'
 import type { 
   MinedDomain, 
   MinerSource, 
@@ -130,6 +131,28 @@ export abstract class BaseMiner {
       this.stats.totalMined += rawDomains.length
       this.stats.gemsFound += results.filter(d => d.priority !== 'normal').length
       this.stats.legendaryFound += results.filter(d => d.priority === 'legendary').length
+
+      // Record analytics
+      const gems = results.filter(d => d.priority === 'gem')
+      const legendary = results.filter(d => d.priority === 'legendary')
+
+      gems.forEach(gem => {
+        advancedAnalytics.record('gem_found', gem.estValue, 'mining', {
+          domain: gem.domain,
+          miner: this.source,
+          roi: gem.roi,
+          category: gem.domain.split('.').pop(),
+        })
+      })
+
+      legendary.forEach(legend => {
+        advancedAnalytics.record('legendary_found', legend.estValue, 'mining', {
+          domain: legend.domain,
+          miner: this.source,
+          roi: legend.roi,
+          category: legend.domain.split('.').pop(),
+        })
+      })
       this.stats.nextRun = new Date(Date.now() + this.config.intervalMs)
       this.stats.status = 'idle'
 
@@ -312,21 +335,43 @@ export abstract class BaseMiner {
   }
 
   /**
-   * Add domain to sniper watchlist
+   * Add domain to priority queue for existing auction system
    */
   protected addToWatchlist(domain: string, price: number, estValue: number): void {
-    // This integrates with the existing sniper system
-    // For now, store in localStorage as priority list
+    // Integrate with existing domain scanning system
     try {
-      const watchlist = JSON.parse(localStorage.getItem('miner_watchlist') || '[]')
-      watchlist.unshift({
+      // Store in a format that the existing scanner can pick up
+      const priorityQueue = JSON.parse(localStorage.getItem('domain_priority_queue') || '[]')
+
+      // Add to priority queue with mining metadata
+      priorityQueue.unshift({
+        name: domain,
+        estimatedValue: estValue,
+        currentBid: price,
+        priority: 'high',
+        source: 'miner_' + this.source,
+        discoveredAt: new Date().toISOString(),
+        minerData: {
+          source: this.source,
+          roi: Math.round(estValue / price),
+          priority: estValue >= 10000 ? 'legendary' : estValue >= 5000 ? 'gem' : 'high'
+        }
+      })
+
+      // Keep only top 200 priority domains
+      localStorage.setItem('domain_priority_queue', JSON.stringify(priorityQueue.slice(0, 200)))
+
+      // Also store in mining-specific list for UI
+      const minerWatchlist = JSON.parse(localStorage.getItem('miner_watchlist') || '[]')
+      minerWatchlist.unshift({
         domain,
         price,
         estValue,
         source: this.source,
         addedAt: new Date().toISOString(),
       })
-      localStorage.setItem('miner_watchlist', JSON.stringify(watchlist.slice(0, 500)))
+      localStorage.setItem('miner_watchlist', JSON.stringify(minerWatchlist.slice(0, 500)))
+
     } catch (e) {
       console.error('Failed to add to watchlist:', e)
     }

@@ -15,7 +15,6 @@ import {
   CurrencyDollar,
   Package,
   Target,
-  ChartBar,
   Gear,
   Lightning,
   Eye,
@@ -79,17 +78,19 @@ import { STRATEGIES, getStrategiesForBudget } from '@/lib/strategies/strategyDef
 import { godaddyAPI } from '@/lib/api/godaddyReal'
 import { namecheapAPI } from '@/lib/api/namecheapReal'
 import { ownerAuth } from '@/lib/auth/OwnerAuth'
-import { SignOut, Crown, Fire, Cpu, WifiHigh, Heartbeat, Handshake } from '@phosphor-icons/react'
+import { SignOut, Crown, Fire, Cpu, WifiHigh, Heartbeat, Handshake, ChartBar } from '@phosphor-icons/react'
 import ConfigTab from '@/components/config/ConfigTab'
 import EmpireControlCenter from '@/pages/EmpireControlCenter'
 import ProductionControlPanel from '@/components/production/ProductionControlPanel'
 import { MiningDashboard } from '@/components/miners'
 import NegotiationManager from '@/components/production/NegotiationManager'
+import { AdvancedAnalyticsDashboard } from '@/components/analytics/AdvancedAnalyticsDashboard'
+import { AutonomousEmpireControl } from '@/components/autonomy/AutonomousEmpireControl'
 import { supabaseDB } from '@/lib/database/supabase'
 import type { Domain } from '@/types/domain'
 
 // Tab types
-type TabType = 'empire' | 'vault' | 'strategies' | 'intelligence' | 'portfolio' | 'revenue' | 'risk' | 'finance' | 'swarm' | 'control' | 'production' | 'negotiations' | 'config' | 'miners'
+type TabType = 'empire' | 'vault' | 'strategies' | 'intelligence' | 'portfolio' | 'revenue' | 'risk' | 'finance' | 'swarm' | 'control' | 'production' | 'negotiations' | 'config' | 'miners' | 'analytics' | 'autonomous'
 
 // API Status Bar Component - Updates automatically from MasterConfig
 function APIStatusBar() {
@@ -622,6 +623,8 @@ export default function EmpireDashboard() {
             {[
               { id: 'empire', label: 'Empire', icon: Lightning },
               { id: 'miners', label: '⛏️ Miners', icon: Sparkle },
+              { id: 'analytics', label: '📊 Analytics', icon: ChartBar },
+              { id: 'autonomous', label: '🤖 Autonomous', icon: Cpu },
               { id: 'production', label: '🧠 Production', icon: Cpu },
               { id: 'negotiations', label: 'Deals', icon: Handshake },
               { id: 'vault', label: 'Vault', icon: Wallet },
@@ -1979,6 +1982,28 @@ export default function EmpireDashboard() {
               exit={{ opacity: 0, y: -10 }}
             >
               <MiningDashboard />
+            </motion.div>
+          )}
+
+          {activeTab === 'analytics' && (
+            <motion.div
+              key="analytics"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              <AdvancedAnalyticsDashboard />
+            </motion.div>
+          )}
+
+          {activeTab === 'autonomous' && (
+            <motion.div
+              key="autonomous"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              <AutonomousEmpireControl />
             </motion.div>
           )}
         </AnimatePresence>

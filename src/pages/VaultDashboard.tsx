@@ -18,6 +18,8 @@ import { formatCurrency } from '@/lib/utils'
 import { toast } from 'sonner'
 import confetti from 'canvas-confetti'
 import { empireSettings } from '@/lib/config/EmpireSettings'
+import { miningEngine } from '@/lib/miners'
+import { advancedAnalytics } from '@/lib/analytics/advancedAnalytics'
 
 export function VaultDashboard() {
   const [godMode, setGodMode] = useState(false)
@@ -90,21 +92,61 @@ export function VaultDashboard() {
 
   const handleStartScanning = async () => {
     if (isScanning) return
-    
+
     setIsScanning(true)
     soundEngine.notification()
-    
+
     toast.success('Scanner Active', {
-      description: 'Monitoring GoDaddy, Namecheap, and DropCatch',
+      description: 'Monitoring GoDaddy, Namecheap, DropCatch, and Mining Empire',
     })
 
+    // Combine regular scanning with mined domains
+    const combineDomains = () => {
+      const regularDomains = domainScanner.getCurrentDomains()
+      const minedGems = miningEngine.getGems(10).map(gem => ({
+        id: `mined-${gem.domain}`,
+        name: gem.domain,
+        tld: `.${gem.domain.split('.').pop()}`,
+        age: gem.ageYears,
+        backlinks: gem.backlinks,
+        traffic: gem.traffic,
+        brandScore: 0,
+        length: gem.domain.split('.')[0].length,
+        currentBid: gem.price,
+        estimatedValue: gem.estValue,
+        aiScore: gem.roi,
+        strategyId: `miner-${gem.source}`,
+        status: 'auction' as const,
+        registrar: gem.source,
+        timeLeft: 'Mining Gem',
+      } as Domain))
+
+      // Combine and deduplicate
+      const allDomains = [...regularDomains, ...minedGems]
+      const uniqueDomains = allDomains.filter((domain, index, self) =>
+        index === self.findIndex(d => d.name === domain.name)
+      )
+
+      setLiveDrops(uniqueDomains.slice(0, 20)) // Keep top 20
+      if (minedGems.length > 0) {
+        soundEngine.goldShimmer()
+      }
+    }
+
     domainScanner.startScanning((domains) => {
-      setLiveDrops(domains)
-      soundEngine.goldShimmer()
+      combineDomains()
     }, 30000)
 
+    // Start mining engine if not running
+    if (!miningEngine.isActive()) {
+      miningEngine.startAll()
+      toast.info('Mining Empire Started', {
+        description: 'Domain miners are now active',
+      })
+    }
+
     const initialDomains = await domainScanner.scan()
-    setLiveDrops(initialDomains)
+    combineDomains()
   }
 
   const handleToggleAutonomousMode = () => {
@@ -200,6 +242,14 @@ export function VaultDashboard() {
           balance: prev.balance - transaction.amount,
           totalInvested: prev.totalInvested + transaction.amount,
         }))
+
+        // Record analytics
+        advancedAnalytics.record('domain_acquired', transaction.amount, 'acquisition', {
+          domain: domain.name,
+          roi: domain.estimatedValue / transaction.amount,
+          source: domain.registrar || 'unknown',
+          category: domain.name.split('.').pop(),
+        })
 
         setLiveDrops(prev => prev.filter(d => d.id !== domain.id))
         

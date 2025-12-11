@@ -200,43 +200,257 @@ export class SedoMarketplaceProvider implements MarketplaceProvider {
   }
 
   async createListing(options: ListingOptions): Promise<ListingResult> {
-    logger.warn('MARKETPLACE', '[SEDO] Real API integration not yet implemented', {
-      domain: options.domain,
-    })
+    if (!this.isConfigured()) {
+      return {
+        success: false,
+        domain: options.domain,
+        marketplace: this.name,
+        listPrice: options.listPrice,
+        timestamp: new Date(),
+        error: 'Sedo API credentials not configured',
+      }
+    }
 
-    // TODO: Implement Sedo API integration
-    return {
-      success: false,
-      domain: options.domain,
-      marketplace: this.name,
-      listPrice: options.listPrice,
-      timestamp: new Date(),
-      error: 'Sedo API integration not yet implemented',
+    try {
+      // Sedo API integration - create domain listing
+      const apiUrl = 'https://api.sedo.com/v1/domains'
+
+      const payload = {
+        username: this.username,
+        password: this.apiKey, // In practice, this should be hashed/encrypted
+        command: 'adddomain',
+        domain: options.domain,
+        price: options.listPrice,
+        currency: 'USD',
+        category: options.category || 'General',
+        description: options.description || `Premium domain ${options.domain} available for sale`,
+        buy_now: options.buyNowEnabled ? '1' : '0',
+        offers: options.makeOfferEnabled ? '1' : '0',
+        floor_price: options.floorPrice || Math.round(options.listPrice * 0.7),
+      }
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.apiKey}`,
+        },
+        body: JSON.stringify(payload),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`Sedo API error: ${response.status} - ${errorText}`)
+      }
+
+      const result = await response.json()
+
+      if (result.status === 'success' && result.domain_id) {
+        logger.info('MARKETPLACE', `Successfully listed ${options.domain} on Sedo`, {
+          domain: options.domain,
+          listingId: result.domain_id,
+          price: options.listPrice,
+        })
+
+        return {
+          success: true,
+          domain: options.domain,
+          marketplace: this.name,
+          listingId: result.domain_id.toString(),
+          listPrice: options.listPrice,
+          timestamp: new Date(),
+        }
+      } else {
+        throw new Error(result.message || 'Unknown Sedo API error')
+      }
+
+    } catch (error: any) {
+      logger.error('MARKETPLACE', `Failed to list ${options.domain} on Sedo`, error)
+      return {
+        success: false,
+        domain: options.domain,
+        marketplace: this.name,
+        listPrice: options.listPrice,
+        timestamp: new Date(),
+        error: error.message,
+      }
     }
   }
 
   async updatePrice(listingId: string, newPrice: number): Promise<ListingResult> {
-    logger.warn('MARKETPLACE', '[SEDO] Price update not yet implemented')
+    if (!this.isConfigured()) {
+      return {
+        success: false,
+        domain: 'unknown',
+        marketplace: this.name,
+        listPrice: newPrice,
+        timestamp: new Date(),
+        error: 'Sedo API credentials not configured',
+      }
+    }
 
-    // TODO: Implement Sedo API
-    return {
-      success: false,
-      domain: 'unknown',
-      marketplace: this.name,
-      listPrice: newPrice,
-      timestamp: new Date(),
-      error: 'Sedo API integration not yet implemented',
+    try {
+      const apiUrl = 'https://api.sedo.com/v1/domains'
+
+      const payload = {
+        username: this.username,
+        password: this.apiKey,
+        command: 'updatedomain',
+        domain_id: listingId,
+        price: newPrice,
+        currency: 'USD',
+      }
+
+      const response = await fetch(apiUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.apiKey}`,
+        },
+        body: JSON.stringify(payload),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`Sedo API error: ${response.status} - ${errorText}`)
+      }
+
+      const result = await response.json()
+
+      if (result.status === 'success') {
+        logger.info('MARKETPLACE', `Successfully updated price for listing ${listingId} on Sedo`, {
+          listingId,
+          newPrice,
+        })
+
+        return {
+          success: true,
+          domain: result.domain || 'unknown',
+          marketplace: this.name,
+          listingId,
+          listPrice: newPrice,
+          timestamp: new Date(),
+        }
+      } else {
+        throw new Error(result.message || 'Unknown Sedo API error')
+      }
+
+    } catch (error: any) {
+      logger.error('MARKETPLACE', `Failed to update price for listing ${listingId} on Sedo`, error)
+      return {
+        success: false,
+        domain: 'unknown',
+        marketplace: this.name,
+        listPrice: newPrice,
+        timestamp: new Date(),
+        error: error.message,
+      }
     }
   }
 
   async cancelListing(listingId: string): Promise<{ success: boolean; error?: string }> {
-    logger.warn('MARKETPLACE', '[SEDO] Cancel listing not yet implemented')
-    return { success: false, error: 'Sedo API integration not yet implemented' }
+    if (!this.isConfigured()) {
+      return { success: false, error: 'Sedo API credentials not configured' }
+    }
+
+    try {
+      const apiUrl = 'https://api.sedo.com/v1/domains'
+
+      const payload = {
+        username: this.username,
+        password: this.apiKey,
+        command: 'deletedomain',
+        domain_id: listingId,
+      }
+
+      const response = await fetch(apiUrl, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.apiKey}`,
+        },
+        body: JSON.stringify(payload),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`Sedo API error: ${response.status} - ${errorText}`)
+      }
+
+      const result = await response.json()
+
+      if (result.status === 'success') {
+        logger.info('MARKETPLACE', `Successfully cancelled listing ${listingId} on Sedo`)
+        return { success: true }
+      } else {
+        throw new Error(result.message || 'Unknown Sedo API error')
+      }
+
+    } catch (error: any) {
+      logger.error('MARKETPLACE', `Failed to cancel listing ${listingId} on Sedo`, error)
+      return { success: false, error: error.message }
+    }
   }
 
   async fetchStatus(listingId: string): Promise<ListingStatus> {
-    // TODO: Implement Sedo API
-    throw new Error('Sedo API integration not yet implemented')
+    if (!this.isConfigured()) {
+      throw new Error('Sedo API credentials not configured')
+    }
+
+    try {
+      const apiUrl = `https://api.sedo.com/v1/domains/${listingId}`
+
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`Sedo API error: ${response.status} - ${errorText}`)
+      }
+
+      const result = await response.json()
+
+      if (result.status === 'success' && result.domain) {
+        // Map Sedo status to our standard status
+        let status: ListingStatus['status'] = 'active'
+        switch (result.domain.status?.toLowerCase()) {
+          case 'sold':
+            status = 'sold'
+            break
+          case 'expired':
+          case 'removed':
+            status = 'expired'
+            break
+          case 'cancelled':
+            status = 'cancelled'
+            break
+          default:
+            status = 'active'
+        }
+
+        return {
+          domain: result.domain.name,
+          marketplace: this.name,
+          listingId,
+          status,
+          listPrice: result.domain.price || 0,
+          views: result.domain.views || 0,
+          offers: result.domain.offers || 0,
+          lastUpdated: new Date(result.domain.last_updated || Date.now()),
+        }
+      } else {
+        throw new Error(result.message || 'Domain not found')
+      }
+
+    } catch (error: any) {
+      logger.error('MARKETPLACE', `Failed to fetch status for listing ${listingId} on Sedo`, error)
+      throw error
+    }
   }
 
   isConfigured(): boolean {
@@ -277,38 +491,266 @@ export class AfternicMarketplaceProvider implements MarketplaceProvider {
   }
 
   async createListing(options: ListingOptions): Promise<ListingResult> {
-    logger.warn('MARKETPLACE', '[AFTERNIC] Real API integration not yet implemented')
+    if (!this.isConfigured()) {
+      return {
+        success: false,
+        domain: options.domain,
+        marketplace: this.name,
+        listPrice: options.listPrice,
+        timestamp: new Date(),
+        error: 'Afternic API credentials not configured',
+      }
+    }
 
-    // TODO: Implement Afternic API
-    return {
-      success: false,
-      domain: options.domain,
-      marketplace: this.name,
-      listPrice: options.listPrice,
-      timestamp: new Date(),
-      error: 'Afternic API integration not yet implemented',
+    try {
+      // Afternic API integration - create domain listing
+      const apiUrl = 'https://api.afternic.com/v1/listings'
+
+      const payload = {
+        domain: options.domain,
+        price: options.listPrice,
+        currency: 'USD',
+        category: options.category || 'general',
+        description: options.description || `Premium domain ${options.domain} for sale`,
+        accept_offers: options.makeOfferEnabled || false,
+        minimum_offer: options.floorPrice || Math.round(options.listPrice * 0.5),
+        featured: false,
+        auto_renew: true,
+      }
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`,
+      }
+
+      if (this.apiKey) {
+        headers['X-Afternic-API-Key'] = this.apiKey
+      }
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`Afternic API error: ${response.status} - ${errorText}`)
+      }
+
+      const result = await response.json()
+
+      if (result.success && result.listing_id) {
+        logger.info('MARKETPLACE', `Successfully listed ${options.domain} on Afternic`, {
+          domain: options.domain,
+          listingId: result.listing_id,
+          price: options.listPrice,
+        })
+
+        return {
+          success: true,
+          domain: options.domain,
+          marketplace: this.name,
+          listingId: result.listing_id.toString(),
+          listPrice: options.listPrice,
+          timestamp: new Date(),
+        }
+      } else {
+        throw new Error(result.message || result.error || 'Unknown Afternic API error')
+      }
+
+    } catch (error: any) {
+      logger.error('MARKETPLACE', `Failed to list ${options.domain} on Afternic`, error)
+      return {
+        success: false,
+        domain: options.domain,
+        marketplace: this.name,
+        listPrice: options.listPrice,
+        timestamp: new Date(),
+        error: error.message,
+      }
     }
   }
 
   async updatePrice(listingId: string, newPrice: number): Promise<ListingResult> {
-    logger.warn('MARKETPLACE', '[AFTERNIC] Price update not yet implemented')
-    return {
-      success: false,
-      domain: 'unknown',
-      marketplace: this.name,
-      listPrice: newPrice,
-      timestamp: new Date(),
-      error: 'Afternic API integration not yet implemented',
+    if (!this.isConfigured()) {
+      return {
+        success: false,
+        domain: 'unknown',
+        marketplace: this.name,
+        listPrice: newPrice,
+        timestamp: new Date(),
+        error: 'Afternic API credentials not configured',
+      }
+    }
+
+    try {
+      const apiUrl = `https://api.afternic.com/v1/listings/${listingId}/price`
+
+      const payload = {
+        price: newPrice,
+        currency: 'USD',
+      }
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`,
+      }
+
+      if (this.apiKey) {
+        headers['X-Afternic-API-Key'] = this.apiKey
+      }
+
+      const response = await fetch(apiUrl, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(payload),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`Afternic API error: ${response.status} - ${errorText}`)
+      }
+
+      const result = await response.json()
+
+      if (result.success) {
+        logger.info('MARKETPLACE', `Successfully updated price for listing ${listingId} on Afternic`, {
+          listingId,
+          newPrice,
+        })
+
+        return {
+          success: true,
+          domain: result.domain || 'unknown',
+          marketplace: this.name,
+          listingId,
+          listPrice: newPrice,
+          timestamp: new Date(),
+        }
+      } else {
+        throw new Error(result.message || result.error || 'Unknown Afternic API error')
+      }
+
+    } catch (error: any) {
+      logger.error('MARKETPLACE', `Failed to update price for listing ${listingId} on Afternic`, error)
+      return {
+        success: false,
+        domain: 'unknown',
+        marketplace: this.name,
+        listPrice: newPrice,
+        timestamp: new Date(),
+        error: error.message,
+      }
     }
   }
 
   async cancelListing(listingId: string): Promise<{ success: boolean; error?: string }> {
-    logger.warn('MARKETPLACE', '[AFTERNIC] Cancel listing not yet implemented')
-    return { success: false, error: 'Afternic API integration not yet implemented' }
+    if (!this.isConfigured()) {
+      return { success: false, error: 'Afternic API credentials not configured' }
+    }
+
+    try {
+      const apiUrl = `https://api.afternic.com/v1/listings/${listingId}`
+
+      const headers: Record<string, string> = {
+        'Authorization': `Bearer ${this.apiKey}`,
+      }
+
+      if (this.apiKey) {
+        headers['X-Afternic-API-Key'] = this.apiKey
+      }
+
+      const response = await fetch(apiUrl, {
+        method: 'DELETE',
+        headers,
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`Afternic API error: ${response.status} - ${errorText}`)
+      }
+
+      const result = await response.json()
+
+      if (result.success) {
+        logger.info('MARKETPLACE', `Successfully cancelled listing ${listingId} on Afternic`)
+        return { success: true }
+      } else {
+        throw new Error(result.message || result.error || 'Unknown Afternic API error')
+      }
+
+    } catch (error: any) {
+      logger.error('MARKETPLACE', `Failed to cancel listing ${listingId} on Afternic`, error)
+      return { success: false, error: error.message }
+    }
   }
 
   async fetchStatus(listingId: string): Promise<ListingStatus> {
-    throw new Error('Afternic API integration not yet implemented')
+    if (!this.isConfigured()) {
+      throw new Error('Afternic API credentials not configured')
+    }
+
+    try {
+      const apiUrl = `https://api.afternic.com/v1/listings/${listingId}`
+
+      const headers: Record<string, string> = {
+        'Authorization': `Bearer ${this.apiKey}`,
+      }
+
+      if (this.apiKey) {
+        headers['X-Afternic-API-Key'] = this.apiKey
+      }
+
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers,
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`Afternic API error: ${response.status} - ${errorText}`)
+      }
+
+      const result = await response.json()
+
+      if (result.success && result.listing) {
+        // Map Afternic status to our standard status
+        let status: ListingStatus['status'] = 'active'
+        switch (result.listing.status?.toLowerCase()) {
+          case 'sold':
+            status = 'sold'
+            break
+          case 'expired':
+          case 'ended':
+            status = 'expired'
+            break
+          case 'cancelled':
+          case 'removed':
+            status = 'cancelled'
+            break
+          default:
+            status = 'active'
+        }
+
+        return {
+          domain: result.listing.domain,
+          marketplace: this.name,
+          listingId,
+          status,
+          listPrice: result.listing.price || 0,
+          views: result.listing.views || 0,
+          offers: result.listing.offers || 0,
+          lastUpdated: new Date(result.listing.updated_at || Date.now()),
+        }
+      } else {
+        throw new Error(result.message || result.error || 'Listing not found')
+      }
+
+    } catch (error: any) {
+      logger.error('MARKETPLACE', `Failed to fetch status for listing ${listingId} on Afternic`, error)
+      throw error
+    }
   }
 
   isConfigured(): boolean {

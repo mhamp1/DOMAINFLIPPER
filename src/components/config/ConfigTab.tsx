@@ -28,6 +28,7 @@ import { masterConfig } from '@/lib/config/MasterConfig'
 import { healthMonitor } from '@/lib/health/HealthMonitor'
 import { godaddyAPI } from '@/lib/api/godaddyReal'
 import { namecheapAPI } from '@/lib/api/namecheapReal'
+import { LanguageSelector } from '@/components/ui/LanguageSelector'
 import { realDomainScanner } from '@/lib/scanner/RealDomainScanner'
 import { toast } from 'sonner'
 
@@ -750,6 +751,11 @@ export default function ConfigTab() {
         <div className="text-xs text-white/40 mb-3 p-2 bg-blue-500/10 border border-blue-500/20 rounded">
           <strong>Note:</strong> Full settings UI is available. To access it, see docs/PIPELINE_SETTINGS.md or use the PipelineSettings component directly.
         </div>
+      </Card>
+
+      {/* Language Settings */}
+      <Card className="bg-black/60 border border-cyan-500/20 p-6">
+        <LanguageSelector />
       </Card>
 
       {/* Danger Zone */}

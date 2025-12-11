@@ -131,21 +131,199 @@ export class StripePaymentProvider implements PaymentProvider {
     currency: string,
     metadata?: Record<string, any>
   ): Promise<PaymentTransaction> {
-    logger.warn('PAYMENT', '[STRIPE] Real API integration not yet implemented')
+    if (!this.isConfigured()) {
+      throw new Error('Stripe API credentials not configured')
+    }
 
-    // TODO: Implement Stripe API
-    throw new Error('Stripe API integration not yet implemented')
+    try {
+      // Stripe API integration - create payment intent
+      const apiUrl = 'https://api.stripe.com/v1/payment_intents'
+
+      const formData = new URLSearchParams()
+      formData.append('amount', Math.round(amount * 100).toString()) // Convert to cents
+      formData.append('currency', currency.toLowerCase())
+      formData.append('payment_method_types[]', 'card')
+      formData.append('payment_method_types[]', 'bank_transfer')
+
+      if (metadata?.description) {
+        formData.append('description', metadata.description)
+      }
+
+      if (metadata?.receipt_email) {
+        formData.append('receipt_email', metadata.receipt_email)
+      }
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`Stripe API error: ${response.status} - ${errorText}`)
+      }
+
+      const result = await response.json()
+
+      if (result.id && result.status === 'requires_payment_method') {
+        logger.info('PAYMENT', `Successfully created Stripe payment intent`, {
+          paymentId: result.id,
+          amount,
+          currency,
+        })
+
+        return {
+          id: result.id,
+          amount,
+          currency: currency.toUpperCase(),
+          status: 'pending',
+          paymentMethod: 'stripe',
+          createdAt: new Date(),
+          metadata,
+        }
+      } else {
+        throw new Error(result.error?.message || 'Failed to create payment intent')
+      }
+
+    } catch (error: any) {
+      logger.error('PAYMENT', `Failed to process Stripe payment`, error)
+      throw error
+    }
   }
 
   async getPaymentStatus(transactionId: string): Promise<PaymentTransaction> {
-    throw new Error('Stripe API integration not yet implemented')
+    if (!this.isConfigured()) {
+      throw new Error('Stripe API credentials not configured')
+    }
+
+    try {
+      const apiUrl = `https://api.stripe.com/v1/payment_intents/${transactionId}`
+
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+        },
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`Stripe API error: ${response.status} - ${errorText}`)
+      }
+
+      const result = await response.json()
+
+      // Map Stripe status to our standard status
+      let status: PaymentTransaction['status'] = 'pending'
+      switch (result.status) {
+        case 'succeeded':
+          status = 'completed'
+          break
+        case 'canceled':
+          status = 'failed'
+          break
+        case 'requires_payment_method':
+        case 'requires_confirmation':
+          status = 'pending'
+          break
+        default:
+          status = 'pending'
+      }
+
+      return {
+        id: result.id,
+        amount: result.amount / 100, // Convert from cents
+        currency: result.currency?.toUpperCase() || 'USD',
+        status,
+        paymentMethod: 'stripe',
+        createdAt: new Date(result.created * 1000),
+        completedAt: result.status === 'succeeded' ? new Date(result.created * 1000) : undefined,
+        metadata: result.metadata || {},
+      }
+
+    } catch (error: any) {
+      logger.error('PAYMENT', `Failed to get Stripe payment status for ${transactionId}`, error)
+      throw error
+    }
   }
 
   async refundPayment(
     transactionId: string,
     amount?: number
   ): Promise<{ success: boolean; refundId?: string; error?: string }> {
-    return { success: false, error: 'Stripe API integration not yet implemented' }
+    if (!this.isConfigured()) {
+      return { success: false, error: 'Stripe API credentials not configured' }
+    }
+
+    try {
+      // First get the payment intent to find the charge
+      const paymentIntentUrl = `https://api.stripe.com/v1/payment_intents/${transactionId}`
+
+      const intentResponse = await fetch(paymentIntentUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+        },
+      })
+
+      if (!intentResponse.ok) {
+        const errorText = await intentResponse.text()
+        throw new Error(`Stripe API error: ${intentResponse.status} - ${errorText}`)
+      }
+
+      const intent = await intentResponse.json()
+
+      if (!intent.charges?.data?.[0]?.id) {
+        throw new Error('No charge found for this payment intent')
+      }
+
+      // Create refund
+      const refundUrl = 'https://api.stripe.com/v1/refunds'
+      const formData = new URLSearchParams()
+      formData.append('charge', intent.charges.data[0].id)
+
+      if (amount) {
+        formData.append('amount', Math.round(amount * 100).toString()) // Convert to cents
+      }
+
+      const response = await fetch(refundUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`Stripe refund API error: ${response.status} - ${errorText}`)
+      }
+
+      const result = await response.json()
+
+      if (result.id && result.status === 'succeeded') {
+        logger.info('PAYMENT', `Successfully refunded Stripe payment ${transactionId}`, {
+          refundId: result.id,
+          amount: amount || (result.amount / 100),
+        })
+
+        return {
+          success: true,
+          refundId: result.id,
+        }
+      } else {
+        throw new Error(result.error?.message || 'Refund failed')
+      }
+
+    } catch (error: any) {
+      logger.error('PAYMENT', `Failed to refund Stripe payment ${transactionId}`, error)
+      return { success: false, error: error.message }
+    }
   }
 
   isConfigured(): boolean {

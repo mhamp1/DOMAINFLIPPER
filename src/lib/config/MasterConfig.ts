@@ -80,6 +80,15 @@ export interface MasterConfigData {
     domainsAcquired: number
     domainsSold: number
   }
+
+  // User Preferences
+  preferences: {
+    language: 'en' | 'es' | 'fr' | 'de' | 'zh' | 'ja' | 'ko'
+    currency: string
+    timezone: string
+    notifications: boolean
+    theme: 'dark' | 'light' | 'auto'
+  }
   
   // Advanced Features Settings
   advanced: {
@@ -259,6 +268,13 @@ const DEFAULT_CONFIG: MasterConfigData = {
     totalSpent: 0,
     domainsAcquired: 0,
     domainsSold: 0,
+  },
+  preferences: {
+    language: 'en',
+    currency: 'USD',
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    notifications: true,
+    theme: 'dark',
   },
   advanced: {
     brandability: {
