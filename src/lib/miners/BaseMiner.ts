@@ -8,6 +8,7 @@ import { generateId } from '@/lib/utils'
 import { valuationEngine } from '@/lib/ai/valuationEngine'
 import { miningCache } from './MiningCache'
 import { advancedAnalytics } from '@/lib/analytics/advancedAnalytics'
+import { logger } from '@/lib/utils/logger'
 import type { 
   MinedDomain, 
   MinerSource, 
@@ -74,7 +75,7 @@ export abstract class BaseMiner {
 
     this.isRunning = true
     this.stats.status = 'mining'
-    console.log(`🚀 ${this.source} Miner STARTED`)
+    logger.info('MINER', `🚀 ${this.source} Miner STARTED`)
 
     // Run immediately
     this.runMiningCycle()
@@ -101,7 +102,7 @@ export abstract class BaseMiner {
       this.intervalId = null
     }
 
-    console.log(`⏹️ ${this.source} Miner STOPPED`)
+    logger.info('MINER', `⏹️ ${this.source} Miner STOPPED`)
   }
 
   /**
@@ -162,7 +163,7 @@ export abstract class BaseMiner {
       }
 
       const duration = Date.now() - startTime
-      console.log(`✅ ${this.source}: Mined ${rawDomains.length} domains, found ${results.length} gems in ${duration}ms`)
+      logger.info('MINER', `✅ ${this.source}: Mined ${rawDomains.length} domains, found ${results.length} gems in ${duration}ms`)
 
       // Emit session complete event
       this.emitEvent({
@@ -258,7 +259,7 @@ export abstract class BaseMiner {
 
     // Emit events for significant finds
     if (priority === 'legendary') {
-      console.log(`🏆 LEGENDARY FOUND: ${domainName} → $${estValue.toLocaleString()} (${roi.toFixed(0)}x ROI)`)
+      logger.info('MINER', `🏆 LEGENDARY FOUND: ${domainName} → $${estValue.toLocaleString()} (${roi.toFixed(0)}x ROI)`)
       this.emitEvent({
         type: 'legendary_found',
         domain: domainName,
@@ -270,7 +271,7 @@ export abstract class BaseMiner {
         timestamp: new Date(),
       })
     } else if (priority === 'gem') {
-      console.log(`💎 GEM FOUND: ${domainName} → $${estValue.toLocaleString()} (${roi.toFixed(0)}x ROI)`)
+      logger.info('MINER', `💎 GEM FOUND: ${domainName} → $${estValue.toLocaleString()} (${roi.toFixed(0)}x ROI)`)
       this.emitEvent({
         type: 'gem_found',
         domain: domainName,
@@ -316,7 +317,7 @@ export abstract class BaseMiner {
    * Trigger auto-snipe for high-value domain
    */
   protected triggerAutoSnipe(domain: MinedDomain): void {
-    console.log(`🎯 AUTO-SNIPE TRIGGERED: ${domain.domain} @ $${domain.price}`)
+    logger.info('MINER', `🎯 AUTO-SNIPE TRIGGERED: ${domain.domain} @ $${domain.price}`)
     domain.status = 'sniped'
     
     this.emitEvent({

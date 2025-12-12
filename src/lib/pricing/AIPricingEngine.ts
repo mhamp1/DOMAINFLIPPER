@@ -6,6 +6,7 @@
  */
 
 import { toast } from 'sonner'
+import { logger } from '@/lib/utils/logger'
 
 interface PricingFactors {
   marketSentiment?: number // -1.0 (bear) to 1.0 (bull)
@@ -147,7 +148,7 @@ export class AIPricingEngine {
 
     // Log pricing decision
     if (adjustments.length > 0) {
-      console.log(`[AI Pricing] ${domain}: $${price.toLocaleString()} (${adjustments.join(', ')})`)
+      logger.info('AI_PRICING', `[AI Pricing] ${domain}: $${price.toLocaleString()} (${adjustments.join(', ')})`)
     }
 
     return price

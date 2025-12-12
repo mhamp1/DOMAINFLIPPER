@@ -5,6 +5,7 @@
  */
 
 import * as tf from '@tensorflow/tfjs'
+import { logger } from '@/lib/utils/logger'
 
 interface ModelFeatures {
   age: number
@@ -33,7 +34,7 @@ export class TensorFlowModel {
     try {
       this.model = await tf.loadLayersModel(this.modelUrl)
       this.isLoaded = true
-      console.log('✅ TensorFlow model loaded successfully')
+      logger.info('TENSORFLOW', '✅ TensorFlow model loaded successfully')
     } catch (error) {
       console.warn('⚠️ Model file not found, using fallback calculation:', error)
       // Fallback to rule-based if model not available

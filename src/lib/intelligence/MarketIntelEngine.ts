@@ -81,7 +81,7 @@ export class MarketIntelEngine {
   /**
    * Google Trends — Rising queries with velocity tracking
    */
-  async fetchGoogleTrends(category?: string): Promise<MarketSignal[]> {
+  async fetchGoogleTrends(category?: string): Promise<MarketSignal[]> { // eslint-disable-line @typescript-eslint/no-unused-vars
     const signals: MarketSignal[] = []
 
     try {
@@ -104,7 +104,7 @@ export class MarketIntelEngine {
 
       const trendingSearches = data?.default?.trendingSearchesDays?.[0]?.trendingSearches || []
 
-      trendingSearches.forEach((trend: any, idx: number) => {
+      trendingSearches.forEach((trend: { title?: { query?: string }; formattedTraffic?: string; relatedQueries?: unknown[]; articles?: { title?: string }[] }, idx: number) => {
         const keyword = trend.title?.query?.toLowerCase() || ''
         if (keyword.length >= 3 && keyword.length <= 20) {
           signals.push({
@@ -113,7 +113,7 @@ export class MarketIntelEngine {
             keyword,
             sentiment: 'bullish',
             strength: Math.max(50, 100 - idx * 3),
-            volume: parseInt(trend.formattedTraffic?.replace(/[^0-9]/g, '')) || 10000,
+            volume: trend.formattedTraffic ? parseInt(trend.formattedTraffic.replace(/[^0-9]/g, '')) : 10000,
             growth: 50 + Math.random() * 50,
             timestamp: new Date(),
             metadata: {
@@ -299,7 +299,7 @@ export class MarketIntelEngine {
       let positive = 0, negative = 0, neutral = 0
 
       // Simple sentiment analysis based on keywords
-      tweets.forEach((tweet: any) => {
+      tweets.forEach((tweet: { text: string }) => {
         const text = tweet.text.toLowerCase()
         const positiveWords = ['great', 'love', 'amazing', 'awesome', 'best', 'excellent', 'perfect', 'good', 'nice', 'fantastic']
         const negativeWords = ['bad', 'hate', 'terrible', 'worst', 'awful', 'horrible', 'poor', 'fail', 'scam', 'avoid']
@@ -346,7 +346,7 @@ export class MarketIntelEngine {
       let positive = 0, negative = 0, neutral = 0
       let totalScore = 0
 
-      posts.forEach((post: any) => {
+      posts.forEach((post: { data?: { score?: number; upvote_ratio?: number } }) => {
         const score = post.data?.score || 0
         const ratio = post.data?.upvote_ratio || 0.5
         totalScore += score
@@ -392,7 +392,7 @@ export class MarketIntelEngine {
 
       const posts = response.data?.data?.posts?.edges || []
 
-      posts.forEach((edge: any, idx: number) => {
+      posts.forEach((edge: { node: { slug?: string; votesCount: number; commentsCount?: number } }, idx: number) => {
         const post = edge.node
         const keyword = post.slug?.toLowerCase().replace(/-/g, '') || ''
 
@@ -403,10 +403,10 @@ export class MarketIntelEngine {
             keyword,
             sentiment: post.votesCount > 100 ? 'bullish' : 'neutral',
             strength: Math.min(100, post.votesCount / 10),
-            volume: post.votesCount + post.commentsCount,
+            volume: post.votesCount + (post.commentsCount || 0),
             growth: post.votesCount > 500 ? 100 : post.votesCount > 100 ? 50 : 25,
             timestamp: new Date(),
-            metadata: { votes: post.votesCount, comments: post.commentsCount },
+            metadata: { votes: post.votesCount, comments: post.commentsCount || 0 },
           })
         }
       })

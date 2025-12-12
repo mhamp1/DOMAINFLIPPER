@@ -12,10 +12,8 @@ import { Badge } from '@/components/ui/badge'
 import {
   ChartBar,
   TrendUp,
-  TrendDown,
   Download,
   ArrowsClockwise,
-  Calendar,
   Pulse,
   CurrencyDollar,
   Target,

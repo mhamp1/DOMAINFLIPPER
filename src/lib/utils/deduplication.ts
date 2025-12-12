@@ -4,11 +4,13 @@
  * Avoids overbuying variants (plural/singular, hyphen variants, close edit distance)
  */
 
+import { logger } from '@/lib/utils/logger'
+
 export interface DomainCandidate {
   domain: string
   score: number
   estimatedValue: number
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 export interface DomainCluster {
@@ -313,25 +315,25 @@ export function testDeduplication(): void {
     { domain: 'cherry.com', score: 95, estimatedValue: 12000 },
   ]
   
-  console.log('Original candidates:', testCandidates.length)
+  logger.info('DEDUPLICATION', 'Original candidates:', testCandidates.length)
   
   const report = getDeduplicationReport(testCandidates)
   
-  console.log('De-duplication Report:')
-  console.log('- Total clusters:', report.totalClusters)
-  console.log('- Duplicates saved:', report.totalSaved)
-  console.log('- Plural variants:', report.duplicatesFound.plural)
-  console.log('- Hyphen variants:', report.duplicatesFound.hyphen)
-  console.log('- Edit distance:', report.duplicatesFound.editDistance)
+  logger.info('DEDUPLICATION', 'De-duplication Report:')
+  logger.info('DEDUPLICATION', `- Total clusters: ${report.totalClusters}`)
+  logger.info('DEDUPLICATION', `- Duplicates saved: ${report.totalSaved}`)
+  logger.info('DEDUPLICATION', `- Plural variants: ${report.duplicatesFound.plural}`)
+  logger.info('DEDUPLICATION', `- Hyphen variants: ${report.duplicatesFound.hyphen}`)
+  logger.info('DEDUPLICATION', `- Edit distance: ${report.duplicatesFound.editDistance}`)
   
-  console.log('\nClusters:')
+  logger.info('DEDUPLICATION', '\nClusters:')
   report.clusters.forEach((cluster, i) => {
-    console.log(`${i + 1}. ${cluster.representative.domain} (score: ${cluster.representative.score})`)
+    logger.info('DEDUPLICATION', `${i + 1}. ${cluster.representative.domain} (score: ${cluster.representative.score})`)
     cluster.variants.forEach(v => {
-      console.log(`   - ${v.domain} (score: ${v.score})`)
+      logger.info('DEDUPLICATION', `   - ${v.domain} (score: ${v.score})`)
     })
   })
   
   const deduplicated = deduplicateDomains(testCandidates)
-  console.log('\nFinal representatives:', deduplicated.map(d => d.domain))
+  logger.info('DEDUPLICATION', '\nFinal representatives:', deduplicated.map(d => d.domain))
 }

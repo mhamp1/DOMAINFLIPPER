@@ -4,6 +4,7 @@
  */
 
 import { toast } from 'sonner'
+import { logger } from '@/lib/utils/logger'
 
 export interface PricingStrategy {
   liquidationPrice: number  // Quick sale price (conservative)
@@ -377,8 +378,8 @@ export function autoRepriceDomain(
     description: message,
   })
   
-  console.log(`[Auto-Reprice] ${message}`)
-  console.log(`  Rules applied: ${result.appliedRules.join(', ')}`)
+  logger.info('PRICING', `[Auto-Reprice] ${message}`)
+  logger.info('PRICING', `  Rules applied: ${result.appliedRules.join(', ')}`)
   
   return {
     success: true,

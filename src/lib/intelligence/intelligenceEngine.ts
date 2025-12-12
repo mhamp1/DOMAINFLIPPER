@@ -170,7 +170,7 @@ export class IntelligenceEngine {
       const trends: TrendData[] = []
       const posts = response.data?.data?.children || []
 
-      posts.forEach((post: any, index: number) => {
+      posts.forEach((post: { data?: { title?: string; score?: number } }) => {
         const title = post.data?.title || ''
         const score = post.data?.score || 0
         
@@ -224,7 +224,7 @@ export class IntelligenceEngine {
       const trends: TrendData[] = []
       const projects = response.data?.projects || []
 
-      projects.forEach((project: any, index: number) => {
+      projects.forEach((project: { name?: string; slug?: string; backers_count?: number; pledged?: number }, index: number) => {
         const name = project.name?.toLowerCase() || ''
         const slug = project.slug?.toLowerCase() || ''
         
@@ -269,7 +269,7 @@ export class IntelligenceEngine {
       const trends: TrendData[] = []
       const companies = response.data?.companies || []
 
-      companies.forEach((company: any, index: number) => {
+      companies.forEach((company: { name?: string; domain?: string; valuation?: number }, index: number) => {
         const name = company.name?.toLowerCase() || ''
         const domain = company.domain?.toLowerCase().replace('.com', '') || ''
         

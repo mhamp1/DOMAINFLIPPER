@@ -5,33 +5,21 @@
  */
 
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import {
   Play,
   Pause,
   Power,
   Pulse,
   TrendUp,
-  Shield,
-  Lightning,
   Warning,
   CheckCircle,
   XCircle,
   ArrowsClockwise,
-  Gear,
-  ChartBar,
-  Cpu,
-  WifiHigh,
-  Database,
-  Globe,
 } from '@phosphor-icons/react'
 import { autonomousEmpire, type EmpireStatus, type EmpireStats } from '@/lib/autonomy/AutonomousEmpire'
-import { masterAutonomousController } from '@/lib/autonomy/MasterAutonomousController'
 import { soundEngine } from '@/lib/sounds/soundEffects'
-import { toast } from 'sonner'
 
 export function AutonomousEmpireControl() {
   const [empireStatus, setEmpireStatus] = useState<EmpireStatus>(autonomousEmpire.getStatus())

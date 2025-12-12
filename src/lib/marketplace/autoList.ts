@@ -5,6 +5,7 @@
  */
 
 import { toast } from 'sonner'
+import { logger } from '@/lib/utils/logger'
 
 interface Marketplace {
   id: string
@@ -139,16 +140,16 @@ export class MarketplaceLister {
         const status = await this.listOnMarketplace(marketplace, domain, price)
         results.push(status)
         return status
-      } catch (error: any) {
-        console.error(`Failed to list on ${marketplace.name}:`, error)
-        
+      } catch (error: unknown) {
+        logger.error('AUTOLIST', `Failed to list on ${marketplace.name}`, error as Error)
+
         const failedStatus: ListingStatus = {
           marketplace: marketplace.id,
           domain,
           price,
           status: 'failed',
           listedAt: new Date(),
-          error: error.message,
+          error: error instanceof Error ? error.message : 'Unknown error',
         }
         results.push(failedStatus)
         return failedStatus

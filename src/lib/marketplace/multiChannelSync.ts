@@ -16,7 +16,7 @@ export interface ChannelListing {
   status: 'active' | 'pending' | 'paused' | 'error' | 'cancelled'
   lastSync: Date
   lastError?: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 export interface SyncResult {

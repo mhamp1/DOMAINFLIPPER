@@ -11,6 +11,7 @@
 import { toast } from 'sonner'
 import { runMonteCarlo } from '../montecarlo/DomainMonteCarlo'
 import { kellyPositionSize } from '../portfolio/KellyOptimizer'
+import { logger } from '@/lib/utils/logger'
 
 interface EmpireMetrics {
   capital: number
@@ -82,7 +83,7 @@ export class EmpireCapital {
    * Autonomous capital growth engine
    */
   async runEmpire(): Promise<void> {
-    console.log(`🏛️  EMPIRE STARTING: $${this.capital}`)
+    logger.info('EMPIRE', `🏛️  EMPIRE STARTING: $${this.capital}`)
 
     while (this.capital < 100_000_000) { // Run until $100M
       this.daysRunning++
@@ -91,7 +92,7 @@ export class EmpireCapital {
       this.dailyBudget = Math.min(this.capital * 0.1, 50000)
       this.dailyProfit = 0
 
-      console.log(`\n📅 Day ${this.daysRunning}: Capital $${this.capital.toLocaleString()}, Budget $${this.dailyBudget.toLocaleString()}`)
+      logger.info('EMPIRE', `\n📅 Day ${this.daysRunning}: Capital $${this.capital.toLocaleString()}, Budget $${this.dailyBudget.toLocaleString()}`)
 
       // Scan for opportunities
       const domains = await this.scanOpportunities()
@@ -145,7 +146,7 @@ export class EmpireCapital {
       await new Promise(r => setTimeout(r, 100)) // Fast sim: 100ms = 1 day
     }
 
-    console.log(`\n🎉 EMPIRE COMPLETE: $${this.capital.toLocaleString()}`)
+    logger.info('EMPIRE', `\n🎉 EMPIRE COMPLETE: $${this.capital.toLocaleString()}`)
     toast.success('🏆 $100M EMPIRE ACHIEVED', {
       description: `From $100 to $${this.capital.toLocaleString()} in ${this.daysRunning} days`,
       duration: 30000,
@@ -168,7 +169,7 @@ export class EmpireCapital {
    * SNIPE DOMAIN
    */
   private async snipeDomain(domain: any, amount: number): Promise<void> {
-    console.log(`  ⚡ Sniping ${domain.name} for $${amount}`)
+    logger.info('EMPIRE', `  ⚡ Sniping ${domain.name} for $${amount}`)
     
     this.capital -= amount
     this.dailyBudget -= amount
@@ -205,7 +206,7 @@ export class EmpireCapital {
         this.totalProfit += profit
         this.dailyProfit += profit
 
-        console.log(`  💰 SOLD: ${multiplier.toFixed(1)}x → +$${profit.toLocaleString()}`)
+        logger.info('EMPIRE', `  💰 SOLD: ${multiplier.toFixed(1)}x → +$${profit.toLocaleString()}`)
 
         toast.success('💰 DOMAIN SOLD', {
           description: `${multiplier.toFixed(1)}x ROI → +$${profit.toLocaleString()} profit`,

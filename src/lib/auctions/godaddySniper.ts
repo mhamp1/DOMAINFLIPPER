@@ -9,6 +9,7 @@ import { createGoDaddyClient } from '@/lib/api/godaddy'
 import { valuationEngine } from '@/lib/ai/valuationEngine'
 import { soundEngine } from '@/lib/sounds/soundEffects'
 import { generateId } from '@/lib/utils'
+import { logger } from '@/lib/utils/logger'
 import { toast } from 'sonner'
 import confetti from 'canvas-confetti'
 import type { Domain } from '@/types/domain'
@@ -77,7 +78,7 @@ export class GoDaddySniper {
       const currentBid = auction.currentBid || auction.minBid || 0
       
       if (currentBid <= 0) {
-        console.log(`Skipping ${auction.domain}: No valid bid amount`)
+        logger.info('SNIPER', `Skipping ${auction.domain}: No valid bid amount`)
         return false
       }
 
@@ -85,7 +86,7 @@ export class GoDaddySniper {
       const roi = (estimatedValue - maxBid) / maxBid
 
       if (roi < this.config.minROI!) {
-        console.log(`Skipping ${auction.domain}: ROI ${roi.toFixed(1)}x < ${this.config.minROI}x`)
+        logger.info('SNIPER', `Skipping ${auction.domain}: ROI ${roi.toFixed(1)}x < ${this.config.minROI}x`)
         return false
       }
 
@@ -93,7 +94,7 @@ export class GoDaddySniper {
       const endTime = new Date(auction.endTime)
       this.scheduleSnipe(auction.domain, auctionId, endTime, maxBid, estimatedValue)
 
-      console.log(`🎯 SNIPE SCHEDULED: ${auction.domain} at ${endTime.toISOString()}`)
+      logger.info('SNIPER', `🎯 SNIPE SCHEDULED: ${auction.domain} at ${endTime.toISOString()}`)
       return true
     } catch (error) {
       console.error(`Failed to monitor auction ${auctionId}:`, error)
@@ -140,7 +141,7 @@ export class GoDaddySniper {
    */
   private async executeSnipe(domain: string, auctionId: string, maxBid: number) {
     if (this.activeSnipes.has(auctionId)) {
-      console.log(`Snipe already in progress for ${domain}`)
+      logger.info('SNIPER', `Snipe already in progress for ${domain}`)
       return
     }
 
@@ -151,7 +152,7 @@ export class GoDaddySniper {
       const result = await this.godaddyClient.placeBid(auctionId, maxBid)
 
       if (result.success) {
-        console.log(`✅ SNIPE SUCCESS: ${domain} for $${maxBid}`)
+        logger.info('SNIPER', `✅ SNIPE SUCCESS: ${domain} for $${maxBid}`)
         soundEngine.success()
         
         // Gold confetti
@@ -167,7 +168,7 @@ export class GoDaddySniper {
           icon: '💎',
         })
       } else {
-        console.log(`❌ SNIPE FAILED: ${domain}`)
+        logger.info('SNIPER', `❌ SNIPE FAILED: ${domain}`)
         soundEngine.error()
         toast.error('Snipe Failed', {
           description: `Could not acquire ${domain}`,

@@ -299,7 +299,7 @@ export function applyFilters(
   const trademark = checkTrademarkRisk(text, settings)
   const scam = checkScamRisk(text, settings)
   
-  const results: any = { profanity, trademark, scam }
+  const results: { profanity: FilterResult; trademark: FilterResult; scam: FilterResult; momentum?: FilterResult } = { profanity, trademark, scam }
   const reasons: string[] = []
   
   // Check momentum if provided
@@ -317,7 +317,7 @@ export function applyFilters(
     }
     
     if (!momentumPassed) {
-      reasons.push(results.momentum.reason!)
+      reasons.push(results.momentum?.reason!)
     }
   }
   
@@ -338,7 +338,7 @@ export function applyFilters(
   
   // Pass if all critical filters pass and score is high enough
   const passed = profanity.passed && trademark.passed && scam.passed &&
-                 (!momentum || results.momentum.passed)
+                 (!momentum || results.momentum?.passed === true)
   
   return {
     passed,

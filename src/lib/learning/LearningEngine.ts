@@ -208,7 +208,7 @@ export class LearningEngine {
    */
   private calculateOptimalWeights(
     successful: FlipPerformance[],
-    _unsuccessful: FlipPerformance[]
+    _unsuccessful: FlipPerformance[] // eslint-disable-next-line @typescript-eslint/no-unused-vars
   ): ModelWeights {
     // Simple heuristic-based weight calculation
     // In production: use proper ML algorithms (gradient descent, neural nets, etc.)

@@ -121,7 +121,7 @@ export class BrandabilityScorer {
     }
     
     // 2. Vowel/consonant ratio
-    const { vowels, consonants, vowelRatio, consonantRatio } = this.analyzeCharacters(lowerName)
+    const { vowelRatio, consonantRatio } = this.analyzeCharacters(lowerName)
     let vowelScore = 100
     if (vowelRatio < this.config.minVowelRatio || vowelRatio > this.config.maxVowelRatio) {
       vowelScore = 70

@@ -11,6 +11,7 @@ import { domainScanner } from '@/lib/auctions/domainScanner'
 import { autonomousEngine } from '@/lib/autonomous/autonomousEngine'
 import { advancedAnalytics } from '@/lib/analytics/advancedAnalytics'
 import { soundEngine } from '@/lib/sounds/soundEffects'
+import { ceoBrain } from '@/lib/intelligence/CEOBrain'
 import { toast } from 'sonner'
 
 export interface AutonomousState {
@@ -68,6 +69,9 @@ export class MasterAutonomousController {
     this.state.isRunning = true
     this.state.lastActivity = new Date()
 
+    // Start CEO Brain for strategic intelligence
+    await ceoBrain.start()
+
     // Start core autonomous engine
     autonomousEngine.start()
 
@@ -83,6 +87,12 @@ export class MasterAutonomousController {
 
     // Start decision loop
     this.startDecisionLoop()
+
+    // Sync CEO Brain with our mode
+    ceoBrain.setRiskProfile(
+      this.state.mode === 'aggressive' || this.state.mode === 'god_mode' ? 'aggressive' :
+      this.state.mode === 'conservative' ? 'conservative' : 'moderate'
+    )
 
     // Announce activation
     soundEngine.vaultOpen()
@@ -112,6 +122,7 @@ export class MasterAutonomousController {
     }
 
     // Stop core systems
+    ceoBrain.stop()
     autonomousEngine.stop()
     miningEngine.stopAll()
     domainScanner.stopScanning()
@@ -125,8 +136,47 @@ export class MasterAutonomousController {
    */
   setMode(mode: AutonomousState['mode']): void {
     this.state.mode = mode
+    
+    // Sync CEO Brain risk profile with mode
+    ceoBrain.setRiskProfile(
+      mode === 'aggressive' || mode === 'god_mode' ? 'aggressive' :
+      mode === 'conservative' ? 'conservative' : 'moderate'
+    )
+    
     logger.info('AUTONOMOUS', `Mode changed to: ${mode}`)
     toast.success(`🤖 Mode: ${mode.toUpperCase()}`)
+  }
+
+  /**
+   * Get CEO Brain state for UI
+   */
+  getCEOBrainState() {
+    return ceoBrain.getState()
+  }
+
+  /**
+   * Evaluate acquisition through CEO Brain
+   */
+  async evaluateAcquisition(
+    domainName: string,
+    price: number,
+    estimatedValue: number,
+    metrics: Record<string, number>
+  ) {
+    return ceoBrain.evaluateAcquisition(domainName, price, estimatedValue, metrics)
+  }
+
+  /**
+   * Evaluate sale offer through CEO Brain
+   */
+  evaluateSaleOffer(
+    domainName: string,
+    purchasePrice: number,
+    currentValue: number,
+    offerPrice: number,
+    holdTime: number
+  ) {
+    return ceoBrain.evaluateSaleOffer(domainName, purchasePrice, currentValue, offerPrice, holdTime)
   }
 
   /**
@@ -160,15 +210,30 @@ export class MasterAutonomousController {
     try {
       const now = new Date()
 
+      // Get CEO Brain market assessment
+      const marketCondition = ceoBrain.getMarketCondition()
+      
+      // Adjust behavior based on CEO intelligence
+      if (marketCondition.phase === 'bear' && this.state.mode !== 'conservative') {
+        logger.info('AUTONOMOUS', '📊 CEO Brain advises caution - market conditions unfavorable')
+      } else if (marketCondition.phase === 'bull' && marketCondition.opportunity > 70) {
+        logger.info('AUTONOMOUS', '🚀 CEO Brain sees strong opportunity - increasing activity')
+      }
+
       // Simple autonomous actions
       await this.executeSimpleAutonomousActions()
+
+      // Update success rate from CEO Brain confidence
+      this.state.successRate = Math.round(
+        (this.state.successRate * 0.9) + (ceoBrain.getConfidenceIndex() * 0.1)
+      )
 
       this.state.lastActivity = now
       this.state.totalDecisions++
       this.notifyListeners()
 
-    } catch (error: any) {
-      logger.error('AUTONOMOUS', 'Decision cycle error', error)
+    } catch (error: unknown) {
+      logger.error('AUTONOMOUS', 'Decision cycle error', error as Error)
       this.state.healthScore = Math.max(0, this.state.healthScore - 5)
     }
   }

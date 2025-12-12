@@ -6,6 +6,7 @@
  */
 
 import { toast } from 'sonner'
+import { logger } from '@/lib/utils/logger'
 
 interface IntelligenceSource {
   name: string
@@ -84,7 +85,7 @@ async function monitorNotionPages(): Promise<string[]> {
  * Monitors all enabled sources
  */
 export async function runGodVision(): Promise<string[]> {
-  console.log('👁️  Running God Vision intelligence...')
+  logger.info('GOD_VISION', '👁️  Running God Vision intelligence...')
   
   const allDomains: string[] = []
   
@@ -110,8 +111,8 @@ export async function runGodVision(): Promise<string[]> {
       duration: 5000,
     })
     
-    console.log(`📊 God Vision found ${unique.length} domains:`)
-    unique.slice(0, 10).forEach(d => console.log(`  - ${d}`))
+    logger.info('GOD_VISION', `📊 God Vision found ${unique.length} domains:`)
+    unique.slice(0, 10).forEach(d => logger.info('GOD_VISION', `  - ${d}`))
   }
   
   return unique
@@ -121,13 +122,13 @@ export async function runGodVision(): Promise<string[]> {
  * START CONTINUOUS MONITORING
  */
 export function startGodVision(): void {
-  console.log('🚀 Starting God Vision intelligence engine...')
+  logger.info('GOD_VISION', '🚀 Starting God Vision intelligence engine...')
   
   // List enabled layers
   const enabled = INTELLIGENCE_LAYERS.filter(l => l.enabled)
-  console.log(`📡 Monitoring ${enabled.length} intelligence sources:`)
+  logger.info('GOD_VISION', `📡 Monitoring ${enabled.length} intelligence sources:`)
   enabled.forEach(l => {
-    console.log(`  ✓ ${l.name} (${l.difficulty}, ${l.expectedROI} ROI)`)
+    logger.info('GOD_VISION', `  ✓ ${l.name} (${l.difficulty}, ${l.expectedROI} ROI)`)
   })
   
   // Run every 10 minutes

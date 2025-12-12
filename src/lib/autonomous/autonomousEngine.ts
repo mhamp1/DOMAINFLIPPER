@@ -16,6 +16,8 @@ import { snipeDomainMultiRegistrar } from '@/lib/buy/multiRegistrarSniper'
 import { STRATEGIES, enableAllStrategies, getAllEnabledStrategies } from '@/lib/strategies/strategyDefinitions'
 import { generateId, sleep } from '@/lib/utils'
 import { soundEngine } from '@/lib/sounds/soundEffects'
+import { logger } from '@/lib/utils/logger'
+import { ceoBrain } from '@/lib/intelligence/CEOBrain'
 
 interface AutonomousConfig {
   enabled: boolean
@@ -101,9 +103,9 @@ export class AutonomousEngine {
     enableAllStrategies()
     const activeStrategies = getAllEnabledStrategies()
     
-    console.log('🚀 AUTONOMOUS EMPIRE STARTED')
-    console.log(`🎯 Running ${activeStrategies.length} strategies simultaneously:`)
-    activeStrategies.forEach(s => console.log(`   ✓ ${s.name} (budget: $${s.budgetPerDomain})`))
+    logger.info('AUTONOMOUS', '🚀 AUTONOMOUS EMPIRE STARTED')
+    logger.info('AUTONOMOUS', `🎯 Running ${activeStrategies.length} strategies simultaneously:`)
+    activeStrategies.forEach(s => logger.info('AUTONOMOUS', `   ✓ ${s.name} (budget: $${s.budgetPerDomain})`))
 
     // Start continuous scanning
     this.startContinuousScanning()
@@ -131,7 +133,7 @@ export class AutonomousEngine {
       clearInterval(this.scanInterval)
       this.scanInterval = null
     }
-    console.log('⏸️ AUTONOMOUS EMPIRE STOPPED')
+    logger.info('AUTONOMOUS', '⏸️ AUTONOMOUS EMPIRE STOPPED')
   }
 
   /**
@@ -143,7 +145,7 @@ export class AutonomousEngine {
     this.scanInterval = window.setInterval(async () => {
       if (!this.isRunning) return
       if (this.dailyStats.domainsScanned >= this.config.dailyScanLimit) {
-        console.log('Daily scan limit reached')
+        logger.info('AUTONOMOUS', 'Daily scan limit reached')
         return
       }
 
@@ -160,7 +162,7 @@ export class AutonomousEngine {
    */
   private async scanAndBuy() {
     try {
-      console.log('🔍 Scanning all sources (120k+ domains)...')
+      logger.info('AUTONOMOUS', '🔍 Scanning all sources (120k+ domains)...')
       
       // Use multi-source scanner with pagination for memory safety
       const PAGE_SIZE = 1000
@@ -195,7 +197,7 @@ export class AutonomousEngine {
         return true
       })
 
-      console.log(`📊 Pre-filtered: ${preFiltered.length} domains (from ${scanResults.length})`)
+      logger.info('AUTONOMOUS', `📊 Pre-filtered: ${preFiltered.length} domains (from ${scanResults.length})`)
 
       // Map to domain objects
       const domainsToValuate = preFiltered.map(result => ({
@@ -215,7 +217,7 @@ export class AutonomousEngine {
 
       for (let i = 0; i < domainsToValuate.length; i += BATCH_SIZE) {
         if (this.dailyStats.totalSpent >= this.config.maxDailySpend) {
-          console.log('💰 Daily budget reached')
+          logger.info('AUTONOMOUS', '💰 Daily budget reached')
           break
         }
 
@@ -248,14 +250,14 @@ export class AutonomousEngine {
       // Auto-buy profitable domains
       for (const { domain, dropTime } of profitableDomains) {
         if (this.dailyStats.totalSpent >= this.config.maxDailySpend) {
-          console.log('💰 Daily budget reached')
+          logger.info('AUTONOMOUS', '💰 Daily budget reached')
           break
         }
         // @ts-ignore - Partial domain conversion handled internally
         await this.autoBuy(domain, dropTime)
       }
 
-      console.log(`✅ Processed ${scanResults.length} domains, found ${profitableDomains.length} profitable`)
+      logger.info('AUTONOMOUS', `✅ Processed ${scanResults.length} domains, found ${profitableDomains.length} profitable`)
     } catch (error) {
       console.error('Scan error:', error)
     }
@@ -297,7 +299,46 @@ export class AutonomousEngine {
     // Check budget
     if (currentBid > matchedStrategy.budgetPerDomain) return false
 
+    // CEO Brain strategic assessment - async evaluation handled in autoBuy
+    // Here we just do a quick market condition check
+    const marketCondition = ceoBrain.getMarketCondition()
+    if (marketCondition.phase === 'bear' && roi < this.config.minROI * 1.5) {
+      logger.info('CEO_DECISION', `🤔 CEO Brain cautions against ${domain.name} in bear market - ROI insufficient`)
+      return false
+    }
+
+    // Check CEO mood - if too cautious, require higher confidence
+    if (ceoBrain.getMoodIndex() < 40 && domain.aiScore < 92) {
+      logger.info('CEO_DECISION', `🤔 CEO Brain is cautious - skipping ${domain.name} (need higher AI score)`)
+      return false
+    }
+
     return true
+  }
+
+  /**
+   * Get CEO Brain approval for acquisition with full analysis
+   */
+  async getCEOApproval(domain: Domain, price: number): Promise<{ approved: boolean; maxBid: number; reasoning: string }> {
+    const metrics = {
+      aiScore: domain.aiScore || 0,
+      seoScore: (domain as unknown as { seoValue?: number }).seoValue ?? 50,
+      brandScore: (domain as unknown as { brandability?: number }).brandability ?? 50,
+      trendScore: 50,
+    }
+
+    const result = await ceoBrain.evaluateAcquisition(
+      domain.name,
+      price,
+      domain.estimatedValue,
+      metrics
+    )
+
+    return {
+      approved: result.approved,
+      maxBid: result.maxBid || price,
+      reasoning: result.reasoning,
+    }
   }
 
   /**
@@ -305,10 +346,23 @@ export class AutonomousEngine {
    */
   private async autoBuy(domain: Domain, dropTime?: Date) {
     try {
-      const maxBid = Math.min(
+      // Get CEO Brain approval for strategic alignment
+      const initialMaxBid = Math.min(
         domain.estimatedValue * 0.7, // Max 70% of estimated value
         this.config.maxDailySpend * 0.1 // Max 10% of daily budget per domain
       )
+
+      const ceoApproval = await this.getCEOApproval(domain, initialMaxBid)
+      
+      if (!ceoApproval.approved) {
+        logger.info('CEO_DECISION', `👔 CEO Brain REJECTED acquisition of ${domain.name}: ${ceoApproval.reasoning}`)
+        return
+      }
+
+      logger.info('CEO_DECISION', `✅ CEO Brain APPROVED acquisition of ${domain.name}: ${ceoApproval.reasoning}`)
+      
+      // Use CEO-approved max bid
+      const maxBid = ceoApproval.maxBid
 
       // Use multi-registrar sniper for 90%+ success rate
       const result = await snipeDomainMultiRegistrar(domain.name, maxBid, dropTime)
@@ -332,7 +386,7 @@ export class AutonomousEngine {
         }
 
         soundEngine.success()
-        console.log(`✅ AUTO-BOUGHT: ${domain.name} for ${result.bidAmount} via ${result.registrar}`)
+        logger.info('AUTONOMOUS', `✅ AUTO-BOUGHT: ${domain.name} for ${result.bidAmount} via ${result.registrar}`)
       }
     } catch (error) {
       console.error(`Failed to auto-buy ${domain.name}:`, error)
@@ -366,7 +420,7 @@ export class AutonomousEngine {
       owned.listedAt = new Date()
 
       this.dailyStats.domainsListed++
-      console.log(`📋 AUTO-LISTED: ${domainName} on ${listings.length} marketplaces`)
+      logger.info('AUTONOMOUS', `📋 AUTO-LISTED: ${domainName} on ${listings.length} marketplaces`)
     } catch (error) {
       console.error(`Failed to auto-list ${domainName}:`, error)
     }
@@ -422,7 +476,7 @@ export class AutonomousEngine {
    */
   private async withdrawProfits(amount: number) {
     // In production, integrate with payment processor (Stripe, PayPal, etc.)
-    console.log(`💰 AUTO-WITHDRAWING: $${amount}`)
+    logger.info('AUTONOMOUS', `💰 AUTO-WITHDRAWING: $${amount}`)
     this.dailyStats.totalEarned = 0
   }
 
@@ -430,8 +484,81 @@ export class AutonomousEngine {
    * Start offer negotiation for buyer contact system
    */
   private startOfferNegotiation() {
-    // This handles buyers who contact us directly about domains
-    // In production, this would integrate with email/contact forms
+    // Periodically check for and process offers on owned domains
+    setInterval(async () => {
+      if (!this.isRunning) return
+      await this.processIncomingOffers()
+    }, 60000) // Check every minute
+  }
+
+  /**
+   * Process incoming offers using CEO Brain intelligence
+   */
+  private async processIncomingOffers() {
+    for (const [domainName, ownedDomain] of this.ownedDomains) {
+      for (const offer of ownedDomain.offers) {
+        // Skip already processed offers (older than 1 hour)
+        const offerAge = Date.now() - offer.date.getTime()
+        if (offerAge > 3600000) continue
+
+        // Get CEO Brain evaluation
+        const holdTime = Date.now() - ownedDomain.purchaseDate.getTime()
+        const evaluation = ceoBrain.evaluateSaleOffer(
+          domainName,
+          ownedDomain.purchasePrice,
+          ownedDomain.domain.estimatedValue,
+          offer.amount,
+          holdTime
+        )
+
+        if (evaluation.accept) {
+          logger.info('CEO_DECISION', `✅ CEO Brain ACCEPTS offer of $${offer.amount} for ${domainName}: ${evaluation.reasoning}`)
+          soundEngine.vaultOpen()
+          // In production: trigger sale workflow
+          this.executeSale(domainName, offer.buyer, offer.amount)
+        } else if (evaluation.counterOffer) {
+          logger.info('CEO_DECISION', `💼 CEO Brain COUNTERS offer for ${domainName}: $${offer.amount} → $${evaluation.counterOffer.toFixed(2)} - ${evaluation.reasoning}`)
+          // In production: send counter-offer
+          this.sendCounterOffer(domainName, offer.buyer, evaluation.counterOffer)
+        } else {
+          logger.info('CEO_DECISION', `❌ CEO Brain REJECTS offer of $${offer.amount} for ${domainName}: ${evaluation.reasoning}`)
+        }
+      }
+    }
+  }
+
+  /**
+   * Execute a domain sale
+   */
+  private async executeSale(domainName: string, buyer: string, amount: number) {
+    logger.info('SALE', `🎉 Executing sale of ${domainName} to ${buyer} for $${amount}`)
+    
+    const ownedDomain = this.ownedDomains.get(domainName)
+    if (!ownedDomain) return
+
+    const profit = amount - ownedDomain.purchasePrice
+    const roi = (profit / ownedDomain.purchasePrice) * 100
+
+    this.dailyStats.domainsSold++
+    this.dailyStats.totalEarned += amount
+
+    logger.info('SALE', `💰 Sale completed: Profit $${profit.toFixed(2)} (${roi.toFixed(1)}% ROI)`)
+    
+    // Update CEO Brain performance metrics
+    ceoBrain.updatePerformanceMetrics({
+      totalROI: (ceoBrain.getState().performanceMetrics.totalROI + roi) / 2,
+    })
+
+    // Remove from owned domains
+    this.ownedDomains.delete(domainName)
+  }
+
+  /**
+   * Send a counter-offer to a buyer
+   */
+  private async sendCounterOffer(domainName: string, buyer: string, amount: number) {
+    logger.info('NEGOTIATION', `📨 Sending counter-offer of $${amount.toFixed(2)} to ${buyer} for ${domainName}`)
+    // In production: integrate with email/marketplace messaging
   }
 
   /**

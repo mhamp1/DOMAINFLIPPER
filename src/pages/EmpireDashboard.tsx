@@ -86,11 +86,12 @@ import { MiningDashboard } from '@/components/miners'
 import NegotiationManager from '@/components/production/NegotiationManager'
 import { AdvancedAnalyticsDashboard } from '@/components/analytics/AdvancedAnalyticsDashboard'
 import { AutonomousEmpireControl } from '@/components/autonomy/AutonomousEmpireControl'
+import { CEOBrainPanel } from '@/components/intelligence/CEOBrainPanel'
 import { supabaseDB } from '@/lib/database/supabase'
 import type { Domain } from '@/types/domain'
 
 // Tab types
-type TabType = 'empire' | 'vault' | 'strategies' | 'intelligence' | 'portfolio' | 'revenue' | 'risk' | 'finance' | 'swarm' | 'control' | 'production' | 'negotiations' | 'config' | 'miners' | 'analytics' | 'autonomous'
+type TabType = 'empire' | 'vault' | 'strategies' | 'intelligence' | 'portfolio' | 'revenue' | 'risk' | 'finance' | 'swarm' | 'control' | 'production' | 'negotiations' | 'config' | 'miners' | 'analytics' | 'autonomous' | 'ceo'
 
 // API Status Bar Component - Updates automatically from MasterConfig
 function APIStatusBar() {
@@ -622,6 +623,7 @@ export default function EmpireDashboard() {
           <div className="flex gap-2 min-w-max py-2">
             {[
               { id: 'empire', label: 'Empire', icon: Lightning },
+              { id: 'ceo', label: '👔 CEO Brain', icon: Crown },
               { id: 'miners', label: '⛏️ Miners', icon: Sparkle },
               { id: 'analytics', label: '📊 Analytics', icon: ChartBar },
               { id: 'autonomous', label: '🤖 Autonomous', icon: Cpu },
@@ -2004,6 +2006,17 @@ export default function EmpireDashboard() {
               exit={{ opacity: 0, y: -10 }}
             >
               <AutonomousEmpireControl />
+            </motion.div>
+          )}
+
+          {activeTab === 'ceo' && (
+            <motion.div
+              key="ceo"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              <CEOBrainPanel />
             </motion.div>
           )}
         </AnimatePresence>

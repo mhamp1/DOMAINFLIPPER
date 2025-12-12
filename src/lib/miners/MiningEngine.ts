@@ -9,6 +9,7 @@ import { namecheapMarketMiner } from './NamecheapMarketMiner'
 import { dynadotCloseoutsMiner } from './DynadotCloseoutsMiner'
 import { expiredDomainsMiner } from './ExpiredDomainsMiner'
 import { miningCache } from './MiningCache'
+import { logger } from '@/lib/utils/logger'
 import type { 
   MinedDomain, 
   MinerSource, 
@@ -64,7 +65,7 @@ class MiningEngine {
   startAll(): void {
     if (this.isRunning) return
 
-    console.log('🚀 MINING EMPIRE STARTING — All miners launching...')
+    logger.info('MINING_ENGINE', '🚀 MINING EMPIRE STARTING — All miners launching...')
     this.isRunning = true
 
     Object.values(this.miners).forEach(miner => miner.start())
@@ -78,7 +79,7 @@ class MiningEngine {
   stopAll(): void {
     if (!this.isRunning) return
 
-    console.log('⏹️ MINING EMPIRE PAUSED — All miners stopping...')
+    logger.info('MINING_ENGINE', '⏹️ MINING EMPIRE PAUSED — All miners stopping...')
     this.isRunning = false
 
     Object.values(this.miners).forEach(miner => miner.stop())
@@ -125,7 +126,7 @@ class MiningEngine {
    * Run mining cycle for all sources
    */
   async runAllCycles(): Promise<MinedDomain[]> {
-    console.log('⛏️ Running manual mining cycle for all sources...')
+    logger.info('MINING_ENGINE', '⛏️ Running manual mining cycle for all sources...')
     
     const results = await Promise.all(
       Object.values(this.miners).map(miner => miner.runMiningCycle())
@@ -134,7 +135,7 @@ class MiningEngine {
     const allDomains = results.flat()
     this.emitStatsUpdate()
 
-    console.log(`✅ Manual cycle complete: ${allDomains.length} gems found`)
+    logger.info('MINING_ENGINE', `✅ Manual cycle complete: ${allDomains.length} gems found`)
     return allDomains
   }
 

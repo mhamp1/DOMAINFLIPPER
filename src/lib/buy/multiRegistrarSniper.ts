@@ -10,6 +10,7 @@ import { createDropCatchClient } from '@/lib/api/dropcatch'
 import { toast } from 'sonner'
 import confetti from 'canvas-confetti'
 import { soundEngine } from '@/lib/sounds/soundEffects'
+import { logger } from '@/lib/utils/logger'
 
 interface SnipeResult {
   success: boolean
@@ -28,7 +29,7 @@ export async function snipeDomainMultiRegistrar(
   maxBid: number,
   dropTime?: Date
 ): Promise<SnipeResult | null> {
-  console.log(`🎯 MULTI-REGISTRAR SNIPE: ${domain} for $${maxBid}`)
+  logger.info('MULTI_SNIPER', `🎯 MULTI-REGISTRAR SNIPE: ${domain} for $${maxBid}`)
 
   const registrars = [
     { name: 'godaddy', fn: snipeGoDaddy },
@@ -74,7 +75,7 @@ export async function snipeDomainMultiRegistrar(
         duration: 5000,
       })
 
-      console.log(`✅ SNIPE SUCCESS: ${domain} via ${success.registrar}`)
+      logger.info('MULTI_SNIPER', `✅ SNIPE SUCCESS: ${domain} via ${success.registrar}`)
       return success
     }
   }

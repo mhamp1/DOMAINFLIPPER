@@ -606,9 +606,9 @@ class EmpireBrain {
     const logPrefix = `[${timestamp}] [EMPIRE]`
     
     if (domain) {
-      console.log(`${logPrefix} [${domain}] ${message}`, data || '')
+      logger.info('EMPIRE_BRAIN', `${logPrefix} [${domain}] ${message}`, data || '')
     } else {
-      console.log(`${logPrefix} ${message}`, data || '')
+      logger.info('EMPIRE_BRAIN', `${logPrefix} ${message}`, data || '')
     }
 
     // Add to activity log

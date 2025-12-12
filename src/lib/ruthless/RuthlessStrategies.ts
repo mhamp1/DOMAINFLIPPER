@@ -18,6 +18,7 @@
  */
 
 import { toast } from 'sonner'
+import { logger } from '@/lib/utils/logger'
 
 interface PreemptiveTarget {
   domain: string
@@ -245,7 +246,7 @@ async function checkDomainExpiring(domain: string): Promise<boolean> {
  * Runs all strategies in parallel
  */
 export async function runRuthlessMonitoring(): Promise<PreemptiveTarget[]> {
-  console.log('🔍 Running ruthless monitoring...')
+  logger.info('RUTHLESS', '🔍 Running ruthless monitoring...')
   
   const [
     kickstarter,
@@ -286,16 +287,16 @@ export async function runRuthlessMonitoring(): Promise<PreemptiveTarget[]> {
  * START CONTINUOUS MONITORING
  */
 export function startRuthlessMonitoring(): void {
-  console.log('🚀 Starting ruthless monitoring engine...')
+  logger.info('RUTHLESS', '🚀 Starting ruthless monitoring engine...')
   
   // Run every minute
   setInterval(async () => {
     const targets = await runRuthlessMonitoring()
     
     if (targets.length > 0) {
-      console.log(`📊 Found ${targets.length} ruthless targets:`)
+      logger.info('RUTHLESS', `📊 Found ${targets.length} ruthless targets:`)
       targets.slice(0, 5).forEach(t => {
-        console.log(`  - ${t.domain} (${t.source}, ${t.expectedROI}x ROI)`)
+        logger.info('RUTHLESS', `  - ${t.domain} (${t.source}, ${t.expectedROI}x ROI)`)
       })
     }
   }, 60000)

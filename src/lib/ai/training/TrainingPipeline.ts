@@ -4,6 +4,7 @@
  */
 
 import { toast } from 'sonner'
+import { logger } from '@/lib/utils/logger'
 
 interface TrainingData {
   domain: string
@@ -22,12 +23,12 @@ export class TrainingPipeline {
    */
   async retrainDaily() {
     try {
-      console.log('🧠 Starting daily AI retrain...')
+      logger.info('TRAINING', '🧠 Starting daily AI retrain...')
       
       // In production: Pull from NameBio API
       const newSales = await this.fetchNewSales()
       
-      console.log(`�� Training on ${newSales.length} new domain sales`)
+      logger.info('TRAINING', `📊 Training on ${newSales.length} new domain sales`)
       
       // Simulate training
       await new Promise(resolve => setTimeout(resolve, 2000))
@@ -39,7 +40,7 @@ export class TrainingPipeline {
         duration: 5000,
       })
       
-      console.log(`✅ Model updated: ${this.modelVersion}`)
+      logger.info('TRAINING', `✅ Model updated: ${this.modelVersion}`)
     } catch (error) {
       console.error('Training failed:', error)
     }
@@ -53,7 +54,7 @@ export class TrainingPipeline {
     const profit = soldFor - boughtFor
     const roi = profit / boughtFor
     
-    console.log(`📈 Learning from flip: ${domain} → ${roi.toFixed(1)}x ROI`)
+    logger.info('TRAINING', `📈 Learning from flip: ${domain} → ${roi.toFixed(1)}x ROI`)
     
     this.trainingQueue.push({
       domain,
@@ -75,7 +76,7 @@ export class TrainingPipeline {
   }
 
   private async incrementalTrain() {
-    console.log('🔄 Incremental training on recent flips...')
+    logger.info('TRAINING', '🔄 Incremental training on recent flips...')
     // Implement incremental training logic
   }
 
@@ -92,7 +93,7 @@ export class TrainingPipeline {
       setInterval(() => this.retrainDaily(), 24 * 60 * 60 * 1000)
     }, msUntil4AM)
     
-    console.log(`🕐 Daily training scheduled (next run in ${(msUntil4AM / 1000 / 60 / 60).toFixed(1)}h)`)
+    logger.info('TRAINING', `🕐 Daily training scheduled (next run in ${(msUntil4AM / 1000 / 60 / 60).toFixed(1)}h)`)
   }
 
   private getMsUntil4AM(): number {

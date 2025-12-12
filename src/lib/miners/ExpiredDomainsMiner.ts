@@ -6,6 +6,7 @@
 
 import { BaseMiner } from './BaseMiner'
 import type { CloseoutDomain, MinerSource } from './types'
+import { logger } from '@/lib/utils/logger'
 
 export class ExpiredDomainsMiner extends BaseMiner {
   private readonly EXPIREDDOMAINS_URL = 'https://www.expireddomains.net/deleted-com-domains/'
@@ -52,7 +53,7 @@ export class ExpiredDomainsMiner extends BaseMiner {
         allDomains.push(...domcop.value)
       }
 
-      console.log(`📊 Expired domains total: ${allDomains.length}`)
+      logger.info('EXPIRED_DOMAINS_MINER', `📊 Expired domains total: ${allDomains.length}`)
       
     } catch (error: any) {
       console.error('Expired domains mining error:', error.message)
