@@ -64,13 +64,13 @@ class SpendGuardsService {
 
   constructor() {
     this.limits = {
-      dailyBudget: 50,
+      dailyBudget: 100, // Increased from 50 to allow meaningful operations
       perDomainCap: 100,
       maxPortfolioRisk: 20, // 20% max at risk
       maxSingleBuyPercent: 10, // 10% max per buy
       cumulativeLossCap: -100, // Stop at $100 loss
-      weeklyBudget: 250,
-      monthlyBudget: 800,
+      weeklyBudget: 350,
+      monthlyBudget: 1000,
     }
 
     this.loadState()

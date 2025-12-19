@@ -13,6 +13,8 @@ export interface SedoConfig {
   username?: string
   password?: string
   apiKey?: string
+  partnerId?: string    // Sedo Partner/Campaign ID for affiliate tracking
+  partnerName?: string  // Campaign name (e.g., "DomainFlipper")
 }
 
 export interface SedoDomain {
@@ -205,10 +207,43 @@ export const getSedoAPI = (config?: SedoConfig): SedoAPI => {
       username: import.meta.env.VITE_SEDO_USERNAME,
       password: import.meta.env.VITE_SEDO_PASSWORD,
       apiKey: import.meta.env.VITE_SEDO_API_KEY,
+      partnerId: import.meta.env.VITE_SEDO_PARTNER_ID,
+      partnerName: import.meta.env.VITE_SEDO_PARTNER_NAME || 'DomainFlipper',
     }
     sedoAPIInstance = new SedoAPI(config || envConfig)
   }
   return sedoAPIInstance
+}
+
+/**
+ * Generate Sedo affiliate link with partner tracking
+ * Uses Campaign ID for referral credit
+ */
+export const generateSedoAffiliateLink = (options?: { 
+  partnerId?: string,
+  searchTerm?: string,
+}): string => {
+  const partnerId = options?.partnerId || import.meta.env.VITE_SEDO_PARTNER_ID || '335853'
+  const baseUrl = 'https://sedo.com/'
+  const params = new URLSearchParams({
+    language: 'us',
+    campaignId: partnerId,
+  })
+  
+  if (options?.searchTerm) {
+    params.set('keyword', options.searchTerm)
+    return `${baseUrl}search/?${params.toString()}`
+  }
+  
+  return `${baseUrl}?${params.toString()}`
+}
+
+/**
+ * Generate Sedo domain link with partner tracking
+ */
+export const generateSedoDomainLink = (domain: string, partnerId?: string): string => {
+  const pid = partnerId || import.meta.env.VITE_SEDO_PARTNER_ID || '335853'
+  return `https://sedo.com/search/details/?domain=${encodeURIComponent(domain)}&campaignId=${pid}&language=us`
 }
 
 export const sedoAPI = getSedoAPI()

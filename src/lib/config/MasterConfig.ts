@@ -169,22 +169,24 @@ export interface MasterConfigData {
 
 /**
  * Get credentials from environment variables
- * WARNING: Returns empty strings if not configured - caller must validate!
+ * ALWAYS PRIORITIZES ENV VARS FROM VERCEL
+ * Supports both naming conventions (VITE_GODADDY_KEY and VITE_GODADDY_API_KEY)
  */
 function getEnvCredentials() {
   return {
     godaddy: {
-      apiKey: import.meta.env.VITE_GODADDY_API_KEY || '',
-      apiSecret: import.meta.env.VITE_GODADDY_API_SECRET || '',
+      // Support both naming conventions
+      apiKey: import.meta.env.VITE_GODADDY_KEY || import.meta.env.VITE_GODADDY_API_KEY || '',
+      apiSecret: import.meta.env.VITE_GODADDY_SECRET || import.meta.env.VITE_GODADDY_API_SECRET || '',
     },
     supabase: {
       url: import.meta.env.VITE_SUPABASE_URL || '',
       anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || '',
     },
     namecheap: {
-      apiUser: import.meta.env.VITE_NAMECHEAP_API_USER || '',
-      apiKey: import.meta.env.VITE_NAMECHEAP_API_KEY || '',
-      clientIp: import.meta.env.VITE_NAMECHEAP_CLIENT_IP || '',
+      apiUser: import.meta.env.VITE_NAMECHEAP_API_USER || import.meta.env.VITE_NAMECHEAP_USER || '',
+      apiKey: import.meta.env.VITE_NAMECHEAP_API_KEY || import.meta.env.VITE_NAMECHEAP_KEY || '',
+      clientIp: import.meta.env.VITE_NAMECHEAP_CLIENT_IP || import.meta.env.VITE_NAMECHEAP_IP || '',
     },
     google: {
       apiKey: import.meta.env.VITE_GOOGLE_API_KEY || '',
@@ -208,6 +210,24 @@ function getEnvCredentials() {
       ethMainnet: import.meta.env.VITE_ALCHEMY_ETH_MAINNET || '',
       solanaMainnet: import.meta.env.VITE_ALCHEMY_SOLANA_MAINNET || '',
       nftApi: import.meta.env.VITE_ALCHEMY_NFT_API || '',
+    },
+    // Additional APIs that read directly from env vars
+    escrow: {
+      apiKey: import.meta.env.VITE_ESCROW_API_KEY || '',
+      email: import.meta.env.VITE_ESCROW_EMAIL || import.meta.env.VITE_SELLER_EMAIL || '',
+      sandbox: import.meta.env.VITE_ESCROW_SANDBOX === 'true',
+    },
+    namebright: {
+      clientId: import.meta.env.VITE_NAMEBRIGHT_CLIENT_ID || '',
+      clientSecret: import.meta.env.VITE_NAMEBRIGHT_CLIENT_SECRET || '',
+    },
+    dropcatch: {
+      clientId: import.meta.env.VITE_DROPCATCH_CLIENT_ID || import.meta.env.VITE_DROPCATCH_API_KEY || '',
+      clientSecret: import.meta.env.VITE_DROPCATCH_CLIENT_SECRET || import.meta.env.VITE_DROPCATCH_API_SECRET || '',
+    },
+    sedo: {
+      partnerId: import.meta.env.VITE_SEDO_PARTNER_ID || '',
+      partnerName: import.meta.env.VITE_SEDO_PARTNER_NAME || 'DomainFlipper',
     },
   }
 }
@@ -376,13 +396,14 @@ class MasterConfig {
 
   /**
    * Load credentials from environment variables
-   * Called on initialization to populate config from env vars
+   * ALWAYS PRIORITIZES ENV VARS OVER LOCALSTORAGE
+   * This ensures Vercel environment variables are always used
    */
   private ensureAllCredentials(): void {
     const envCreds = getEnvCredentials()
     
-    // 1. GoDaddy - Load from env vars if available
-    if (envCreds.godaddy.apiKey && !this.config.godaddy?.apiKey) {
+    // 1. GoDaddy - ENV VARS ALWAYS WIN
+    if (envCreds.godaddy.apiKey) {
       this.config.godaddy = { 
         apiKey: envCreds.godaddy.apiKey,
         apiSecret: envCreds.godaddy.apiSecret,
@@ -390,8 +411,8 @@ class MasterConfig {
       }
     }
 
-    // 2. Namecheap - Load from env vars if available
-    if (envCreds.namecheap.apiKey && !this.config.namecheap?.apiKey) {
+    // 2. Namecheap - ENV VARS ALWAYS WIN
+    if (envCreds.namecheap.apiKey) {
       this.config.namecheap = {
         apiUser: envCreds.namecheap.apiUser,
         apiKey: envCreds.namecheap.apiKey,
@@ -399,53 +420,68 @@ class MasterConfig {
       }
     }
 
-    // 3. Supabase - Load from env vars if available
-    if (envCreds.supabase.url && !this.config.supabase?.url) {
+    // 3. Supabase - ENV VARS ALWAYS WIN
+    if (envCreds.supabase.url) {
       this.config.supabase = {
         url: envCreds.supabase.url,
         anonKey: envCreds.supabase.anonKey,
       }
     }
 
-    // 4. Google - Load from env vars if available
-    if (envCreds.google.apiKey && !this.config.google?.apiKey) {
+    // 4. Google - ENV VARS ALWAYS WIN
+    if (envCreds.google.apiKey) {
       this.config.google = { apiKey: envCreds.google.apiKey }
     }
 
-    // 5. Twitter/X - Load from env vars if available
-    if (envCreds.twitter.bearerToken && !this.config.twitter?.bearerToken) {
+    // 5. Twitter/X - ENV VARS ALWAYS WIN
+    if (envCreds.twitter.bearerToken) {
       this.config.twitter = { bearerToken: envCreds.twitter.bearerToken }
     }
 
-    // 6. USPTO - Load from env vars if available
-    if (envCreds.uspto.apiKey && !this.config.uspto?.apiKey) {
+    // 6. USPTO - ENV VARS ALWAYS WIN
+    if (envCreds.uspto.apiKey) {
       this.config.uspto = { apiKey: envCreds.uspto.apiKey }
     }
 
-    // 7. Stripe - Load from env vars if available
-    if (envCreds.stripe.publishableKey && !this.config.stripe?.publishableKey) {
+    // 7. Stripe - ENV VARS ALWAYS WIN
+    if (envCreds.stripe.publishableKey) {
       this.config.stripe = {
         publishableKey: envCreds.stripe.publishableKey,
         secretKey: envCreds.stripe.secretKey,
       }
     }
 
-    // 8. Infura - Load from env vars if available
-    if (envCreds.infura.projectId && !this.config.infura?.projectId) {
+    // 8. Infura - ENV VARS ALWAYS WIN
+    if (envCreds.infura.projectId) {
       this.config.infura = {
         projectId: envCreds.infura.projectId,
         mainnetUrl: envCreds.infura.mainnetUrl,
       }
     }
 
-    // 9. Alchemy - Load from env vars if available
-    if (envCreds.alchemy.apiKey && !this.config.alchemy?.apiKey) {
+    // 9. Alchemy - ENV VARS ALWAYS WIN
+    if (envCreds.alchemy.apiKey) {
       this.config.alchemy = {
         apiKey: envCreds.alchemy.apiKey,
         ethMainnet: envCreds.alchemy.ethMainnet,
         solanaMainnet: envCreds.alchemy.solanaMainnet,
         nftApi: envCreds.alchemy.nftApi,
       }
+    }
+
+    // Log which env vars were loaded
+    const loadedEnvs: string[] = []
+    if (envCreds.godaddy.apiKey) loadedEnvs.push('GoDaddy')
+    if (envCreds.namecheap.apiKey) loadedEnvs.push('Namecheap')
+    if (envCreds.supabase.url) loadedEnvs.push('Supabase')
+    if (envCreds.escrow.apiKey) loadedEnvs.push('Escrow')
+    if (envCreds.namebright.clientId) loadedEnvs.push('NameBright')
+    if (envCreds.dropcatch.clientId) loadedEnvs.push('DropCatch')
+    if (envCreds.sedo.partnerId) loadedEnvs.push('Sedo')
+    if (envCreds.uspto.apiKey) loadedEnvs.push('USPTO')
+    
+    if (loadedEnvs.length > 0) {
+      console.log('🔐 Auto-loaded from Vercel env vars:', loadedEnvs.join(', '))
     }
 
     // Save to localStorage so they persist

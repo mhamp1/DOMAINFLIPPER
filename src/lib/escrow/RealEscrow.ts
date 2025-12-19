@@ -83,6 +83,18 @@ class RealEscrow {
     }
   }
 
+  /**
+   * Generate Basic Auth header for Escrow.com API
+   * Escrow.com uses Basic Auth with email:api_key
+   */
+  private getAuthHeader(): string {
+    const creds = this.getCredentials()
+    // Escrow.com API accepts email:api_key for Basic Auth
+    const authString = `${creds.email}:${creds.apiKey}`
+    const base64Auth = btoa(authString)
+    return `Basic ${base64Auth}`
+  }
+
   // ==================== TRANSACTION CREATION ====================
 
   /**
@@ -114,10 +126,11 @@ class RealEscrow {
     try {
       const result = await circuitBreaker.execute('escrow_api', async () => {
         // Create the transaction via Escrow.com API
+        // Uses Basic Auth with email:api_key
         const response = await fetch(`${this.apiBase}/transaction`, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${credentials.apiKey}`,
+            'Authorization': this.getAuthHeader(),
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
@@ -280,11 +293,10 @@ class RealEscrow {
    * Get transaction status from Escrow.com
    */
   async getTransactionStatus(escrowId: string): Promise<EscrowTransaction['status']> {
-    const credentials = this.getCredentials()
-    
     const response = await fetch(`${this.apiBase}/transaction/${escrowId}`, {
       headers: {
-        'Authorization': `Bearer ${credentials.apiKey}`,
+        'Authorization': this.getAuthHeader(),
+        'Content-Type': 'application/json',
       },
     })
 
@@ -369,7 +381,7 @@ class RealEscrow {
       const response = await fetch(`${this.apiBase}/transaction/${transaction.escrowId}/accept`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${credentials.apiKey}`,
+          'Authorization': this.getAuthHeader(),
           'Content-Type': 'application/json',
         },
       })
@@ -400,7 +412,7 @@ class RealEscrow {
       const response = await fetch(`${this.apiBase}/transaction/${transaction.escrowId}/ship`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${credentials.apiKey}`,
+          'Authorization': this.getAuthHeader(),
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({

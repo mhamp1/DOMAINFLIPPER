@@ -89,19 +89,25 @@ export { healthMonitor, type ServiceHealth, type SystemHealth } from '@/lib/heal
 // Valuation
 export { valuationEngine } from '@/lib/ai/valuationEngine'
 
-// Autonomous operations
-export { autonomousBrain } from '@/lib/autonomy/AutonomousBrain'
+// Autonomous operations (ProductionBrain is the canonical implementation)
+export { productionBrain, type BrainState, type ProductionConfig } from '@/lib/autonomy/ProductionBrain'
 export { empireEngine } from '@/lib/autonomy/EmpireEngine'
+
+// Legacy export for backwards compatibility (deprecated - use productionBrain)
+export { autonomousBrain } from '@/lib/autonomy/AutonomousBrain'
 
 // Risk management
 export { quantumShield } from '@/lib/risk/QuantumShield'
 
 // ==================== API EXPORTS ====================
 
-// GoDaddy
+// GoDaddy - Real production API
+export { godaddyAPI } from '@/lib/api/godaddyReal'
+// Legacy GoDaddy exports (deprecated - use godaddyAPI)
 export { GoDaddyAPI, createGoDaddyClient } from '@/lib/api/godaddy'
 
-// Namecheap
+// Namecheap - Real production API
+export { namecheapAPI } from '@/lib/api/namecheapReal'
 export { NamecheapAPI, createNamecheapClient } from '@/lib/api/namecheapReal'
 
 // ==================== CONFIGURATION ====================

@@ -1,11 +1,24 @@
 /**
- * Autonomy module exports
+ * Autonomy Module Index
+ * 
+ * CANONICAL IMPLEMENTATION: productionBrain
+ * This is the main production-ready autonomous engine that should be used
+ * for all domain acquisition, listing, and sale operations.
+ * 
+ * ARCHITECTURE:
+ * - ProductionBrain: Main execution engine with full safety features
+ * - ThoughtStream: Real-time reasoning visualization
+ * - TotalAutonomy: High-level autonomy coordination
+ * - EmpireEngine: Empire state management
+ * 
+ * DEPRECATED (for backwards compatibility only):
+ * - AutonomousBrain: Older implementation, use productionBrain instead
  */
 
-export { autonomousBrain, type BrainStats } from './AutonomousBrain'
+// CANONICAL: Production-ready brain with full infrastructure
 export { productionBrain, type BrainState, type ProductionConfig } from './ProductionBrain'
-export { totalAutonomy } from './TotalAutonomy'
-export { empireEngine } from './EmpireEngine'
+
+// Thought visualization
 export { 
   thoughtStream, 
   think, 
@@ -15,3 +28,10 @@ export {
   type ThoughtType, 
   type ThinkingSession 
 } from './ThoughtStream'
+
+// Autonomy coordination
+export { totalAutonomy } from './TotalAutonomy'
+export { empireEngine } from './EmpireEngine'
+
+// DEPRECATED: Legacy brain (use productionBrain instead)
+export { autonomousBrain, type BrainStats } from './AutonomousBrain'

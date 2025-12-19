@@ -85,19 +85,112 @@ You'll need to provide this in the UI:
 
 ### 4. **DropCatch API** (Optional - for drop-catching)
 
-**Get your keys:**
+**Authentication:** OAuth2 Token-Based
+
+**Get your credentials:**
 1. Go to https://www.dropcatch.com
-2. Sign up for account
-3. API Access → Generate keys
+2. Sign up / Login to your account
+3. Navigate to **API Client Management** (Settings → API)
+4. Click **Create New API Client**
+5. Name: `DomainFlipper`
+6. **IMPORTANT:** Save the password immediately - it will NOT be shown again!
+7. Copy your **Client ID** and **Client Secret** (password)
 
 **Add to `.env`:**
 ```bash
-VITE_DROPCATCH_API_KEY=your_dropcatch_key
-VITE_DROPCATCH_API_SECRET=your_dropcatch_secret
+VITE_DROPCATCH_CLIENT_ID=your_client_id
+VITE_DROPCATCH_CLIENT_SECRET=your_client_password
+VITE_DROPCATCH_SANDBOX=false
 ```
 
-**Rate limit:** 1,000 calls/day  
-**Cost:** Varies by plan
+**How Auth Works:**
+1. Bot POSTs to `https://api.dropcatch.com/authorize` with clientId + clientSecret
+2. Receives JWT token (expires in ~15 minutes)
+3. Uses `Authorization: Bearer {token}` for all V2 API calls
+4. Auto-refreshes tokens when expired
+
+**API Docs:** https://api.dropcatch.com/documentation
+
+**Rate limit:** Per-endpoint limits (see docs)  
+**Cost:** Varies by plan (backorder credits)
+
+**Note:** Only V2 endpoints are supported. V1 is deprecated.
+
+---
+
+### 4a. **Escrow.com API** (Recommended - for secure transfers)
+
+**Authentication:** Basic Auth with email:api_key
+
+**Get your API key:**
+1. Go to https://www.escrow.com
+2. Sign up / Login
+3. Navigate to **API Settings** → **Create API Key**
+4. Name: `DomainFlipper`
+5. Copy your API key
+
+**Add to `.env`:**
+```bash
+VITE_ESCROW_API_KEY=your_escrow_api_key
+VITE_ESCROW_EMAIL=your_escrow_email@example.com
+VITE_ESCROW_SANDBOX=false
+```
+
+**How Auth Works:**
+- Uses HTTP Basic Auth: `email:api_key`
+- Example header: `Authorization: Basic base64(email:api_key)`
+
+**API Endpoint:** `https://api.escrow.com/2017-09-01/`
+
+**Example Transaction:**
+```json
+{
+  "parties": [
+    { "role": "buyer", "customer": "buyer@email.com" },
+    { "role": "seller", "customer": "your@email.com" }
+  ],
+  "items": [{
+    "title": "example.com",
+    "type": "domain_name",
+    "inspection_period": 259200,
+    "schedule": [{ "amount": 5000 }]
+  }],
+  "currency": "usd"
+}
+```
+
+**Why:** Secure payment handling, buyer protection, automated escrow flow  
+**Cost:** 0.89% - 3.25% fee (paid by buyer or split)
+
+---
+
+### 4b. **Sedo Partner Program** (For competitive pricing & affiliate tracking)
+
+**Note:** Sedo does NOT have a public selling API for automated listings.
+
+**What you get:**
+- Partner/Campaign ID for affiliate tracking
+- Referral credit when users buy through your links
+- Market data scraping for competitive pricing
+
+**Get your Partner ID:**
+1. Go to https://sedo.com/partner
+2. Sign up for Partner Program
+3. Create a campaign named `DomainFlipper`
+4. Copy your **Campaign ID**
+
+**Add to `.env`:**
+```bash
+VITE_SEDO_PARTNER_ID=335853
+VITE_SEDO_PARTNER_NAME=DomainFlipper
+```
+
+**Usage:**
+- Generates affiliate links with tracking
+- Scrapes similar domain prices for competitive listings
+- Links: `https://sedo.com/?language=us&campaignId=YOUR_ID`
+
+**Cost:** Free to join, commission on referred sales
 
 ---
 
@@ -335,6 +428,23 @@ VITE_ALCHEMY_NFT_API=https://eth-mainnet.g.alchemy.com/nft/v2/your_api_key
 
 ---
 
-**Last Updated: December 27, 2025**  
+**Last Updated: December 7, 2025**  
 **You're now ready to build your domain empire. Think virtual real estate. 🏛️**
+
+---
+
+## 🆘 API STATUS SUMMARY
+
+| API | Public API Available | Auth Method | Status |
+|-----|---------------------|-------------|--------|
+| GoDaddy | ✅ Yes | API Key + Secret | Ready |
+| Namecheap | ✅ Yes | API Key + IP Whitelist | Ready |
+| DropCatch | ✅ Yes | OAuth2 Token | Ready |
+| Escrow.com | ✅ Yes | Basic Auth (email:api_key) | Ready |
+| USPTO | ✅ Yes | API Key | Ready |
+| Sedo | ⚠️ Partial | Partner ID only | Affiliate tracking only |
+| Afternic | ❌ No | N/A | Use GoDaddy distribution |
+| DAN.com | ❌ Discontinued | N/A | Migrated to Afternic |
+| Flippa | ❌ No | N/A | Manual listing only |
+| NameBright | ⏳ Pending | API Key | Requires approval |
 

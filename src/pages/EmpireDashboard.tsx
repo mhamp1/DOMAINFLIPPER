@@ -40,8 +40,8 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { empireEngine } from '@/lib/autonomy/EmpireEngine'
-import { autonomousBrain } from '@/lib/autonomy/AutonomousBrain'
 import { productionBrain, type BrainState } from '@/lib/autonomy/ProductionBrain'
+// Note: autonomousBrain deprecated - use productionBrain for all operations
 import { totalAutonomy } from '@/lib/autonomy/TotalAutonomy'
 import { autoFundEngine } from '@/lib/funding/AutoFundEngine'
 import { compoundEngine } from '@/lib/empire/CompoundEngine'
@@ -87,6 +87,7 @@ import NegotiationManager from '@/components/production/NegotiationManager'
 import { AdvancedAnalyticsDashboard } from '@/components/analytics/AdvancedAnalyticsDashboard'
 import { AutonomousEmpireControl } from '@/components/autonomy/AutonomousEmpireControl'
 import { CEOBrainPanel } from '@/components/intelligence/CEOBrainPanel'
+import { IntelligencePanel } from '@/components/intelligence/IntelligencePanel'
 import { supabaseDB } from '@/lib/database/supabase'
 import type { Domain } from '@/types/domain'
 
@@ -919,6 +920,11 @@ export default function EmpireDashboard() {
                 maxHeight="400px"
                 showControls={true}
               />
+
+              {/* Intelligence Core Panel - Learning, Market Analysis, Evolution */}
+              <div className="mb-6">
+                <IntelligencePanel />
+              </div>
 
               {/* Activity Log Viewer - Detailed Log with Domain Names */}
               <Card className="card-obsidian-premium p-6">

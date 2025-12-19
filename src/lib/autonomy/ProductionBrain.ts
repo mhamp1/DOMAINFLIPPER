@@ -49,6 +49,12 @@ import { autoSeller } from '@/lib/empire/AutoSeller'
 // Thought stream for visible reasoning
 import { thoughtStream } from '@/lib/autonomy/ThoughtStream'
 
+// Intelligence Core - Learning, Market Analysis, Strategic Priorities
+import { intelligenceCore, type MarketPhase, type MoodType } from '@/lib/intelligence/IntelligenceCore'
+
+// Mining Engine - All domain miners
+import { miningEngine } from '@/lib/miners/MiningEngine'
+
 // ==================== TYPES ====================
 
 export interface ProductionConfig {
@@ -136,6 +142,14 @@ export interface BrainState {
   // Thoughts (for UI)
   thoughts: string[]
   mood: 'dormant' | 'scanning' | 'hunting' | 'acquiring' | 'listing' | 'negotiating' | 'triumphant' | 'cautious'
+  
+  // Intelligence metrics (from IntelligenceCore)
+  intelligence: number          // 0-100: Overall intelligence score
+  evolutionLevel: number        // 1-5: Evolution tier
+  marketPhase: MarketPhase      // Current market condition
+  riskMultiplier: number        // Dynamic risk adjustment
+  lessonsLearned: number        // Total lessons accumulated
+  competitorsTracked: number    // Tracked competitor profiles
 }
 
 export interface AcquisitionCandidate {
@@ -255,6 +269,27 @@ class ProductionBrain {
     // Start queue service
     queueService.start()
 
+    // Start Intelligence Core (learning, market analysis, strategic priorities)
+    try {
+      intelligenceCore.start()
+      const intState = intelligenceCore.getState()
+      this.state.intelligence = intState.intelligence
+      this.state.evolutionLevel = intState.evolutionLevel
+      this.state.marketPhase = intState.marketCondition.phase
+      this.state.riskMultiplier = intState.riskMultiplier
+      logger.info('BRAIN', `🧠 Intelligence Core: Level ${intState.evolutionLevel} | ${intState.mood.toUpperCase()} mode`)
+    } catch (error: any) {
+      logger.error('BRAIN', 'Intelligence Core failed to start', error)
+    }
+
+    // Start ALL miners (GoDaddy Closeouts, Namecheap Market, Dynadot Closeouts, Expired Domains)
+    try {
+      miningEngine.startAll()
+      logger.info('BRAIN', '⛏️ ALL MINERS STARTED - scanning all sources')
+    } catch (error: any) {
+      logger.error('BRAIN', 'Mining Engine failed to start', error)
+    }
+
     // Start automated sale monitoring (monitors ALL marketplaces for buyers)
     if (!this.config.dryRun) {
       await automatedSaleFlow.start()
@@ -347,6 +382,8 @@ class ProductionBrain {
     automatedSaleFlow.stop()
     autoSeller.stop()
     saleMonitor.stop()
+    intelligenceCore.stop()
+    miningEngine.stopAll()
     
     localStorage.setItem('productionBrain_running', 'false')
 
@@ -415,18 +452,21 @@ class ProductionBrain {
         `Mode: ${this.config.dryRun ? 'DRY RUN' : 'PRODUCTION'}`,
       ])
 
-      // Check available budget
+      // Check available budget - must have at least 10% of daily budget OR $10 minimum
       const remaining = spendGuards.getRemainingBudget()
-      if (remaining.daily < this.config.maxPricePerDomain * 0.5) {
+      const minBudgetThreshold = Math.max(10, remaining.daily * 0.1) // 10% of remaining or $10
+      if (remaining.daily <= 0) {
         thoughtStream.think('warning', 'Budget constraint detected', [
           `Daily remaining: $${remaining.daily.toLocaleString()}`,
-          `Below threshold for acquisitions`,
-          'Pausing until budget resets',
+          `Budget fully exhausted`,
+          'Pausing until budget resets at midnight',
         ])
-        this.speak('💸 Daily budget nearly exhausted')
+        this.speak('💸 Daily budget exhausted')
         this.state.mood = 'cautious'
         thoughtStream.concludeThinking('Budget exhausted - waiting for reset')
         return
+      } else if (remaining.daily < minBudgetThreshold) {
+        this.speak(`💰 Budget low: $${remaining.daily.toFixed(0)} remaining`)
       }
 
       // Scan for opportunities
@@ -696,9 +736,14 @@ class ProductionBrain {
       kellySize = kelly.recommendedBet
     }
 
-    // 9. Make decision
+    // 9. Make decision (with Intelligence-adjusted thresholds)
     let decision: 'acquire' | 'skip' | 'human_review' = 'skip'
     let reasoning = ''
+    
+    // Get intelligence-adjusted thresholds based on market conditions
+    const adjustedMinROI = intelligenceCore.getAdjustedMinROI(this.config.minROI)
+    const intState = intelligenceCore.getState()
+    const marketDescription = intelligenceCore.getMarketDescription()
 
     if (!spendCheck.allowed) {
       reasoning = spendCheck.reason || 'Spend check failed'
@@ -712,11 +757,12 @@ class ProductionBrain {
         `God Score: ${godScore} (min: ${this.config.minGodScore})`,
         'Domain quality below threshold',
       ], { domain: domainName, decision: 'skip' })
-    } else if (roi < this.config.minROI) {
-      reasoning = `ROI ${roi.toFixed(1)}x < ${this.config.minROI}x`
+    } else if (roi < adjustedMinROI) {
+      reasoning = `ROI ${roi.toFixed(1)}x < ${adjustedMinROI.toFixed(1)}x (market-adjusted)`
       thoughtStream.think('evaluation', `PASS on ${domainName}`, [
-        `ROI: ${roi.toFixed(1)}x (min: ${this.config.minROI}x)`,
-        'Profit margin too thin',
+        `ROI: ${roi.toFixed(1)}x (market-adjusted min: ${adjustedMinROI.toFixed(1)}x)`,
+        marketDescription,
+        'Profit margin below threshold for current conditions',
       ], { domain: domainName, decision: 'skip' })
     } else if (valuation.confidence < this.config.minConfidence) {
       reasoning = `Confidence ${(valuation.confidence * 100).toFixed(0)}% < ${this.config.minConfidence * 100}%`
@@ -913,6 +959,18 @@ class ProductionBrain {
         metrics.increment('bids_won')
         metrics.histogram('acquisition_cost', result.price)
 
+        // Record to Intelligence Core for learning
+        const intState = intelligenceCore.getState()
+        intelligenceCore.recordFlip({
+          domain,
+          purchasePrice: result.price,
+          purchaseDate: new Date(),
+          estimatedValue: valuation.value,
+          strategy: this.determineStrategy(candidate),
+          godScore: candidate.godScore,
+          marketCondition: intState.marketCondition.phase,
+        })
+
         this.speak(`💰 ACQUIRED: ${domain} @ $${result.price}`)
 
         // Auto-list if enabled
@@ -995,6 +1053,45 @@ class ProductionBrain {
       })
       logger.warn('BRAIN', `Listing failed: ${domain}: ${error.message}`)
     }
+  }
+
+  // ==================== STRATEGY DETERMINATION ====================
+
+  /**
+   * Determine which strategy best matches this acquisition
+   */
+  private determineStrategy(candidate: AcquisitionCandidate): string {
+    const { domain, godScore, valuation } = candidate
+    const domainName = domain.split('.')[0].toLowerCase()
+    const tld = '.' + domain.split('.').pop()
+    
+    // Check for trademark strategy
+    if (valuation.factors?.some(f => f.name?.includes('trademark') || f.name?.includes('Trademark'))) {
+      return 'trademark'
+    }
+    
+    // Check for trending keywords
+    if (valuation.factors?.some(f => f.name?.includes('trend') || f.name?.includes('Trend'))) {
+      return 'trending'
+    }
+    
+    // Premium TLD strategy
+    if (['.ai', '.io'].includes(tld)) {
+      return 'premium_tld'
+    }
+    
+    // Quick flip (low price, decent score)
+    if (candidate.price < 50 && godScore > 75) {
+      return 'quick_flip'
+    }
+    
+    // High ROI (best default)
+    if ((valuation.value / candidate.price) > 5) {
+      return 'high_roi'
+    }
+    
+    // Default
+    return 'high_roi'
   }
 
   // ==================== AVAILABILITY CHECK ====================
@@ -1112,9 +1209,28 @@ class ProductionBrain {
     this.state.activeKillSwitches = killSwitches.getActiveSwitches().map(s => s.type)
     this.state.circuitsOpen = circuitBreaker.getOpenCircuits()
 
+    // Sync Intelligence Core metrics
+    const intState = intelligenceCore.getState()
+    this.state.intelligence = intState.intelligence
+    this.state.evolutionLevel = intState.evolutionLevel
+    this.state.marketPhase = intState.marketCondition.phase
+    this.state.riskMultiplier = intState.riskMultiplier
+    this.state.lessonsLearned = intState.lessonsLearned
+    this.state.competitorsTracked = intelligenceCore.getCompetitors().length
+    
+    // Sync win rate and ROI from intelligence core
+    if (intState.winRate > 0) {
+      this.state.winRate = intState.winRate
+    }
+    if (intState.avgROI > 0) {
+      this.state.avgROI = intState.avgROI
+    }
+
     // Update metrics service
     metrics.gauge('queue_depth', stats.pending)
     metrics.gauge('active_negotiations', negotiationBot.getActiveSessions().length)
+    metrics.gauge('intelligence_score', intState.intelligence)
+    metrics.gauge('evolution_level', intState.evolutionLevel)
   }
 
   getState(): BrainState {
@@ -1186,6 +1302,7 @@ class ProductionBrain {
   // ==================== PERSISTENCE ====================
 
   private createInitialState(): BrainState {
+    const intelligenceState = intelligenceCore.getState()
     return {
       isRunning: false,
       isPaused: true,
@@ -1213,6 +1330,13 @@ class ProductionBrain {
       queueDepth: 0,
       thoughts: [],
       mood: 'dormant',
+      // Intelligence Core metrics
+      intelligence: intelligenceState.intelligence,
+      evolutionLevel: intelligenceState.evolutionLevel,
+      marketPhase: intelligenceState.marketCondition.phase,
+      riskMultiplier: intelligenceState.riskMultiplier,
+      lessonsLearned: intelligenceState.lessonsLearned,
+      competitorsTracked: 0,
     }
   }
 

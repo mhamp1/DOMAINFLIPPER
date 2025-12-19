@@ -3,7 +3,10 @@
  * Connects to DropCatch.com for domain backorders and auctions
  * December 2025
  * 
- * API Docs: https://www.dropcatch.com/Content/Documents/DropCatch_API_Documentation.pdf
+ * API Docs: https://api.dropcatch.com/documentation
+ * Authentication: OAuth2 token-based (POST /authorize)
+ * 
+ * IMPORTANT: Use V2 endpoints only (V1 is deprecated)
  */
 
 import { logger } from '@/lib/utils/logger'
@@ -13,8 +16,8 @@ import { metrics } from '@/lib/infrastructure/Metrics'
 // ==================== TYPES ====================
 
 export interface DropCatchConfig {
-  apiKey: string
-  apiSecret: string
+  clientId: string      // Your API client ID
+  clientSecret: string  // Your API client secret/password
   sandbox?: boolean
 }
 
@@ -33,7 +36,7 @@ export interface DropCatchDomain {
 
 export interface BackorderResult {
   success: boolean
-  orderId?: string
+  orderId?: string | null
   domain: string
   priority: 'standard' | 'high' | 'premium'
   price: number
@@ -42,7 +45,7 @@ export interface BackorderResult {
 
 export interface AuctionBidResult {
   success: boolean
-  bidId?: string
+  bidId?: string | null
   domain: string
   bidAmount: number
   currentHighBid: number
@@ -62,89 +65,130 @@ export interface DropTimeInfo {
 
 class DropCatchAPI {
   private config: DropCatchConfig | null = null
-  private baseUrl = 'https://www.dropcatch.com/api/v1'
-  private sandboxUrl = 'https://sandbox.dropcatch.com/api/v1'
+  private accessToken: string | null = null
+  private tokenExpiry: number = 0
+  
+  // DropCatch API endpoints (V2 only - V1 is deprecated)
+  private authUrl = 'https://api.dropcatch.com/authorize'
+  private apiBase = 'https://api.dropcatch.com/v2'
 
   // Configure the client
   configure(config: DropCatchConfig): void {
     this.config = config
+    this.accessToken = null // Clear existing token
+    this.tokenExpiry = 0
     logger.info('DROPCATCH', `API configured (${config.sandbox ? 'SANDBOX' : 'PRODUCTION'})`)
   }
 
   isConfigured(): boolean {
-    return !!(this.config?.apiKey && this.config?.apiSecret)
+    const creds = this.getCredentials()
+    return !!(creds.clientId && creds.clientSecret)
   }
 
   private getCredentials(): DropCatchConfig {
     if (this.config) return this.config
 
     return {
-      apiKey: import.meta.env.VITE_DROPCATCH_API_KEY || '',
-      apiSecret: import.meta.env.VITE_DROPCATCH_API_SECRET || '',
+      clientId: import.meta.env.VITE_DROPCATCH_CLIENT_ID || import.meta.env.VITE_DROPCATCH_API_KEY || '',
+      clientSecret: import.meta.env.VITE_DROPCATCH_CLIENT_SECRET || import.meta.env.VITE_DROPCATCH_API_SECRET || '',
       sandbox: import.meta.env.VITE_DROPCATCH_SANDBOX === 'true',
     }
   }
 
-  private get apiBase(): string {
+  /**
+   * Authenticate with DropCatch OAuth2 endpoint
+   * Returns JWT token for API requests
+   */
+  private async authenticate(): Promise<string> {
+    // Check if we have a valid cached token
+    if (this.accessToken && Date.now() < this.tokenExpiry) {
+      return this.accessToken
+    }
+
     const creds = this.getCredentials()
-    return creds.sandbox ? this.sandboxUrl : this.baseUrl
+    
+    if (!creds.clientId || !creds.clientSecret) {
+      throw new Error('DropCatch API not configured - missing clientId or clientSecret')
+    }
+
+    logger.debug('DROPCATCH', 'Authenticating with DropCatch API...')
+
+    const response = await fetch(this.authUrl, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        clientId: creds.clientId,
+        clientSecret: creds.clientSecret,
+      }),
+    })
+
+    if (!response.ok) {
+      const error = await response.text()
+      throw new Error(`DropCatch authentication failed: ${response.status} - ${error}`)
+    }
+
+    const data = await response.json()
+    this.accessToken = data.token
+
+    // Token expires in ~15 minutes, refresh 1 minute early
+    this.tokenExpiry = Date.now() + (14 * 60 * 1000)
+
+    logger.info('DROPCATCH', 'Successfully authenticated with DropCatch API')
+    return this.accessToken!
   }
 
+  /**
+   * Make authenticated API request to DropCatch V2 API
+   */
   private async makeRequest<T>(
     endpoint: string,
     method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
     body?: any
   ): Promise<T> {
-    const creds = this.getCredentials()
-    
-    if (!creds.apiKey || !creds.apiSecret) {
-      throw new Error('DropCatch API not configured')
-    }
+    const token = await this.authenticate()
 
     const url = `${this.apiBase}${endpoint}`
-    const timestamp = Date.now().toString()
-    
-    // Generate signature (HMAC-SHA256)
-    const signatureData = `${timestamp}${method}${endpoint}${body ? JSON.stringify(body) : ''}`
-    const signature = await this.generateSignature(signatureData, creds.apiSecret)
 
     const response = await fetch(url, {
       method,
       headers: {
+        'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'X-API-Key': creds.apiKey,
-        'X-Timestamp': timestamp,
-        'X-Signature': signature,
+        'Authorization': `Bearer ${token}`,
       },
       body: body ? JSON.stringify(body) : undefined,
     })
 
     if (!response.ok) {
+      // If unauthorized, clear token and retry once
+      if (response.status === 401) {
+        this.accessToken = null
+        this.tokenExpiry = 0
+        const newToken = await this.authenticate()
+        
+        const retryResponse = await fetch(url, {
+          method,
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${newToken}`,
+          },
+          body: body ? JSON.stringify(body) : undefined,
+        })
+
+        if (retryResponse.ok) {
+          return retryResponse.json()
+        }
+      }
+
       const error = await response.text()
       throw new Error(`DropCatch API error: ${response.status} - ${error}`)
     }
 
     return response.json()
-  }
-
-  private async generateSignature(data: string, secret: string): Promise<string> {
-    // Use Web Crypto API for HMAC-SHA256
-    const encoder = new TextEncoder()
-    const keyData = encoder.encode(secret)
-    const messageData = encoder.encode(data)
-
-    const key = await crypto.subtle.importKey(
-      'raw',
-      keyData,
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['sign']
-    )
-
-    const signature = await crypto.subtle.sign('HMAC', key, messageData)
-    return Array.from(new Uint8Array(signature))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('')
   }
 
   // ==================== DOMAIN INFORMATION ====================

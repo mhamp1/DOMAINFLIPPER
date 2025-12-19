@@ -6,13 +6,16 @@
 
 import { toast } from 'sonner'
 
-// Import MasterConfig lazily to avoid circular dependency
-let _masterConfig: any = null
+// Import MasterConfig directly - ES module compatible
+import { masterConfig } from './MasterConfig'
+
+// Wrapper to safely get MasterConfig (handles initialization timing)
 const getMasterConfig = () => {
-  if (!_masterConfig) {
-    _masterConfig = require('./MasterConfig').masterConfig
+  try {
+    return masterConfig
+  } catch {
+    return null
   }
-  return _masterConfig
 }
 
 export interface EmpireSettingsData {
@@ -69,7 +72,7 @@ export interface EmpireSettingsData {
 
 const DEFAULT_SETTINGS: EmpireSettingsData = {
   totalCapital: 500,
-  dailyBudget: 50,
+  dailyBudget: 100, // Increased to allow meaningful operations
   minBalanceTrigger: 100,
   autoFundAmount: 500,
   minROI: 5,

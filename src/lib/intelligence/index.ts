@@ -4,7 +4,22 @@
  * Central export for all intelligence-related functionality
  */
 
-// CEO Brain - Executive Strategic Intelligence
+// INTELLIGENCE CORE — Unified Learning & Market Analysis System
+// This is the CANONICAL intelligence layer for ProductionBrain
+export { 
+  intelligenceCore,
+  type MarketPhase,
+  type MoodType,
+  type EvolutionLevel,
+  type FlipMemory,
+  type CompetitorProfile,
+  type IntelligenceState,
+  type StrategicPriority,
+  type PortfolioStrategy,
+  type ResourceAllocation as IntelligenceResourceAllocation,
+} from './IntelligenceCore'
+
+// CEO Brain - Executive Strategic Intelligence (optional strategic layer)
 export { ceoBrain } from './CEOBrain'
 export type { CEOState, ExecutiveDecision, MarketCondition, StrategicInsight, ResourceAllocation } from './CEOBrain'
 
