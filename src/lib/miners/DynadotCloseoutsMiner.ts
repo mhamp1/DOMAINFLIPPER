@@ -74,15 +74,12 @@ export class DynadotCloseoutsMiner extends BaseMiner {
     traffic?: number
   }>> {
     try {
-      const response = await fetch(
-        `${this.CLOSEOUT_URL}?page=${page}&sort=price_asc`,
-        {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Referer': this.CLOSEOUT_URL,
-          },
-        }
-      )
+      // Use Vercel serverless proxy to bypass CORS
+      const proxyUrl = `/api/dynadot/closeouts?page=${page}&sort=price_asc`
+      
+      const response = await fetch(proxyUrl, {
+        method: 'GET',
+      })
 
       if (!response.ok) {
         return []

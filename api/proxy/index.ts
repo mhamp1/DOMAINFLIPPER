@@ -30,6 +30,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       'api.github.com',
       'api.ycombinator.com',
       'trends.google.com',
+      'www.dynadot.com',
+      'justdropped.com',
+      'www.expireddomains.net',
     ]
 
     const url = new URL(targetUrl)

@@ -46,13 +46,10 @@ class ExpiredDomainsScanner {
     try {
       logger.info('EXPIRED_SCANNER', `Scanning expired ${tld} domains...`)
 
-      const url = `${this.baseUrl}/deleted-${tld}-domains/`
-      const response = await axios.get(url, {
+      // Use Vercel serverless proxy to bypass CORS
+      const proxyUrl = `/api/expireddomains/scrape?tld=${tld}`
+      const response = await axios.get(proxyUrl, {
         timeout: 30000,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        },
       })
 
       const $ = cheerio.load(response.data)
