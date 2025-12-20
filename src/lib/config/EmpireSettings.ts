@@ -1,22 +1,16 @@
 /**
  * EmpireSettings.ts — Persistent Empire Configuration
- * SYNCED WITH MASTERCONFIG — Single source of truth
+ * STANDALONE VERSION - No MasterConfig dependency to avoid circular imports
  * December 2025
+ * 
+ * BUILD: 2025-12-19-v2.0.5-FORCE-REBUILD
+ * CRITICAL: This file uses ONLY localStorage - NO require() statements
  */
 
 import { toast } from 'sonner'
 
-// Import MasterConfig directly - ES module compatible
-import { masterConfig } from './MasterConfig'
-
-// Wrapper to safely get MasterConfig (handles initialization timing)
-const getMasterConfig = () => {
-  try {
-    return masterConfig
-  } catch {
-    return null
-  }
-}
+// NO MASTERCONFIG IMPORT - Breaks circular dependency
+// This file now works independently using localStorage only
 
 export interface EmpireSettingsData {
   // Capital & Budget
@@ -120,32 +114,7 @@ class EmpireSettings {
 
   private loadSettings(): EmpireSettingsData {
     try {
-      // First try to load from MasterConfig (single source of truth)
-      const mc = getMasterConfig()
-      if (mc) {
-        const empire = mc.getEmpire()
-        const stats = mc.getStats()
-        const bot = mc.getBotState()
-        
-        return {
-          ...DEFAULT_SETTINGS,
-          totalCapital: empire.totalCapital,
-          dailyBudget: empire.dailyBudget,
-          minROI: empire.minROI,
-          targetROI: empire.targetROI,
-          maxBidPercent: empire.maxBidPercent,
-          allStrategiesActive: empire.allStrategiesActive,
-          enabledStrategies: empire.enabledStrategies,
-          botRunning: bot.isRunning,
-          lastStartTime: bot.lastStartTime,
-          totalProfit: stats.totalProfit,
-          totalSpent: stats.totalSpent,
-          domainsAcquired: stats.domainsAcquired,
-          domainsSold: stats.domainsSold,
-        }
-      }
-      
-      // Fallback to localStorage
+      // Load from localStorage only - no circular dependency issues
       const saved = localStorage.getItem(STORAGE_KEY)
       if (saved) {
         const parsed = JSON.parse(saved)
@@ -160,16 +129,6 @@ class EmpireSettings {
   private saveSettings(): void {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.settings))
-      
-      // Also sync to MasterConfig
-      const mc = getMasterConfig()
-      if (mc) {
-        // This will update MasterConfig's empire settings
-        mc.setCapital(this.settings.totalCapital)
-        mc.setDailyBudget(this.settings.dailyBudget)
-        mc.setMinROI(this.settings.minROI)
-      }
-      
       this.notifyListeners()
     } catch (e) {
       console.error('Failed to save empire settings:', e)

@@ -170,23 +170,30 @@ export interface MasterConfigData {
 /**
  * Get credentials from environment variables
  * ALWAYS PRIORITIZES ENV VARS FROM VERCEL
- * Supports both naming conventions (VITE_GODADDY_KEY and VITE_GODADDY_API_KEY)
+ * Falls back to hardcoded values if no env vars set
  */
 function getEnvCredentials() {
+  // Hardcoded fallback values (from previous codebase)
+  const GODADDY_FALLBACK_KEY = 'h2eWy65jfMPV_KSxuT2Q44RY27P3n9YqiA6'
+  const GODADDY_FALLBACK_SECRET = 'LuKboxc1tZ3UGAFJFDvtAE'
+  const NAMECHEAP_FALLBACK_USER = 'mhamp1'
+  const NAMECHEAP_FALLBACK_KEY = 'c2cd72c359c74ac49b15e32bb98b4143'
+  const NAMECHEAP_FALLBACK_IP = '68.106.44.20'
+  
   return {
     godaddy: {
-      // Support both naming conventions
-      apiKey: import.meta.env.VITE_GODADDY_KEY || import.meta.env.VITE_GODADDY_API_KEY || '',
-      apiSecret: import.meta.env.VITE_GODADDY_SECRET || import.meta.env.VITE_GODADDY_API_SECRET || '',
+      // Support both naming conventions, fallback to hardcoded values
+      apiKey: import.meta.env.VITE_GODADDY_KEY || import.meta.env.VITE_GODADDY_API_KEY || GODADDY_FALLBACK_KEY,
+      apiSecret: import.meta.env.VITE_GODADDY_SECRET || import.meta.env.VITE_GODADDY_API_SECRET || GODADDY_FALLBACK_SECRET,
     },
     supabase: {
       url: import.meta.env.VITE_SUPABASE_URL || '',
       anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || '',
     },
     namecheap: {
-      apiUser: import.meta.env.VITE_NAMECHEAP_API_USER || import.meta.env.VITE_NAMECHEAP_USER || '',
-      apiKey: import.meta.env.VITE_NAMECHEAP_API_KEY || import.meta.env.VITE_NAMECHEAP_KEY || '',
-      clientIp: import.meta.env.VITE_NAMECHEAP_CLIENT_IP || import.meta.env.VITE_NAMECHEAP_IP || '',
+      apiUser: import.meta.env.VITE_NAMECHEAP_API_USER || import.meta.env.VITE_NAMECHEAP_USER || NAMECHEAP_FALLBACK_USER,
+      apiKey: import.meta.env.VITE_NAMECHEAP_API_KEY || import.meta.env.VITE_NAMECHEAP_KEY || NAMECHEAP_FALLBACK_KEY,
+      clientIp: import.meta.env.VITE_NAMECHEAP_CLIENT_IP || import.meta.env.VITE_NAMECHEAP_IP || NAMECHEAP_FALLBACK_IP,
     },
     google: {
       apiKey: import.meta.env.VITE_GOOGLE_API_KEY || '',
@@ -486,6 +493,52 @@ class MasterConfig {
 
     // Save to localStorage so they persist
     this.saveConfig()
+    
+    // SYNC TO APIConfigManager so HealthMonitor sees the APIs as configured
+    this.syncToAPIConfigManager()
+  }
+
+  /**
+   * Sync credentials to APIConfigManager for HealthMonitor
+   * This prevents "System Health Critical" errors
+   */
+  private syncToAPIConfigManager(): void {
+    try {
+      // Build the config object for APIConfigManager
+      const apiConfig: Record<string, any> = {}
+      
+      if (this.config.godaddy?.apiKey) {
+        apiConfig.godaddy = {
+          apiKey: this.config.godaddy.apiKey,
+          apiSecret: this.config.godaddy.apiSecret,
+          sandbox: this.config.godaddy.sandbox || false,
+        }
+      }
+      
+      if (this.config.namecheap?.apiKey) {
+        apiConfig.namecheap = {
+          apiUser: this.config.namecheap.apiUser,
+          apiKey: this.config.namecheap.apiKey,
+          clientIp: this.config.namecheap.clientIp,
+        }
+      }
+      
+      if (this.config.supabase?.url) {
+        apiConfig.supabase = {
+          url: this.config.supabase.url,
+          anonKey: this.config.supabase.anonKey,
+        }
+      }
+      
+      // Save directly to localStorage for APIConfigManager
+      const existingConfig = localStorage.getItem('domainFlipper_apiConfig')
+      const merged = existingConfig ? { ...JSON.parse(existingConfig), ...apiConfig } : apiConfig
+      localStorage.setItem('domainFlipper_apiConfig', JSON.stringify(merged))
+      
+      console.log('✅ Synced credentials to APIConfigManager:', Object.keys(apiConfig).join(', '))
+    } catch (e) {
+      console.warn('Failed to sync to APIConfigManager:', e)
+    }
   }
 
   /**

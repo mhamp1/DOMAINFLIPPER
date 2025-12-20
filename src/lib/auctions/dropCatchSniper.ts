@@ -38,8 +38,8 @@ export class DropCatchSniper {
   constructor(config: DropCatchSniperConfig) {
     this.config = config
     this.dropCatchClient = createDropCatchClient({
-      apiKey: config.apiKey,
-      apiSecret: config.apiSecret,
+      clientId: config.apiKey,
+      clientSecret: config.apiSecret,
     })
   }
 

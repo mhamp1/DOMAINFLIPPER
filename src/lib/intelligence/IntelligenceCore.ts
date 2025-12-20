@@ -655,7 +655,7 @@ class IntelligenceCore {
         duration: 10000,
       })
 
-      thoughtStream.think('victory', `🧬 Evolved to ${levelNames[this.state.evolutionLevel]}!`, [
+      thoughtStream.think('result', `🧬 Evolved to ${levelNames[this.state.evolutionLevel]}!`, [
         `Intelligence: ${this.state.intelligence.toFixed(0)}%`,
         `Win Rate: ${this.state.winRate.toFixed(0)}%`,
         `Lessons Learned: ${this.state.lessonsLearned}`,

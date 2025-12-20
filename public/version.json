@@ -1,9 +1,12 @@
 {
-  "version": "2.0.1",
-  "buildTime": "2025-12-19T16:30:00Z",
+  "version": "2.0.5",
+  "buildId": "FORCE-REBUILD-20251219-195500",
+  "buildTime": "2025-12-19T19:55:00Z",
+  "critical": "NO_REQUIRE_IN_EMPIRESETTINGS",
   "fixes": [
-    "Fixed require() error in EmpireSettings",
-    "Fixed budget threshold bug",
-    "Added proper error logging for startup"
+    "EmpireSettings uses ONLY localStorage - NO require()",
+    "DropCatch uses clientId/clientSecret",
+    "ThoughtType uses result not victory",
+    "MasterConfig syncs to APIConfigManager"
   ]
 }

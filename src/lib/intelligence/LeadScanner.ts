@@ -327,12 +327,10 @@ class LeadScanner {
     const leads: Lead[] = []
 
     try {
+      // Use CORS-safe approach - remove User-Agent header which triggers preflight
       const response = await apiCall(
         () => axios.get('https://www.reddit.com/r/startups/new.json', {
-          params: { limit: 50 },
-          headers: {
-            'User-Agent': 'DomainFlipper/1.0',
-          },
+          params: { limit: 50, raw_json: 1 },
           timeout: 15000,
         }),
         { service: 'reddit', action: 'getStartups' }

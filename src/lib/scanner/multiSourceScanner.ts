@@ -183,8 +183,8 @@ async function scanDropCatch(options: { limit: number }): Promise<ScanResult[]> 
     await rateLimiter.waitIfNeeded('dropcatch')
 
     const dropcatch = createDropCatchClient({
-      apiKey: import.meta.env.VITE_DROPCATCH_API_KEY || '',
-      apiSecret: import.meta.env.VITE_DROPCATCH_API_SECRET || '',
+      clientId: import.meta.env.VITE_DROPCATCH_CLIENT_ID || import.meta.env.VITE_DROPCATCH_API_KEY || '',
+      clientSecret: import.meta.env.VITE_DROPCATCH_CLIENT_SECRET || import.meta.env.VITE_DROPCATCH_API_SECRET || '',
     })
 
     const domains = await dropcatch.getDroppingDomains({
