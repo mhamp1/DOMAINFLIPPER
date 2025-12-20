@@ -17,9 +17,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { tld = 'com' } = req.query
+    // Validate and sanitize query parameter
+    const tldParam = (tld as string || 'com').replace(/[^a-z]/g, '')
 
-    const url = `https://www.expireddomains.net/deleted-${tld}-domains/`
+    const url = `https://www.expireddomains.net/deleted-${tldParam}-domains/`
 
     const response = await fetch(url, {
       headers: {

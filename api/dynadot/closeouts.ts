@@ -17,9 +17,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { page = 1, sort = 'price_asc' } = req.query
+    // Validate and sanitize query parameters
+    const pageNum = Math.max(1, Math.min(100, parseInt(page as string || '1')))
+    const sortParam = (sort as string || 'price_asc').replace(/[^a-z_]/g, '')
 
-    const url = `https://www.dynadot.com/market/closeout-domains?page=${page}&sort=${sort}`
+    const url = `https://www.dynadot.com/market/closeout-domains?page=${pageNum}&sort=${sortParam}`
 
     const response = await fetch(url, {
       headers: {

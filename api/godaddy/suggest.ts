@@ -24,22 +24,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { 
-      query = 'tech', 
-      country = 'US', 
-      city = '',
-      sources = 'CC_TLD,EXTENSION,KEYWORD_SPIN',
-      tlds = 'com,net,org,io,ai',
-      waitMs = 1000
-    } = req.query
-
+    // Validate and sanitize query parameters
+    const queryParam = (query as string || 'tech').slice(0, 100).replace(/[^a-zA-Z0-9-]/g, '')
+    const countryParam = (country as string || 'US').slice(0, 2).toUpperCase()
+    const cityParam = (city as string || '').slice(0, 100).replace(/[^a-zA-Z\s]/g, '')
+    const sourcesParam = (sources as string || 'CC_TLD,EXTENSION,KEYWORD_SPIN').replace(/[^A-Z_,]/g, '')
+    const tldsParam = (tlds as string || 'com,net,org,io,ai').replace(/[^a-z,]/g, '')
+    const waitMsNum = Math.max(0, Math.min(10000, parseInt(waitMs as string || '1000')))
+    
     const params = new URLSearchParams({
-      query: query as string,
-      country: country as string,
-      city: city as string,
-      sources: sources as string,
-      tlds: tlds as string,
-      waitMs: waitMs.toString(),
+      query: queryParam,
+      country: countryParam,
+      city: cityParam,
+      sources: sourcesParam,
+      tlds: tldsParam,
+      waitMs: waitMsNum.toString(),
     })
 
     const url = `https://api.godaddy.com/v1/domains/suggest?${params.toString()}`

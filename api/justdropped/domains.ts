@@ -17,9 +17,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { limit = 100, tld = 'com' } = req.query
+    // Validate and sanitize query parameters
+    const limitNum = Math.max(1, Math.min(1000, parseInt(limit as string || '100')))
+    const tldParam = (tld as string || 'com').replace(/[^a-z]/g, '')
 
-    const url = `https://justdropped.com/api/v1/domains?limit=${limit}&tld=${tld}`
+    const url = `https://justdropped.com/api/v1/domains?limit=${limitNum}&tld=${tldParam}`
 
     const response = await fetch(url, {
       headers: {
