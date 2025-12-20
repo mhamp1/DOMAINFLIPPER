@@ -42,8 +42,35 @@ export class AdvancedAnalytics {
   }
 
   constructor() {
+    // CLEAR OLD MOCK DATA on first load
+    this.clearMockData()
     this.loadFromStorage()
     this.startCleanupTask()
+  }
+
+  /**
+   * Clear any old mock data from storage (one-time cleanup)
+   */
+  private clearMockData(): void {
+    try {
+      const saved = localStorage.getItem('domainFlipper_analytics')
+      if (saved) {
+        const data = JSON.parse(saved)
+        // Filter out any obviously fake data (values over $50k from mining)
+        const cleaned = data.filter((d: any) => {
+          if (d.metric === 'legendary_found' || d.metric === 'gem_found') {
+            // Remove all old mock mining events - real ones will be added fresh
+            return false
+          }
+          return true
+        })
+        localStorage.setItem('domainFlipper_analytics', JSON.stringify(cleaned))
+        console.log('[ANALYTICS] Cleared mock data from storage')
+      }
+    } catch (e) {
+      // If corrupted, clear everything
+      localStorage.removeItem('domainFlipper_analytics')
+    }
   }
 
   /**

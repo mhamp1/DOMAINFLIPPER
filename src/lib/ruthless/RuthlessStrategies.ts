@@ -30,83 +30,22 @@ interface PreemptiveTarget {
 
 /**
  * KICKSTARTER PRE-LAUNCH SNIPER
- * Monitor new projects and buy .com/.io/.ai within 60 seconds
+ * DISABLED: Kickstarter API doesn't support browser CORS
  */
 export async function monitorKickstarter(): Promise<PreemptiveTarget[]> {
-  try {
-    const KICKSTARTER_API = 'https://www.kickstarter.com/projects/search.json?term=&sort=newest'
-    
-    const response = await fetch(KICKSTARTER_API)
-    const data = await response.json()
-    
-    const targets: PreemptiveTarget[] = []
-    const oneHourAgo = Date.now() - 3600000
+  // DISABLED: Kickstarter doesn't support browser CORS
+  console.log('[RUTHLESS] Kickstarter monitoring disabled - requires backend proxy')
+  return []
 
-    for (const project of data.projects || []) {
-      const launchedAt = new Date(project.launched_at).getTime()
-      
-      if (launchedAt > oneHourAgo) {
-        const name = project.name.toLowerCase().replace(/[^a-z0-9]/g, '')
-        
-        if (name.length >= 3 && name.length <= 15) {
-          targets.push({
-            domain: `${name}.com`,
-            source: 'Kickstarter',
-            confidence: 85,
-            expectedROI: 200,
-            reasoning: `New project "${project.name}" just launched`
-          })
-          
-          targets.push({
-            domain: `${name}.io`,
-            source: 'Kickstarter',
-            confidence: 75,
-            expectedROI: 100,
-            reasoning: `Backup TLD for "${project.name}"`
-          })
-        }
-      }
-    }
-    
-    return targets
-  } catch (error) {
-    console.warn('Kickstarter monitoring failed:', error)
-    return []
-  }
 }
 
 /**
  * USPTO TRADEMARK PENDING → EXPIRED
- * Find trademarks with expired domains
+ * DISABLED: USPTO API doesn't support browser CORS
  */
 export async function monitorUSPTOPending(): Promise<PreemptiveTarget[]> {
-  try {
-    // Monitor USPTO pending trademarks
-    const response = await fetch('https://tsdrapi.uspto.gov/ts/cd/casestatus/recent.json')
-    const data = await response.json()
-    
-    const targets: PreemptiveTarget[] = []
-    
-    for (const filing of data.filings || []) {
-      const mark = filing.markText?.toLowerCase().replace(/[^a-z0-9]/g, '')
-      
-      if (mark && mark.length >= 3) {
-        // Check if domain is expiring soon
-        const isExpiring = await checkDomainExpiring(`${mark}.com`)
-        
-        if (isExpiring) {
-          targets.push({
-            domain: `${mark}.com`,
-            source: 'USPTO Trademark',
-            confidence: 95,
-            expectedROI: 500,
-            reasoning: `Trademark filed but domain expiring`
-          })
-        }
-      }
-    }
-    
-    return targets
+  console.log('[RUTHLESS] USPTO monitoring disabled - requires backend proxy')
+  return []
   } catch (error) {
     console.warn('USPTO monitoring failed:', error)
     return []

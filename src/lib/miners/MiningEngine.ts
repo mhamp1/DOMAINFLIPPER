@@ -167,15 +167,16 @@ class MiningEngine {
     const gems = miningCache.getGems(20)
     const legendary = miningCache.getLegendary(10)
 
-    // Calculate profit potential
+    // Calculate profit potential - NO FAKE DATA
+    // Only calculate if we have real gems
     const avgGemValue = gems.length > 0 
       ? gems.reduce((sum, g) => sum + g.estValue, 0) / gems.length 
-      : 5000
+      : 0 // NO FAKE VALUE
     const avgGemCost = gems.length > 0
       ? gems.reduce((sum, g) => sum + g.price, 0) / gems.length
-      : 8
+      : 0 // NO FAKE VALUE
 
-    const dailyGems = totalGems > 0 ? Math.ceil(totalGems / 7) : 15 // Estimate
+    const dailyGems = totalGems > 0 ? Math.ceil(totalGems / 7) : 0 // NO FAKE ESTIMATE
     const profitPerGem = avgGemValue - avgGemCost
 
     return {
@@ -190,9 +191,9 @@ class MiningEngine {
       recentGems: gems,
       legendaryDomains: legendary,
       profitPotential: {
-        daily: Math.round(dailyGems * profitPerGem * 0.18), // 18% success rate
-        weekly: Math.round(dailyGems * 7 * profitPerGem * 0.18),
-        monthly: Math.round(dailyGems * 30 * profitPerGem * 0.18),
+        daily: gems.length > 0 ? Math.round(dailyGems * profitPerGem * 0.18) : 0,
+        weekly: gems.length > 0 ? Math.round(dailyGems * 7 * profitPerGem * 0.18) : 0,
+        monthly: gems.length > 0 ? Math.round(dailyGems * 30 * profitPerGem * 0.18) : 0,
       },
     }
   }

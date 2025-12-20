@@ -274,41 +274,12 @@ export class ExpiredDomainsMiner extends BaseMiner {
   }
 
   /**
-   * Demo expired domains
+   * NO MOCK DATA — Returns empty when real API unavailable
    */
   private getDemoExpiredDomains(): CloseoutDomain[] {
-    const prefixes = ['tech', 'data', 'cloud', 'ai', 'dev', 'api', 'hub', 'pro', 'web', 'app']
-    const suffixes = ['hub', 'lab', 'io', 'hq', 'pro', 'ai', 'now', 'sync', 'core', '']
-    const tlds = ['.com', '.io', '.ai', '.co']
-    const domains: CloseoutDomain[] = []
-    
-    for (let i = 0; i < 100; i++) {
-      const prefix = prefixes[Math.floor(Math.random() * prefixes.length)]
-      const suffix = suffixes[Math.floor(Math.random() * suffixes.length)]
-      const tld = tlds[Math.floor(Math.random() * tlds.length)]
-      const domain = `${prefix}${suffix}${tld}`
-      
-      const backlinks = Math.floor(Math.random() * 3000)
-      const dr = Math.floor(Math.random() * 60)
-      const traffic = Math.floor(Math.random() * 15000)
-      const age = Math.floor(Math.random() * 18)
-      const price = 10 + Math.random() * 40
-      
-      const estValue = this.estimateWithMetrics(domain, backlinks, dr, traffic, age)
-      
-      if (estValue / price >= 10) {
-        domains.push({
-          domain,
-          price: Math.round(price * 100) / 100,
-          estValue,
-          backlinks,
-          traffic,
-          age,
-        })
-      }
-    }
-    
-    return domains.slice(0, 60)
+    // NO MOCK DATA — Real API required
+    logger.warn('EXPIRED_DOMAINS', 'Real API unavailable, no mock data returned')
+    return []
   }
 }
 

@@ -87,104 +87,19 @@ export class LegalScanner {
 
   /**
    * Search USPTO trademark database
+   * DISABLED: USPTO API doesn't support browser CORS
    */
-  async searchUSPTO(keyword: string): Promise<TrademarkResult> {
-    try {
-      // USPTO TSDR API
-      const response = await axios.get('https://tsdrapi.uspto.gov/ts/cd/public/v1/search', {
-        params: {
-          q: keyword,
-          f: '["serialNumber","markIdentification","currentStatus","ownerName","filingDate","internationalClass"]',
-          rows: 20,
-          api_key: this.usptoApiKey,
-        },
-        timeout: 15000,
-        headers: { 'User-Agent': 'DomainFlipper/2.0' },
-      })
-
-      const results = response.data?.searchResponse?.results || []
-      
-      // Filter to live/pending marks
-      const relevantMarks = results
-        .filter((r: any) => {
-          const status = r.currentStatus?.[0] || ''
-          return status.includes('LIVE') || status.includes('PENDING')
-        })
-        .map((r: any) => ({
-          name: r.markIdentification?.[0] || '',
-          serialNumber: r.serialNumber?.[0] || '',
-          status: r.currentStatus?.[0]?.includes('LIVE') ? 'LIVE' as const : 
-                  r.currentStatus?.[0]?.includes('PENDING') ? 'PENDING' as const : 'DEAD' as const,
-          owner: r.ownerName?.[0] || 'Unknown',
-          filingDate: new Date(r.filingDate?.[0] || Date.now()),
-          classes: r.internationalClass?.map((c: string) => parseInt(c)) || [],
-          description: r.goodsServices?.[0],
-        }))
-
-      // Calculate risk level
-      let riskLevel: TrademarkResult['riskLevel'] = 'none'
-      let recommendation: TrademarkResult['recommendation'] = 'safe'
-      let reasoning = 'No conflicting trademarks found.'
-
-      if (relevantMarks.length > 0) {
-        // Check for exact match
-        const exactMatch = relevantMarks.find(
-          (m: { name: string }) => m.name.toLowerCase() === keyword.toLowerCase()
-        )
-
-        if (exactMatch) {
-          riskLevel = 'high'
-          recommendation = 'avoid'
-          reasoning = `Exact trademark match found: "${exactMatch.name}" (${exactMatch.status}) owned by ${exactMatch.owner}. HIGH UDRP risk.`
-        } else {
-          // Check for similar marks
-          const similarMarks = relevantMarks.filter((m: { name: string }) => 
-            this.calculateSimilarity(m.name.toLowerCase(), keyword.toLowerCase()) > 0.7
-          )
-
-          if (similarMarks.length > 0) {
-            riskLevel = 'medium'
-            recommendation = 'proceed-with-caution'
-            reasoning = `${similarMarks.length} similar trademark(s) found. Consider legal review before acquisition.`
-          } else {
-            riskLevel = 'low'
-            recommendation = 'safe'
-            reasoning = `${relevantMarks.length} related marks found but none are conflicting.`
-          }
-        }
-
-        // Check for famous brands (premium opportunity if available)
-        const famousBrands = ['apple', 'google', 'amazon', 'microsoft', 'facebook', 'meta', 'tesla', 'nike', 'coca-cola']
-        if (famousBrands.some(b => keyword.toLowerCase().includes(b))) {
-          riskLevel = 'high'
-          recommendation = 'avoid'
-          reasoning = `Domain contains famous brand name. Extremely high UDRP risk - avoid.`
-        }
-      } else {
-        // No trademarks = potential premium opportunity
-        if (keyword.length <= 5 && /^[a-z]+$/.test(keyword)) {
-          recommendation = 'premium-opportunity'
-          reasoning = `No conflicting trademarks and short brandable name. Premium acquisition opportunity!`
-        }
-      }
-
-      return {
-        exists: relevantMarks.length > 0,
-        marks: relevantMarks,
-        riskLevel,
-        recommendation,
-        reasoning,
-      }
-    } catch (error) {
-      console.warn('USPTO search error:', error)
-      return {
-        exists: false,
-        marks: [],
-        riskLevel: 'low',
-        recommendation: 'proceed-with-caution',
-        reasoning: 'USPTO search failed. Recommend manual verification.',
-      }
+  async searchUSPTO(_keyword: string): Promise<TrademarkResult> {
+    // DISABLED: USPTO doesn't support browser CORS
+    console.log('[LEGAL_SCANNER] USPTO search disabled - requires backend proxy')
+    return {
+      exists: false,
+      marks: [],
+      riskLevel: 'none',
+      recommendation: 'safe',
+      reasoning: 'Trademark check unavailable (CORS blocked) - proceed with caution',
     }
+
   }
 
   /**
@@ -231,49 +146,12 @@ export class LegalScanner {
 
   /**
    * Search WIPO Global Brand Database
+   * DISABLED: WIPO API doesn't support browser CORS
    */
-  async searchWIPO(keyword: string): Promise<WIPOResult> {
-    if (!this.wipoEnabled) {
-      return { exists: false, internationalMarks: [], riskLevel: 'none' }
-    }
-
-    try {
-      // WIPO Global Brand Database API
-      const response = await axios.get('https://branddb.wipo.int/brand-search/public/v1/search', {
-        params: {
-          q: keyword,
-          rows: 20,
-        },
-        timeout: 15000,
-        headers: { 'User-Agent': 'DomainFlipper/2.0' },
-      })
-
-      const results = response.data?.response?.docs || []
-      
-      const internationalMarks = results
-        .filter((r: any) => r.STATUS_CODE === 'A') // Active marks
-        .map((r: any) => ({
-          markName: r.MARK_NAME || '',
-          registrationNumber: r.REG_NUM || '',
-          holder: r.HOLD_NAME_EN || r.HOLD_NAME || 'Unknown',
-          designations: r.DESIG || [],
-          status: r.STATUS_CODE || '',
-        }))
-
-      let riskLevel: WIPOResult['riskLevel'] = 'none'
-      if (internationalMarks.length > 5) riskLevel = 'high'
-      else if (internationalMarks.length > 2) riskLevel = 'medium'
-      else if (internationalMarks.length > 0) riskLevel = 'low'
-
-      return {
-        exists: internationalMarks.length > 0,
-        internationalMarks,
-        riskLevel,
-      }
-    } catch (error) {
-      console.warn('WIPO search error:', error)
-      return { exists: false, internationalMarks: [], riskLevel: 'none' }
-    }
+  async searchWIPO(_keyword: string): Promise<WIPOResult> {
+    // DISABLED: WIPO doesn't support browser CORS
+    console.log('[LEGAL_SCANNER] WIPO search disabled - requires backend proxy')
+    return { exists: false, internationalMarks: [], riskLevel: 'none' }
   }
 
   // ==================== COMPREHENSIVE RISK ASSESSMENT ====================

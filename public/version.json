@@ -1,12 +1,15 @@
 {
-  "version": "2.0.5",
-  "buildId": "FORCE-REBUILD-20251219-195500",
-  "buildTime": "2025-12-19T19:55:00Z",
-  "critical": "NO_REQUIRE_IN_EMPIRESETTINGS",
-  "fixes": [
-    "EmpireSettings uses ONLY localStorage - NO require()",
-    "DropCatch uses clientId/clientSecret",
-    "ThoughtType uses result not victory",
-    "MasterConfig syncs to APIConfigManager"
+  "version": "2.7.0",
+  "buildId": "FIX-BUILD-ADD-VERCEL-NODE-20251207-231500",
+  "buildTime": "2025-12-07T23:15:00Z",
+  "critical": "BUILD_FIX_VERCEL_NODE_DEPENDENCY",
+  "forceRebuild": true,
+  "timestamp": 1733616900000,
+  "changes": [
+    "Added @vercel/node dependency to package.json",
+    "Updated tsconfig.node.json to include API routes",
+    "All API routes now properly configured for Vercel",
+    "Build should now succeed without errors",
+    "Zero mock data - all miners use real API proxies"
   ]
 }

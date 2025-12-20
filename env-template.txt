@@ -1,0 +1,188 @@
+# ============================================
+# DOMAINFLIPPER EMPIRE — COMPLETE ENV CONFIG
+# Generated: December 7, 2025
+# 
+# INSTRUCTIONS:
+# 1. Rename this file to ".env" 
+# 2. Fill in the empty values
+# 3. Restart your dev server or redeploy
+# ============================================
+
+# ============================================
+# 🔑 GODADDY API (CONFIGURED ✅)
+# ============================================
+VITE_GODADDY_KEY=h2eWy65jfMPV_KSxuT2Q44RY27P3n9YqiA6
+VITE_GODADDY_SECRET=LuKboxc1tZ3UGAFJFDvtAE
+VITE_GODADDY_API_KEY=h2eWy65jfMPV_KSxuT2Q44RY27P3n9YqiA6
+VITE_GODADDY_API_SECRET=LuKboxc1tZ3UGAFJFDvtAE
+# OAuth (optional - for advanced features)
+VITE_GODADDY_USE_OAUTH=false
+VITE_GODADDY_CLIENT_ID=
+VITE_GODADDY_CLIENT_SECRET=
+
+# ============================================
+# 🔑 NAMECHEAP API (CONFIGURED ✅)
+# ============================================
+VITE_NAMECHEAP_API_USER=mhamp1
+VITE_NAMECHEAP_USER=mhamp1
+VITE_NAMECHEAP_API_KEY=c2cd72c359c74ac49b15e32bb98b4143
+VITE_NAMECHEAP_KEY=c2cd72c359c74ac49b15e32bb98b4143
+VITE_NAMECHEAP_CLIENT_IP=68.106.44.20
+VITE_NAMECHEAP_IP=68.106.44.20
+
+# ============================================
+# 🔑 SUPABASE (DATABASE)
+# Get from: https://supabase.com/dashboard
+# ============================================
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+
+# ============================================
+# 🔑 SEDO AFFILIATE (CONFIGURED ✅)
+# Partner ID: 335853
+# ============================================
+VITE_SEDO_PARTNER_ID=335853
+VITE_SEDO_PARTNER_NAME=DomainFlipper
+VITE_SEDO_USERNAME=
+VITE_SEDO_PASSWORD=
+VITE_SEDO_API_KEY=
+
+# ============================================
+# 🔑 ESCROW.COM (Secure Transactions)
+# Get from: https://www.escrow.com/api
+# ============================================
+VITE_ESCROW_API_KEY=
+VITE_ESCROW_EMAIL=
+VITE_ESCROW_SANDBOX=true
+VITE_SELLER_EMAIL=
+
+# ============================================
+# 🔑 DROPCATCH (Drop Catching)
+# Get from: https://www.dropcatch.com/
+# ============================================
+VITE_DROPCATCH_CLIENT_ID=
+VITE_DROPCATCH_CLIENT_SECRET=
+VITE_DROPCATCH_API_KEY=
+VITE_DROPCATCH_API_SECRET=
+VITE_DROPCATCH_SANDBOX=false
+
+# ============================================
+# 🔑 NAMEBRIGHT (Alternative Registrar)
+# Get from: https://www.namebright.com/
+# ============================================
+VITE_NAMEBRIGHT_CLIENT_ID=
+VITE_NAMEBRIGHT_CLIENT_SECRET=
+
+# ============================================
+# 🔑 NAMEJET (Auctions)
+# Get from: https://www.namejet.com/
+# ============================================
+VITE_NAMEJET_API_KEY=
+
+# ============================================
+# 🔑 SNAPNAMES (Auctions)
+# Get from: https://www.snapnames.com/
+# ============================================
+VITE_SNAPNAMES_API_KEY=
+
+# ============================================
+# 🔑 APIFY (Web Scraping for ExpiredDomains.net)
+# Get from: https://apify.com/
+# ============================================
+VITE_APIFY_TOKEN=
+
+# ============================================
+# 📊 GOOGLE TRENDS (Market Intel)
+# Get from: https://console.cloud.google.com/
+# ============================================
+VITE_GOOGLE_API_KEY=
+
+# ============================================
+# 🐦 TWITTER/X (Viral Trends)
+# Get from: https://developer.twitter.com/
+# ============================================
+VITE_TWITTER_BEARER_TOKEN=
+
+# ============================================
+# ™️ USPTO (Trademark Checking)
+# Get from: https://developer.uspto.gov/
+# ============================================
+VITE_USPTO_API_KEY=
+
+# ============================================
+# 🔥 PRODUCTHUNT (Startup Trends)
+# Get from: https://www.producthunt.com/v2/oauth/applications
+# ============================================
+VITE_PRODUCTHUNT_TOKEN=
+
+# ============================================
+# 🐙 GITHUB (Trending Repos)
+# Get from: https://github.com/settings/tokens
+# ============================================
+VITE_GITHUB_TOKEN=
+
+# ============================================
+# 💳 STRIPE (Payments)
+# Get from: https://dashboard.stripe.com/apikeys
+# ============================================
+VITE_STRIPE_PUBLISHABLE_KEY=
+VITE_STRIPE_SECRET_KEY=
+
+# ============================================
+# 🔗 INFURA (Ethereum/Web3)
+# Get from: https://infura.io/
+# ============================================
+VITE_INFURA_PROJECT_ID=
+VITE_INFURA_MAINNET_URL=
+
+# ============================================
+# 🔗 ALCHEMY (Web3/NFT)
+# Get from: https://www.alchemy.com/
+# ============================================
+VITE_ALCHEMY_API_KEY=
+VITE_ALCHEMY_ETH_MAINNET=
+VITE_ALCHEMY_SOLANA_MAINNET=
+VITE_ALCHEMY_NFT_API=
+
+# ============================================
+# 🔍 WHOIS API (Domain Info)
+# Get from: https://whoisfreaks.com/
+# ============================================
+VITE_WHOIS_API_KEY=
+
+# ============================================
+# 👤 REGISTRANT INFO (For Domain Purchases)
+# Your contact info for WHOIS
+# ============================================
+VITE_REGISTRANT_FIRST_NAME=
+VITE_REGISTRANT_LAST_NAME=
+VITE_REGISTRANT_ADDRESS=
+VITE_REGISTRANT_CITY=
+VITE_REGISTRANT_STATE=
+VITE_REGISTRANT_POSTAL=
+VITE_REGISTRANT_COUNTRY=US
+VITE_REGISTRANT_PHONE=
+VITE_REGISTRANT_EMAIL=
+
+# ============================================
+# ⚙️ APP SETTINGS
+# ============================================
+VITE_DRY_RUN=true
+VITE_SIMULATION=false
+VITE_APP_ENV=production
+
+# ============================================
+# 🔐 OWNER AUTH (Set Your Password)
+# ============================================
+VITE_OWNER_PASSWORD=
+
+# ============================================
+# FOR VERCEL SERVERLESS FUNCTIONS
+# (Same values without VITE_ prefix)
+# Add these in Vercel Environment Variables
+# ============================================
+GODADDY_API_KEY=h2eWy65jfMPV_KSxuT2Q44RY27P3n9YqiA6
+GODADDY_API_SECRET=LuKboxc1tZ3UGAFJFDvtAE
+NAMECHEAP_API_USER=mhamp1
+NAMECHEAP_API_KEY=c2cd72c359c74ac49b15e32bb98b4143
+NAMECHEAP_CLIENT_IP=68.106.44.20

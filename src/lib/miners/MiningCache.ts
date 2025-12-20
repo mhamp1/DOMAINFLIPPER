@@ -24,6 +24,12 @@ export class MiningCache {
   private readonly MAX_GEMS = 500
   private readonly MAX_LEGENDARY = 100
 
+  constructor() {
+    // Clear any old mock data on startup
+    this.clear()
+    console.log('[MINING_CACHE] Initialized fresh - all old data cleared')
+  }
+
   /**
    * Check if domain was already mined recently
    */

@@ -79,55 +79,14 @@ export class MarketIntelEngine {
   // ==================== EXTERNAL DATA FEEDS ====================
 
   /**
-   * Google Trends — Rising queries with velocity tracking
+   * Google Trends — DISABLED (CORS not supported from browser)
+   * Requires backend proxy to work
    */
-  async fetchGoogleTrends(category?: string): Promise<MarketSignal[]> { // eslint-disable-line @typescript-eslint/no-unused-vars
-    const signals: MarketSignal[] = []
+  async fetchGoogleTrends(_category?: string): Promise<MarketSignal[]> {
+    // DISABLED: Google Trends doesn't support browser CORS
+    console.log('[MARKET_INTEL] Google Trends disabled - requires backend proxy')
+    return []
 
-    try {
-      // Google Trends API (via unofficial endpoint or SerpAPI)
-      const response = await axios.get('https://trends.google.com/trends/api/dailytrends', {
-        params: {
-          hl: 'en-US',
-          geo: 'US',
-          ns: 15,
-          tz: -240,
-          ed: new Date().toISOString().slice(0, 10).replace(/-/g, ''),
-        },
-        timeout: 15000,
-        headers: { 'User-Agent': 'DomainFlipper/2.0' },
-      })
-
-      // Parse response (remove JSONP wrapper)
-      const jsonStr = response.data.substring(response.data.indexOf('{'))
-      const data = JSON.parse(jsonStr)
-
-      const trendingSearches = data?.default?.trendingSearchesDays?.[0]?.trendingSearches || []
-
-      trendingSearches.forEach((trend: { title?: { query?: string }; formattedTraffic?: string; relatedQueries?: unknown[]; articles?: { title?: string }[] }, idx: number) => {
-        const keyword = trend.title?.query?.toLowerCase() || ''
-        if (keyword.length >= 3 && keyword.length <= 20) {
-          signals.push({
-            id: `google-${Date.now()}-${idx}`,
-            source: 'google',
-            keyword,
-            sentiment: 'bullish',
-            strength: Math.max(50, 100 - idx * 3),
-            volume: trend.formattedTraffic ? parseInt(trend.formattedTraffic.replace(/[^0-9]/g, '')) : 10000,
-            growth: 50 + Math.random() * 50,
-            timestamp: new Date(),
-            metadata: {
-              relatedQueries: trend.relatedQueries || [],
-              articleTitle: trend.articles?.[0]?.title,
-            },
-          })
-        }
-      })
-    } catch (error) {
-      console.warn('Google Trends fetch error:', error)
-    }
-
-    return signals
   }
 
   /**
@@ -332,149 +291,29 @@ export class MarketIntelEngine {
   }
 
   /**
-   * Reddit Sentiment — Subreddit monitoring
+   * Reddit Sentiment — DISABLED (CORS not supported from browser)
    */
-  async fetchRedditSentiment(keyword: string): Promise<SentimentData | null> {
-    try {
-      const response = await axios.get(`https://www.reddit.com/search.json`, {
-        params: { q: keyword, sort: 'relevance', limit: 100 },
-        headers: { 'User-Agent': 'DomainFlipper/2.0' },
-        timeout: 10000,
-      })
-
-      const posts = response.data?.data?.children || []
-      let positive = 0, negative = 0, neutral = 0
-      let totalScore = 0
-
-      posts.forEach((post: { data?: { score?: number; upvote_ratio?: number } }) => {
-        const score = post.data?.score || 0
-        const ratio = post.data?.upvote_ratio || 0.5
-        totalScore += score
-
-        if (ratio > 0.7) positive++
-        else if (ratio < 0.4) negative++
-        else neutral++
-      })
-
-      const total = posts.length
-      const overallSentiment = total > 0 ? ((positive - negative) / total) * 100 : 0
-
-      return {
-        keyword,
-        overallSentiment,
-        mentions: total,
-        positiveCount: positive,
-        negativeCount: negative,
-        neutralCount: neutral,
-        sources: ['reddit'],
-        trendDirection: totalScore > 5000 ? 'up' : totalScore < 1000 ? 'down' : 'stable',
-      }
-    } catch (error) {
-      console.warn('Reddit sentiment error:', error)
-      return null
-    }
+  async fetchRedditSentiment(_keyword: string): Promise<SentimentData | null> {
+    console.log('[MARKET_INTEL] Reddit disabled - requires backend proxy')
+    return null
   }
 
   /**
-   * Product Hunt — Startup launches
+   * Product Hunt — DISABLED (CORS not supported from browser)
    */
   async fetchProductHuntTrends(): Promise<MarketSignal[]> {
-    const signals: MarketSignal[] = []
+    console.log('[MARKET_INTEL] ProductHunt disabled - requires backend proxy')
+    return []
 
-    try {
-      const response = await axios.get('https://www.producthunt.com/frontend/graphql', {
-        params: {
-          query: `{ posts(first: 50) { edges { node { name slug votesCount commentsCount } } } }`,
-        },
-        headers: { 'User-Agent': 'DomainFlipper/2.0' },
-        timeout: 10000,
-      })
-
-      const posts = response.data?.data?.posts?.edges || []
-
-      posts.forEach((edge: { node: { slug?: string; votesCount: number; commentsCount?: number } }, idx: number) => {
-        const post = edge.node
-        const keyword = post.slug?.toLowerCase().replace(/-/g, '') || ''
-
-        if (keyword.length >= 3 && keyword.length <= 15) {
-          signals.push({
-            id: `producthunt-${Date.now()}-${idx}`,
-            source: 'producthunt',
-            keyword,
-            sentiment: post.votesCount > 100 ? 'bullish' : 'neutral',
-            strength: Math.min(100, post.votesCount / 10),
-            volume: post.votesCount + (post.commentsCount || 0),
-            growth: post.votesCount > 500 ? 100 : post.votesCount > 100 ? 50 : 25,
-            timestamp: new Date(),
-            metadata: { votes: post.votesCount, comments: post.commentsCount || 0 },
-          })
-        }
-      })
-    } catch (error) {
-      console.warn('Product Hunt fetch error:', error)
-    }
-
-    return signals
   }
 
   /**
-   * Hacker News — Tech trends
+   * Hacker News — DISABLED (These APIs don't support browser CORS)
    */
   async fetchHackerNewsTrends(): Promise<MarketSignal[]> {
-    const signals: MarketSignal[] = []
+    console.log('[MARKET_INTEL] HackerNews disabled - requires backend proxy')
+    return []
 
-    try {
-      // Get top stories
-      const topResponse = await axios.get('https://hacker-news.firebaseio.com/v0/topstories.json', { timeout: 10000 })
-      const topIds = topResponse.data?.slice(0, 30) || []
-
-      // Fetch story details
-      const stories = await Promise.all(
-        topIds.map((id: number) =>
-          axios.get(`https://hacker-news.firebaseio.com/v0/item/${id}.json`, { timeout: 5000 })
-            .then(r => r.data)
-            .catch(() => null)
-        )
-      )
-
-      stories.filter(Boolean).forEach((story: any, idx: number) => {
-        // Extract keywords from title
-        const words = (story.title || '')
-          .toLowerCase()
-          .split(/\s+/)
-          .filter((w: string) => w.length >= 3 && w.length <= 12 && /^[a-z]+$/.test(w))
-
-        words.slice(0, 3).forEach((keyword: string) => {
-          if (!['the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can'].includes(keyword)) {
-            signals.push({
-              id: `hackernews-${Date.now()}-${story.id}-${keyword}`,
-              source: 'hackernews',
-              keyword,
-              sentiment: story.score > 200 ? 'bullish' : 'neutral',
-              strength: Math.min(100, story.score / 5),
-              volume: story.score,
-              growth: story.descendants > 100 ? 80 : 40,
-              timestamp: new Date(),
-              metadata: { hnId: story.id, comments: story.descendants },
-            })
-          }
-        })
-      })
-
-      // Deduplicate
-      const unique = new Map<string, MarketSignal>()
-      signals.forEach(s => {
-        const existing = unique.get(s.keyword)
-        if (!existing || s.strength > existing.strength) {
-          unique.set(s.keyword, s)
-        }
-      })
-
-      return Array.from(unique.values()).slice(0, 50)
-    } catch (error) {
-      console.warn('Hacker News fetch error:', error)
-      return []
-    }
   }
 
   // ==================== PREDICTIVE ALERTS ====================

@@ -137,8 +137,7 @@ class GoDaddyRealAPI {
   }
 
   /**
-   * Search GoDaddy Auctions — REAL AUCTION DATA
-   * NOTE: GoDaddy API has CORS restrictions - in production, use a backend proxy
+   * Search GoDaddy Auctions — Uses Vercel serverless proxy to bypass CORS
    */
   async searchAuctions(params: {
     limit?: number
@@ -146,54 +145,43 @@ class GoDaddyRealAPI {
     maxPrice?: number
     tlds?: string[]
   } = {}): Promise<GoDaddyAuction[]> {
-    if (!this.client) {
-      this.initClient()
-      if (!this.client) {
-        logger.warn('GODADDY', 'API not configured')
-        return []
-      }
-    }
-
     try {
-      // GoDaddy Aftermarket/Auctions API
-      const response = await this.client.get('/v1/aftermarket/auctions', {
-        params: {
-          limit: params.limit || 100,
-          minPrice: params.minPrice || 1,
-          maxPrice: params.maxPrice || 10000,
-          tlds: params.tlds?.join(',') || 'com,net,org,io,ai',
-          status: 'OPEN',
-        }
+      // Use Vercel serverless proxy to bypass CORS
+      const proxyUrl = '/api/godaddy/auctions'
+      const queryParams = new URLSearchParams({
+        limit: String(params.limit || 50),
+        minPrice: String(params.minPrice || 1),
+        maxPrice: String(params.maxPrice || 10000),
+        tlds: params.tlds?.join(',') || 'com,net,org,io,ai',
       })
 
-      const auctions: GoDaddyAuction[] = response.data.auctions?.map((a: any) => ({
-        auctionId: a.auctionId,
-        domain: a.domain,
-        price: a.price / 1000000, // Convert from micros
-        bidCount: a.bidCount || 0,
-        auctionEndTime: a.auctionEndTime,
-        auctionType: a.auctionType,
-        isWatching: a.isWatching || false,
-      })) || []
+      const response = await fetch(`${proxyUrl}?${queryParams}`)
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        logger.warn('GODADDY', `Proxy returned ${response.status}: ${errorData.error || 'Unknown error'}`)
+        return this.getExpiringDomains(params.limit || 50)
+      }
 
-      logger.api(`GoDaddy auctions search: ${auctions.length} results`, { params })
+      const data = await response.json()
+      
+      const auctions: GoDaddyAuction[] = (data.auctions || data || []).map((a: any) => ({
+        auctionId: a.auctionId || a.auction_id || '',
+        domain: a.domain,
+        price: typeof a.price === 'number' && a.price > 1000 ? a.price / 1000000 : a.price, // Convert from micros if needed
+        bidCount: a.bidCount || a.bid_count || 0,
+        auctionEndTime: a.auctionEndTime || a.auction_end_time || '',
+        auctionType: a.auctionType || a.auction_type || 'auction',
+        isWatching: a.isWatching || false,
+      }))
+
+      logger.api(`GoDaddy auctions via proxy: ${auctions.length} results`, { params })
       return auctions
 
     } catch (error: any) {
-      // Handle CORS/Network errors gracefully
-      if (error.message === 'Network Error' || error.code === 'ERR_NETWORK') {
-        logger.warn('GODADDY', 'Network Error (CORS) - GoDaddy API requires backend proxy in production')
-        return [] // Return empty instead of crashing
-      }
-      
-      // If auctions API not available, try expiring domains
-      if (error.response?.status === 404 || error.response?.status === 403) {
-        logger.warn('GODADDY', 'Auctions API requires Pro account, trying domains API')
-        return this.getExpiringDomains(params.limit || 50)
-      }
-      
-      logger.error('GODADDY', 'Auction search failed', error)
-      return [] // Return empty instead of throwing
+      // Fallback to expiring domains
+      logger.warn('GODADDY', `Auction search failed: ${error.message}. Trying expiring domains.`)
+      return this.getExpiringDomains(params.limit || 50)
     }
   }
 

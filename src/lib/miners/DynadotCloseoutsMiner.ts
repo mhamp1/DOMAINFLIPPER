@@ -183,83 +183,12 @@ export class DynadotCloseoutsMiner extends BaseMiner {
   }
 
   /**
-   * Demo closeouts for testing
+   * NO MOCK DATA — Returns empty when real API unavailable
    */
   private getDemoCloseouts(): CloseoutDomain[] {
-    const premiumNames = [
-      'techflow', 'datahub', 'cloudpro', 'aicore', 'devstack',
-      'synclabs', 'apihub', 'netpro', 'webstack', 'codebase',
-      'mlhub', 'deeptech', 'quantumio', 'neuralpro', 'blockdev'
-    ]
-    const tlds = ['.com', '.io', '.co', '.net']
-    const domains: CloseoutDomain[] = []
-    
-    for (let i = 0; i < 40; i++) {
-      const name = premiumNames[Math.floor(Math.random() * premiumNames.length)]
-      const tld = tlds[Math.floor(Math.random() * tlds.length)]
-      const domain = `${name}${tld}`
-      
-      const price = 5 + Math.random() * 5.99 // $5-$10.99
-      const registeredYear = 2005 + Math.floor(Math.random() * 15) // 2005-2019
-      const backlinks = Math.floor(Math.random() * 2000)
-      const traffic = Math.floor(Math.random() * 8000)
-      
-      const item = { domain, price, registeredYear, backlinks, traffic }
-      const estValue = this.estimateDynadotValueSync(item)
-      
-      if (estValue / price >= 100) { // Only include 100x+ ROI
-        domains.push({
-          domain,
-          price: Math.round(price * 100) / 100,
-          estValue,
-          age: 2025 - registeredYear,
-          backlinks,
-          traffic,
-        })
-      }
-    }
-    
-    return domains.slice(0, 25)
-  }
-
-  /**
-   * Sync version for demo
-   */
-  private estimateDynadotValueSync(item: {
-    domain: string
-    price: number
-    registeredYear?: number
-    backlinks?: number
-    traffic?: number
-  }): number {
-    let value = 1000
-    
-    const name = item.domain.split('.')[0]
-    const tld = '.' + item.domain.split('.').pop()
-    
-    if (item.registeredYear) {
-      const age = 2025 - item.registeredYear
-      if (age > 15) value *= 2.5
-      else if (age > 10) value *= 2.2
-      else if (age > 5) value *= 1.8
-    }
-    
-    if (item.backlinks) {
-      if (item.backlinks > 1000) value += item.backlinks * 18
-      else if (item.backlinks > 100) value += item.backlinks * 15
-    }
-    
-    if (item.traffic) value += item.traffic * 0.6
-    
-    if (tld === '.io' || tld === '.ai') value *= 1.6
-    else if (tld === '.com') value *= 1.4
-    
-    if (name.length <= 5) value *= 2
-    else if (name.length <= 8) value *= 1.5
-    
-    if (/^[a-z]+$/i.test(name)) value *= 1.3
-    
-    return Math.round(value)
+    // NO MOCK DATA — Real API required
+    logger.warn('DYNADOT_CLOSEOUTS', 'Real API unavailable, no mock data returned')
+    return []
   }
 }
 

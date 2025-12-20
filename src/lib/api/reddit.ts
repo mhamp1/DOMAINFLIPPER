@@ -28,8 +28,40 @@ export interface RedditPost {
   domains?: string[] // Extracted domain names
 }
 
+/**
+ * RedditAPI - DISABLED
+ * Reddit API doesn't support browser CORS
+ * Requires backend proxy to function
+ */
 class RedditAPI {
   private config: RedditConfig | null = null
+
+  constructor(_config?: RedditConfig) {
+    // DISABLED: Reddit doesn't support browser CORS
+    console.log('[REDDIT] Reddit API disabled - requires backend proxy')
+    this.config = null
+  }
+
+  isConfigured(): boolean {
+    return false // Always return false since disabled
+  }
+
+  async searchPosts(_query: string): Promise<RedditPost[]> {
+    console.log('[REDDIT] Search disabled - requires backend proxy')
+    return []
+  }
+
+  async getSubredditPosts(_subreddit: string, _limit?: number): Promise<RedditPost[]> {
+    console.log('[REDDIT] Subreddit fetch disabled - requires backend proxy')
+    return []
+  }
+
+  async getTrendingTopics(): Promise<string[]> {
+    console.log('[REDDIT] Trending topics disabled - requires backend proxy')
+    return []
+  }
+
+  /* ORIGINAL - Requires backend proxy:
   private accessToken: string | null = null
   private tokenExpiry: Date | null = null
   private baseUrl = 'https://oauth.reddit.com'
@@ -52,9 +84,9 @@ class RedditAPI {
     }
   }
 
-  /**
+  / **
    * Authenticate with Reddit API
-   */
+   * /
   private async authenticate(): Promise<void> {
     if (!this.config) {
       throw new Error('Reddit API not configured')

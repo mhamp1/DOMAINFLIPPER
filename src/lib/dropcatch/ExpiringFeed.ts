@@ -5,30 +5,11 @@ import type { ExpiringDomain } from '@/types/domain'
  * Monitors domains expiring today from multiple sources
  */
 
-// Demo data generator for expiring domains
+// NO MOCK DATA - Returns empty array until real API connected
 const generateExpiringDomains = (): ExpiringDomain[] => {
-  const now = new Date()
-  const premiumNames = [
-    'quantumai', 'neuralgpt', 'cryptovault', 'metaverse', 'blockchainpro',
-    'aianalysis', 'cloudnative', 'webthree', 'nftmarket', 'digitalpay',
-    'smartcontract', 'decentralize', 'tokenomics', 'defiprotocol', 'gamingmetaverse'
-  ]
-  
-  const tlds = ['.com', '.ai', '.io', '.net', '.co']
-  
-  return premiumNames.map((name) => {
-    const dropTime = new Date(now.getTime() + (Math.random() * 3600 * 1000)) // Within next hour
-    const tld = tlds[Math.floor(Math.random() * tlds.length)]
-    
-    return {
-      name: `${name}${tld}`,
-      dropTime: dropTime.toISOString(),
-      tld,
-      backlinks: Math.floor(Math.random() * 50000) + 1000,
-      age: Math.floor(Math.random() * 15) + 1,
-      traffic: Math.floor(Math.random() * 10000) + 500,
-    }
-  })
+  // NO MOCK DATA - Real API required
+  console.warn('[EXPIRING_FEED] No mock data - connect real expiring domains API')
+  return []
 }
 
 /**

@@ -7,6 +7,7 @@
 import { BaseMiner } from './BaseMiner'
 import type { CloseoutDomain } from './types'
 import { masterConfig } from '@/lib/config/MasterConfig'
+import { logger } from '@/lib/utils/logger'
 
 export class GoDaddyCloseoutsMiner extends BaseMiner {
   private readonly CLOSEOUT_URL = 'https://auctions.godaddy.com/trpItemListing.aspx'
@@ -67,7 +68,7 @@ export class GoDaddyCloseoutsMiner extends BaseMiner {
   }
 
   /**
-   * Fetch closeout listings from GoDaddy
+   * Fetch closeout listings from GoDaddy — Uses Vercel proxy to bypass CORS
    */
   private async fetchCloseoutListings(): Promise<Array<{
     domain: string
@@ -79,21 +80,16 @@ export class GoDaddyCloseoutsMiner extends BaseMiner {
     age?: number
   }>> {
     try {
-      const gdConfig = masterConfig.getGoDaddy()
+      // Use Vercel serverless proxy to bypass CORS
+      const proxyUrl = '/api/godaddy/closeouts?limit=200'
       
-      // Use GoDaddy Auctions API
-      const response = await fetch(
-        'https://api.godaddy.com/v1/domains/auctions?type=closeout&limit=200',
-        {
-          headers: {
-            'Authorization': `sso-key ${gdConfig.apiKey}:${gdConfig.apiSecret}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      )
+      const response = await fetch(proxyUrl, {
+        method: 'GET',
+      })
 
       if (!response.ok) {
-        throw new Error(`GoDaddy API error: ${response.status}`)
+        console.warn(`GoDaddy closeouts proxy returned ${response.status}`)
+        return []
       }
 
       const data = await response.json()
@@ -115,20 +111,16 @@ export class GoDaddyCloseoutsMiner extends BaseMiner {
   }
 
   /**
-   * Get GoDaddy's domain appraisal
+   * Get GoDaddy's domain appraisal — Uses Vercel proxy to bypass CORS
    */
   private async getGoDaddyAppraisal(domain: string): Promise<number> {
     try {
-      const gdConfig = masterConfig.getGoDaddy()
+      // Use Vercel serverless proxy to bypass CORS
+      const proxyUrl = `/api/godaddy/appraisal?domain=${encodeURIComponent(domain)}`
       
-      const response = await fetch(
-        `https://api.godaddy.com/v1/appraisal/${domain}`,
-        {
-          headers: {
-            'Authorization': `sso-key ${gdConfig.apiKey}:${gdConfig.apiSecret}`,
-          },
-        }
-      )
+      const response = await fetch(proxyUrl, {
+        method: 'GET',
+      })
 
       if (!response.ok) {
         return this.estimateValue(domain)
@@ -179,36 +171,12 @@ export class GoDaddyCloseoutsMiner extends BaseMiner {
   }
 
   /**
-   * Demo closeouts for testing
+   * NO MOCK DATA — Returns empty when real API unavailable
    */
   private getDemoCloseouts(): CloseoutDomain[] {
-    const premiumKeywords = ['tech', 'cloud', 'data', 'hub', 'ai', 'dev', 'app', 'flow', 'sync', 'core']
-    const tlds = ['.com', '.io', '.co', '.net', '.ai']
-    const domains: CloseoutDomain[] = []
-    
-    for (let i = 0; i < 50; i++) {
-      const keyword = premiumKeywords[Math.floor(Math.random() * premiumKeywords.length)]
-      const suffix = Math.random() > 0.5 ? premiumKeywords[Math.floor(Math.random() * premiumKeywords.length)] : ''
-      const tld = tlds[Math.floor(Math.random() * tlds.length)]
-      const domain = `${keyword}${suffix}${tld}`
-      
-      const price = 5 + Math.random() * 6.99 // $5-$11.99
-      const estValue = this.estimateValue(domain)
-      
-      if (estValue / price >= 50) { // Only include 50x+ ROI
-        domains.push({
-          domain,
-          price: Math.round(price * 100) / 100,
-          estValue,
-          bids: Math.floor(Math.random() * 5),
-          traffic: Math.floor(Math.random() * 5000),
-          backlinks: Math.floor(Math.random() * 1000),
-          age: Math.floor(Math.random() * 15),
-        })
-      }
-    }
-    
-    return domains.slice(0, 30)
+    // NO MOCK DATA — Real API required
+    logger.warn('GODADDY_CLOSEOUTS', 'Real API unavailable, no mock data returned')
+    return []
   }
 }
 

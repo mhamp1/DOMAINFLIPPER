@@ -39,67 +39,18 @@ export class USPTOValuation {
 
   /**
    * Check if domain has trademark value boost
+   * DISABLED: USPTO API doesn't support browser CORS
    */
   async checkTrademarkValue(domain: string): Promise<TrademarkResult> {
-    // Check cache first
-    const cached = this.getCached(domain)
-    if (cached) return cached
-
-    const keyword = domain.replace(/\..+$/, '').toLowerCase() // Remove TLD
-
-    try {
-      // Search USPTO trademark database
-      const response = await axios.get(`${this.config.baseUrl}/search`, {
-        params: {
-          q: keyword,
-          f: '["serialNumber","markIdentification","status"]',
-          fl: 'serialNumber,markIdentification,currentStatus,ownerName',
-          api_key: this.config.apiKey,
-          rows: 50, // Limit results
-        },
-        timeout: 10000, // 10s timeout
-      })
-
-      const results = response.data?.searchResponse?.results || []
-      const liveMarks = results.filter((r: any) => 
-        r.currentStatus?.some((s: string) => s.includes('LIVE'))
-      )
-
-      let result: TrademarkResult
-
-      if (liveMarks.length > 0) {
-        const firstMark = liveMarks[0]
-        result = {
-          hasTrademark: true,
-          owner: firstMark.ownerName?.[0] || 'Unknown',
-          status: firstMark.currentStatus?.[0] || 'LIVE',
-          valueBoost: 5.0, // 500% value increase
-          serialNumber: firstMark.serialNumber?.[0],
-          markIdentification: firstMark.markIdentification?.[0],
-          liveCount: liveMarks.length,
-        }
-      } else {
-        result = {
-          hasTrademark: false,
-          status: 'NOT_FOUND',
-          valueBoost: 1.0,
-        }
-      }
-
-      // Cache result
-      this.setCached(domain, result)
-
-      return result
-    } catch (error: any) {
-      console.warn(`USPTO check failed for ${domain}:`, error.message)
-      
-      // Return safe default on error
-      return {
-        hasTrademark: false,
-        status: 'ERROR',
-        valueBoost: 1.0,
-      }
+    // DISABLED: USPTO doesn't support browser CORS
+    // Return neutral result to avoid blocking
+    console.log(`[USPTO] Trademark check disabled for ${domain} - requires backend proxy`)
+    return {
+      hasTrademark: false,
+      status: 'CORS_BLOCKED',
+      valueBoost: 1.0,
     }
+
   }
 
   /**

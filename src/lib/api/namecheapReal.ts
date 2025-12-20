@@ -82,7 +82,7 @@ class NamecheapRealAPI {
   }
 
   /**
-   * Make API request to Namecheap
+   * Make API request to Namecheap — Uses Vercel serverless proxy to bypass CORS
    */
   private async makeRequest(command: string, params: Record<string, string> = {}): Promise<any> {
     if (!this.isConfigured) {
@@ -90,18 +90,48 @@ class NamecheapRealAPI {
       if (!this.isConfigured) throw new Error('Namecheap API not configured')
     }
 
-    const baseUrl = this.useSandbox ? NAMECHEAP_SANDBOX_URL : NAMECHEAP_API_URL
-
-    const queryParams = new URLSearchParams({
-      ApiUser: this.apiUser,
-      ApiKey: this.apiKey,
-      UserName: this.apiUser,
-      ClientIp: this.clientIp,
-      Command: command,
-      ...params,
-    })
-
     try {
+      // For domain checks, use Vercel serverless proxy to bypass CORS
+      if (command === 'namecheap.domains.check' && params.DomainList) {
+        const proxyUrl = `/api/namecheap/check?domains=${encodeURIComponent(params.DomainList)}`
+        
+        const response = await fetch(proxyUrl, { timeout: 30000 } as any)
+        
+        if (!response.ok) {
+          throw new Error(`Proxy returned ${response.status}`)
+        }
+
+        const xmlText = await response.text()
+        
+        // Parse XML response
+        const result = await parseStringPromise(xmlText, {
+          explicitArray: false,
+          ignoreAttrs: false,
+        })
+
+        const apiResponse = result.ApiResponse
+        if (apiResponse?.$.Status === 'ERROR') {
+          const errors = apiResponse.Errors?.Error
+          const errorMsg = Array.isArray(errors) 
+            ? errors.map((e: any) => e._).join(', ')
+            : errors?._ || 'Unknown error'
+          throw new Error(`Namecheap API Error: ${errorMsg}`)
+        }
+
+        return apiResponse?.CommandResponse
+      }
+
+      // For other commands, try direct call (may fail due to CORS)
+      const baseUrl = this.useSandbox ? NAMECHEAP_SANDBOX_URL : NAMECHEAP_API_URL
+      const queryParams = new URLSearchParams({
+        ApiUser: this.apiUser,
+        ApiKey: this.apiKey,
+        UserName: this.apiUser,
+        ClientIp: this.clientIp,
+        Command: command,
+        ...params,
+      })
+
       const response = await axios.get(`${baseUrl}?${queryParams.toString()}`, {
         timeout: 30000,
       })

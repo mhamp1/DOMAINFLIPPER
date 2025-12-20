@@ -67,59 +67,22 @@ class LeadScanner {
 
   /**
    * Perform a full scan of all sources
+   * NOTE: External APIs (Reddit, Google Trends, USPTO, etc.) don't support CORS
+   * These require a backend proxy to work - returning empty for now
    */
   async scan(): Promise<LeadScanResult> {
-    const errors: string[] = []
-    const allLeads: Lead[] = []
-
-    logger.info('LEAD_SCANNER', 'Starting scan of all sources...')
-
-    // Scan all sources in parallel
-    const results = await Promise.allSettled([
-      this.scanGitHub(),
-      this.scanProductHunt(),
-      this.scanUSPTO(),
-      this.scanYCombinator(),
-      this.scanRedditStartups(),
-    ])
-
-    results.forEach((result, index) => {
-      const sources = ['GitHub', 'ProductHunt', 'USPTO', 'YCombinator', 'Reddit']
-      if (result.status === 'fulfilled') {
-        allLeads.push(...result.value)
-      } else {
-        errors.push(`${sources[index]}: ${result.reason?.message}`)
-      }
-    })
-
-    // Deduplicate and filter
-    const uniqueLeads = this.deduplicateLeads(allLeads)
-    const highValueLeads = uniqueLeads.filter(l => l.confidence >= 60 && l.potentialValue >= 5000)
-
-    // Update internal state
-    this.leads = [...this.leads, ...highValueLeads].slice(-500) // Keep last 500
+    // DISABLED: External APIs don't support browser CORS
+    // These need backend proxy functions to work
+    logger.info('LEAD_SCANNER', 'Lead scanning disabled - requires backend proxy for external APIs')
+    
     this.lastScan = new Date()
-
-    logger.info('LEAD_SCANNER', `Scan complete: ${highValueLeads.length} high-value leads found`, {
-      total: allLeads.length,
-      highValue: highValueLeads.length,
-      errors: errors.length,
-    })
-
-    // Notify on high-value leads
-    if (highValueLeads.length > 0) {
-      const topLead = highValueLeads[0]
-      toast.success('🔥 New Lead Found', {
-        description: `${topLead.name}.com → $${topLead.potentialValue.toLocaleString()} potential`,
-      })
-    }
-
     return {
-      leads: highValueLeads,
-      scannedAt: new Date(),
-      sources: ['github', 'producthunt', 'uspto', 'ycombinator', 'reddit'],
-      errors,
+      leads: [],
+      scannedAt: this.lastScan,
+      sources: [],
+      errors: ['External APIs require backend proxy - scanning disabled']
     }
+
   }
 
   /**
