@@ -46,10 +46,6 @@ export async function monitorKickstarter(): Promise<PreemptiveTarget[]> {
 export async function monitorUSPTOPending(): Promise<PreemptiveTarget[]> {
   console.log('[RUTHLESS] USPTO monitoring disabled - requires backend proxy')
   return []
-  } catch (error) {
-    console.warn('USPTO monitoring failed:', error)
-    return []
-  }
 }
 
 /**
