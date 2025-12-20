@@ -199,7 +199,11 @@ function getEnvCredentials() {
       apiKey: import.meta.env.VITE_GOOGLE_API_KEY || '',
     },
     twitter: {
-      bearerToken: import.meta.env.VITE_TWITTER_BEARER_TOKEN || '',
+      bearerToken: import.meta.env.VITE_TWITTER_BEARER_TOKEN || 
+                   import.meta.env.VITE_X_BEARER_TOKEN || 
+                   import.meta.env.TWITTER_BEARER_TOKEN || 
+                   import.meta.env.X_BEARER_TOKEN || 
+                   '',
     },
     uspto: {
       apiKey: import.meta.env.VITE_USPTO_API_KEY || '',
