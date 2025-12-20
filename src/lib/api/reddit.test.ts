@@ -44,19 +44,27 @@ describe('RedditAPI', () => {
       expect(typeof redditAPI.searchPosts).toBe('function')
     })
 
-    it('should return empty array on error', async () => {
-      const axios = await import('axios')
-      vi.mocked(axios.default.post).mockRejectedValueOnce(new Error('Auth error'))
-
-      const result = await redditAPI.searchPosts('Domains', 'domain for sale').catch(() => [])
+    it('should return empty array when disabled', async () => {
+      const result = await redditAPI.searchPosts('test query')
       
       expect(Array.isArray(result)).toBe(true)
+      expect(result.length).toBe(0)
     })
   })
 
-  describe('findDomainOpportunities', () => {
-    it('should be a function', () => {
-      expect(typeof redditAPI.findDomainOpportunities).toBe('function')
+  describe('disabled methods', () => {
+    it('should return false for isConfigured', () => {
+      expect(redditAPI.isConfigured()).toBe(false)
+    })
+
+    it('should return empty array for getSubredditPosts', async () => {
+      const result = await redditAPI.getSubredditPosts('test')
+      expect(result).toEqual([])
+    })
+
+    it('should return empty array for getTrendingTopics', async () => {
+      const result = await redditAPI.getTrendingTopics()
+      expect(result).toEqual([])
     })
 
     it('should extract domain names from text', () => {

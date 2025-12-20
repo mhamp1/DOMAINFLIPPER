@@ -84,9 +84,9 @@ class RedditAPI {
     }
   }
 
-  / **
+  /**
    * Authenticate with Reddit API
-   * /
+   *\/
   private async authenticate(): Promise<void> {
     if (!this.config) {
       throw new Error('Reddit API not configured')
@@ -130,7 +130,7 @@ class RedditAPI {
 
   /**
    * Search subreddit for domain-related posts
-   */
+   *\/
   async searchPosts(
     subreddit: string,
     query: string,
@@ -203,7 +203,7 @@ class RedditAPI {
 
   /**
    * Find domain opportunities from popular domain subreddits
-   */
+   *\/
   async findDomainOpportunities(): Promise<string[]> {
     const subreddits = ['Domains', 'Entrepreneur', 'Flipping', 'SideProject', 'startups']
     const queries = ['domain for sale', 'selling domain', 'domain available', 'premium domain']
@@ -236,10 +236,11 @@ class RedditAPI {
 
   /**
    * Check if Reddit API is configured
-   */
+   *\/
   isConfigured(): boolean {
     return !!this.config
   }
+  */
 }
 
 // Singleton instance

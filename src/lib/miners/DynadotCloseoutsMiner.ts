@@ -6,6 +6,7 @@
 
 import { BaseMiner } from './BaseMiner'
 import type { CloseoutDomain } from './types'
+import { logger } from '@/lib/utils/logger'
 
 export class DynadotCloseoutsMiner extends BaseMiner {
   private readonly CLOSEOUT_URL = 'https://www.dynadot.com/market/closeout-domains'
