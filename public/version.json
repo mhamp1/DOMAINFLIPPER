@@ -1,15 +1,15 @@
 {
-  "version": "2.7.0",
-  "buildId": "FIX-BUILD-ADD-VERCEL-NODE-20251207-231500",
-  "buildTime": "2025-12-07T23:15:00Z",
-  "critical": "BUILD_FIX_VERCEL_NODE_DEPENDENCY",
+  "version": "2.8.0",
+  "buildId": "FIX-BUILD-EXCLUDE-API-ROUTES-20251207-232000",
+  "buildTime": "2025-12-07T23:20:00Z",
+  "critical": "BUILD_FIX_EXCLUDE_API_FROM_TSC",
   "forceRebuild": true,
-  "timestamp": 1733616900000,
+  "timestamp": 1733617200000,
   "changes": [
-    "Added @vercel/node dependency to package.json",
-    "Updated tsconfig.node.json to include API routes",
-    "All API routes now properly configured for Vercel",
-    "Build should now succeed without errors",
+    "Excluded API routes from TypeScript build (Vercel handles them separately)",
+    "tsconfig.node.json now only includes vite.config.ts",
+    "API routes are handled by Vercel runtime, no TypeScript compilation needed",
+    "Build should now succeed - tsc -b will not fail on API routes",
     "Zero mock data - all miners use real API proxies"
   ]
 }
