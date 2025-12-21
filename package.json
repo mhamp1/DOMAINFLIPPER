@@ -19,7 +19,7 @@
     "@supabase/supabase-js": "^2.86.2",
     "@tanstack/react-query": "^5.62.16",
     "@tensorflow/tfjs": "^4.15.0",
-    "@vercel/node": "^3.0.7",
+    "@vercel/node": "^5.5.16",
     "axios": "^1.13.2",
     "axios-retry": "^4.0.0",
     "canvas-confetti": "^1.9.4",
@@ -64,5 +64,10 @@
     "typescript-eslint": "^8.46.4",
     "vite": "^7.2.4",
     "vitest": "^4.0.16"
+  },
+  "overrides": {
+    "esbuild": "^0.25.0",
+    "path-to-regexp": "^6.3.0",
+    "undici": "^5.28.6"
   }
 }
