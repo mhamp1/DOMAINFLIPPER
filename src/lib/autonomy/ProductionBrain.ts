@@ -1218,36 +1218,42 @@ class ProductionBrain {
 
   // ==================== AVAILABILITY CHECK ====================
 
+  /**
+   * Check domain availability across all configured registrars
+   * Uses Promise.all to check in parallel for speed
+   */
   private async checkAvailability(domain: string): Promise<{ available: boolean; price: number; registrar: string }> {
-    // Check GoDaddy
-    if (masterConfig.isGoDaddyConfigured()) {
-      try {
-        const result = await circuitBreaker.execute('godaddy', async () => {
-          return godaddyAPI.checkAvailability(domain)
-        })
-        if (result?.available) {
-          return { available: true, price: result.price || 12, registrar: 'GoDaddy' }
-        }
-      } catch (e) {
-        // Continue to next registrar
-      }
+    const checks = await Promise.all([
+      // Check GoDaddy
+      masterConfig.isGoDaddyConfigured()
+        ? circuitBreaker.execute('godaddy', async () => {
+            return godaddyAPI.checkAvailability(domain)
+          }).catch(() => null)
+        : Promise.resolve(null),
+      
+      // Check Namecheap
+      masterConfig.isNamecheapConfigured()
+        ? circuitBreaker.execute('namecheap', async () => {
+            return namecheapAPI.checkAvailability([domain])
+          }).then(results => results?.[0] || null).catch(() => null)
+        : Promise.resolve(null),
+    ])
+
+    // Return first available result with preference for lowest price
+    const availableResults = checks
+      .filter(result => result?.available)
+      .map((result, index) => ({
+        available: true,
+        price: result!.price || (index === 0 ? 12 : 10),
+        registrar: index === 0 ? 'GoDaddy' : 'Namecheap',
+      }))
+      .sort((a, b) => a.price - b.price) // Sort by price ascending
+
+    if (availableResults.length > 0) {
+      return availableResults[0]
     }
 
-    // Check Namecheap
-    if (masterConfig.isNamecheapConfigured()) {
-      try {
-        const results = await circuitBreaker.execute('namecheap', async () => {
-          return namecheapAPI.checkAvailability([domain])
-        })
-        if (results?.[0]?.available) {
-          return { available: true, price: results[0].price || 10, registrar: 'Namecheap' }
-        }
-      } catch (e) {
-        // Continue
-      }
-    }
-
-    return { available: false, price: 0, registrar: '' }
+    return { available: false, price: 0, registrar: 'None' }
   }
 
   // ==================== JOB HANDLERS ====================

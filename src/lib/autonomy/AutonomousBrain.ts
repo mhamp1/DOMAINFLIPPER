@@ -6,6 +6,10 @@
  * This is the final evolution of capital.
  *
  * December 27, 2025 — The Empire is now perfect.
+ * 
+ * ⚠️ DEPRECATED: This file is being phased out in favor of ProductionBrain.ts
+ * ProductionBrain has better safety features, validation, and error handling.
+ * Use ProductionBrain for all new development.
  */
 
 import { toast } from 'sonner'
