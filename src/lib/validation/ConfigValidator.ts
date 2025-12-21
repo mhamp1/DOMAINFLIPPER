@@ -188,32 +188,25 @@ class ConfigValidator {
    * Validate environment setup
    */
   private validateEnvironment(issues: ValidationIssue[]): void {
-    // Check if running in browser
-    if (typeof window === 'undefined') {
-      issues.push({
-        severity: 'critical',
-        component: 'Environment',
-        issue: 'Not running in browser environment',
-        requiredAction: 'This application must run in a web browser',
-        location: 'Deployment',
-        details: 'Make sure you\'re accessing the app through a web browser (Chrome, Firefox, Safari, etc.)',
-      })
+    // Only check browser features if we're in a browser environment
+    // Skip these checks in server-side/Node.js environments
+    if (typeof window !== 'undefined') {
+      // Check localStorage availability
+      try {
+        localStorage.setItem('test', 'test')
+        localStorage.removeItem('test')
+      } catch (e) {
+        issues.push({
+          severity: 'warning',
+          component: 'Browser Storage',
+          issue: 'localStorage not available',
+          requiredAction: 'Enable cookies and storage in your browser',
+          location: 'Browser Settings',
+          details: 'The app uses localStorage to persist settings. Some features may not work correctly.',
+        })
+      }
     }
-
-    // Check localStorage availability
-    try {
-      localStorage.setItem('test', 'test')
-      localStorage.removeItem('test')
-    } catch (e) {
-      issues.push({
-        severity: 'warning',
-        component: 'Browser Storage',
-        issue: 'localStorage not available',
-        requiredAction: 'Enable cookies and storage in your browser',
-        location: 'Browser Settings',
-        details: 'The app uses localStorage to persist settings. Some features may not work correctly.',
-      })
-    }
+    // Note: Server-side environments (Node.js) will skip these checks
   }
 
   /**

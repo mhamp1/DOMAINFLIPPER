@@ -323,14 +323,15 @@ git config core.autocrlf true
 
 **Causes & Solutions**:
 1. **No APIs configured**: 
-   - The scanner will automatically provide demo domains for testing
-   - Configure real APIs in Settings → API Setup for live data
-   - Check console/logs for specific error messages
+   - ❌ Bot will NOT run without API configuration (no demo mode)
+   - ✅ Configure at least one API in Settings → API Setup → GoDaddy or Namecheap
+   - Check console/logs for specific error messages telling you exactly what's missing
 
 2. **API credentials invalid or expired**:
    - Verify GoDaddy API key and secret in Settings
    - Verify Namecheap API credentials and IP whitelist
    - Test individual APIs using the API Setup page
+   - Bot will show specific error: "GoDaddy API error: [reason]"
 
 3. **API rate limits exceeded**:
    - Wait for rate limit reset (usually hourly)
