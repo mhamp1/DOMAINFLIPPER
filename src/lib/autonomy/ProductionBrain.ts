@@ -280,9 +280,10 @@ class ProductionBrain {
       logger.info('BRAIN', `👑 CEO Mood: ${ceoState.moodIndex}% | Confidence: ${ceoState.confidenceIndex}%`)
       logger.info('BRAIN', `👑 Market Phase: ${ceoState.marketCondition.phase} | Risk Profile: ${ceoState.portfolioStrategy.riskProfile}`)
       this.speak(`👑 CEO Brain activated - Strategic thinking engaged`)
-    } catch (error: any) {
-      logger.error('BRAIN', 'CEO Brain failed to start', error)
-      this.speak(`⚠️ CEO Brain failed to start: ${error.message}`)
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      logger.error('BRAIN', 'CEO Brain failed to start', error instanceof Error ? error : new Error(String(error)))
+      this.speak(`⚠️ CEO Brain failed to start: ${errorMessage}`)
     }
 
     // Start Intelligence Core (learning, market analysis, strategic priorities)
