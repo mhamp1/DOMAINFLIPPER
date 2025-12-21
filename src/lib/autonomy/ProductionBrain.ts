@@ -58,6 +58,9 @@ import { ceoBrain } from '@/lib/intelligence/CEOBrain'
 // Mining Engine - All domain miners
 import { miningEngine } from '@/lib/miners/MiningEngine'
 
+// Configuration Validator - NO FALLBACKS
+import { configValidator, type ValidationResult } from '@/lib/validation/ConfigValidator'
+
 // ==================== TYPES ====================
 
 export interface ProductionConfig {
@@ -346,33 +349,74 @@ class ProductionBrain {
   }
 
   /**
-   * Pre-flight checks before launch
+   * Pre-flight checks before launch - NO FALLBACKS, EXPLICIT ERRORS
    */
   private preflight(): boolean {
+    // Run comprehensive validation
+    const validation = configValidator.validate()
+    
+    // Log detailed report
+    const detailedReport = configValidator.getDetailedReport(validation)
+    logger.info('BRAIN', detailedReport)
+    console.log(detailedReport)
+    
+    // If cannot start, show ALL issues to user
+    if (!validation.canStart) {
+      this.speak('❌ Configuration validation FAILED')
+      
+      // Show summary toast
+      toast.error('Cannot Start - Configuration Issues', {
+        description: validation.summary,
+        duration: 20000,
+      })
+      
+      // Show each critical issue individually
+      validation.issues
+        .filter(i => i.severity === 'critical')
+        .forEach(issue => {
+          this.speak(`❌ ${issue.component}: ${issue.issue}`)
+          toast.error(`${issue.component}`, {
+            description: `${issue.issue}\n\nFix: ${issue.requiredAction}\nLocation: ${issue.location}`,
+            duration: 15000,
+          })
+        })
+      
+      // Log to thought stream
+      thoughtStream.think('error', 'Pre-flight validation failed', [
+        validation.summary,
+        '',
+        '🛑 CRITICAL ISSUES:',
+        ...validation.issues
+          .filter(i => i.severity === 'critical')
+          .map(i => `  • ${i.component}: ${i.issue}`),
+        '',
+        '📋 REQUIRED ACTIONS:',
+        ...validation.issues
+          .filter(i => i.severity === 'critical')
+          .map(i => `  • ${i.location}: ${i.requiredAction}`),
+      ])
+      
+      return false
+    }
+    
+    // Show warnings if any
+    const warnings = validation.issues.filter(i => i.severity === 'warning')
+    if (warnings.length > 0) {
+      warnings.forEach(issue => {
+        this.speak(`⚠️ ${issue.component}: ${issue.issue}`)
+        toast.warning(`${issue.component}`, {
+          description: `${issue.requiredAction}\nLocation: ${issue.location}`,
+          duration: 10000,
+        })
+      })
+    }
+
     // Check kill switches
     if (!killSwitches.isFullyOperational()) {
       const active = killSwitches.getActiveSwitches()
       this.speak(`⚠️ Kill switches active: ${active.map(s => s.type).join(', ')}`)
       toast.warning('Kill Switches Active', {
         description: 'Reset kill switches before launching',
-      })
-      return false
-    }
-
-    // Check API configuration
-    if (!masterConfig.hasAnyAPIConfigured()) {
-      this.speak('⚠️ No APIs configured')
-      toast.error('No APIs Configured', {
-        description: 'Configure at least one registrar API',
-      })
-      return false
-    }
-
-    // Check capital
-    if (this.state.availableCapital < 10) {
-      this.speak('⚠️ Insufficient capital')
-      toast.warning('Low Capital', {
-        description: 'Add more capital before launching',
       })
       return false
     }
@@ -520,37 +564,62 @@ class ProductionBrain {
       this.state.domainsScanned += scanResult.length
 
       if (scanResult.length === 0) {
-        // Provide detailed diagnostics when no domains are found
-        const diagnostics = []
+        // NO FALLBACKS - Tell user exactly what's wrong
+        const diagnostics = ['No opportunities found this cycle']
         
         if (scanFullResult.errors.length > 0) {
-          diagnostics.push('⚠️ API Errors detected:')
-          scanFullResult.errors.forEach(err => diagnostics.push(`  • ${err}`))
+          diagnostics.push('')
+          diagnostics.push('🔴 ERRORS DETECTED:')
+          scanFullResult.errors.forEach(err => {
+            diagnostics.push(`  • ${err}`)
+          })
         }
         
         if (scanFullResult.sources.length === 0) {
-          diagnostics.push('❌ No API sources are configured!')
-          diagnostics.push('Configure GoDaddy or Namecheap in Settings → API Setup')
+          diagnostics.push('')
+          diagnostics.push('❌ ROOT CAUSE: No API sources are configured or working')
+          diagnostics.push('📋 REQUIRED ACTION: Configure at least one API in Settings → API Setup')
+          diagnostics.push('   • Option 1: GoDaddy API (get keys from https://developer.godaddy.com/keys)')
+          diagnostics.push('   • Option 2: Namecheap API (get keys from https://namecheap.com/support/api)')
+          
+          this.speak('❌ CRITICAL: No API sources available')
+          toast.error('Cannot Scan - No APIs Configured', {
+            description: 'Go to Settings → API Setup to configure GoDaddy or Namecheap',
+            duration: 15000,
+          })
         } else {
+          diagnostics.push('')
           diagnostics.push(`Sources attempted: ${scanFullResult.sources.join(', ')}`)
+          diagnostics.push('All sources returned no results or failed')
+          
+          if (scanFullResult.errors.length > 0) {
+            this.speak(`⚠️ ${scanFullResult.errors.length} API error(s) - check console for details`)
+            toast.warning('Scan Issues Detected', {
+              description: `${scanFullResult.errors.length} error(s). Check console logs for details.`,
+              duration: 10000,
+            })
+          }
         }
         
+        diagnostics.push('')
         diagnostics.push('Will retry next cycle')
         
-        thoughtStream.think('warning', 'No viable opportunities detected', diagnostics)
+        thoughtStream.think('warning', 'No opportunities found', diagnostics)
         
         const errorSummary = scanFullResult.errors.length > 0 
           ? ` (${scanFullResult.errors.length} error${scanFullResult.errors.length > 1 ? 's' : ''})` 
           : ''
         this.speak(`👁️ No opportunities this cycle${errorSummary}`)
         
-        // Log errors for user visibility
+        // Log each error individually for visibility
         if (scanFullResult.errors.length > 0) {
-          logger.warn('BRAIN', 'Scan errors detected', { errors: scanFullResult.errors })
-          this.speak(`⚠️ Issues: ${scanFullResult.errors.join('; ')}`)
+          logger.error('BRAIN', 'Scan cycle errors:', { errors: scanFullResult.errors })
+          scanFullResult.errors.forEach(err => {
+            logger.error('BRAIN', `  → ${err}`)
+          })
         }
         
-        thoughtStream.concludeThinking('No opportunities found - cycle complete')
+        thoughtStream.concludeThinking('No opportunities - see errors above')
         return
       }
 
