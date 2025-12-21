@@ -54,10 +54,11 @@ export interface TransferProvider {
 /**
  * Transfer Service
  * Coordinates domain transfers between registrars
+ * NO STUBS - Must configure real provider or operations will fail
  */
 class TransferService {
   private providers: Map<string, TransferProvider> = new Map()
-  private defaultProvider: string = 'stub'
+  private defaultProvider: string | null = null // No default - must be explicitly set
 
   /**
    * Register a transfer provider
@@ -203,77 +204,13 @@ class TransferService {
 }
 
 /**
- * Stub Transfer Provider
- * No-op implementation for testing
+ * REMOVED: Stub Transfer Provider  
+ * NO STUBS ALLOWED - Users must configure real transfer providers (GoDaddy, Namecheap APIs)
+ * If no provider is configured, operations will throw explicit errors
  */
-export class StubTransferProvider implements TransferProvider {
-  name = 'stub'
-
-  async initiateTransfer(
-    domain: string,
-    toRegistrar: string,
-    authCode?: string
-  ): Promise<TransferRequest> {
-    logger.info('TRANSFER', `[STUB] Simulating transfer initiation for ${domain}`, {
-      domain,
-      toRegistrar,
-      hasAuthCode: !!authCode,
-    })
-
-    await new Promise(resolve => setTimeout(resolve, 500))
-
-    return {
-      id: `TRF-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
-      domain,
-      fromRegistrar: 'stub-current',
-      toRegistrar,
-      authCode,
-      status: 'initiated',
-      createdAt: new Date(),
-    }
-  }
-
-  async getTransferStatus(transferId: string): Promise<TransferRequest> {
-    logger.debug('TRANSFER', `[STUB] Fetching status for ${transferId}`)
-
-    // Simulate random status
-    const statuses: TransferRequest['status'][] = ['initiated', 'pending', 'completed']
-    const randomStatus = statuses[Math.floor(Math.random() * statuses.length)]
-
-    return {
-      id: transferId,
-      domain: 'example.com',
-      fromRegistrar: 'stub-from',
-      toRegistrar: 'stub-to',
-      status: randomStatus,
-      createdAt: new Date(),
-      completedAt: randomStatus === 'completed' ? new Date() : undefined,
-    }
-  }
-
-  async cancelTransfer(transferId: string): Promise<{ success: boolean; error?: string }> {
-    logger.info('TRANSFER', `[STUB] Cancelling transfer ${transferId}`)
-    await new Promise(resolve => setTimeout(resolve, 200))
-    return { success: true }
-  }
-
-  async getAuthCode(domain: string): Promise<{ authCode?: string; error?: string }> {
-    logger.info('TRANSFER', `[STUB] Getting auth code for ${domain}`)
-    await new Promise(resolve => setTimeout(resolve, 300))
-
-    return {
-      authCode: `AUTH-${Math.random().toString(36).slice(2, 14).toUpperCase()}`,
-    }
-  }
-
-  isConfigured(): boolean {
-    return true
-  }
-}
 
 // Export singleton instance
 export const transferService = new TransferService()
 
-// Register stub provider by default
-transferService.registerProvider(new StubTransferProvider())
-transferService.setDefaultProvider('stub')
+// NO STUB PROVIDER - Users must configure real transfer APIs
+// transferService will throw errors if no provider is registered
