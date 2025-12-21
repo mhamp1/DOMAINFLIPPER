@@ -52,6 +52,9 @@ import { thoughtStream } from '@/lib/autonomy/ThoughtStream'
 // Intelligence Core - Learning, Market Analysis, Strategic Priorities
 import { intelligenceCore, type MarketPhase, type MoodType } from '@/lib/intelligence/IntelligenceCore'
 
+// CEO Brain - Executive Strategic Intelligence
+import { ceoBrain } from '@/lib/intelligence/CEOBrain'
+
 // Mining Engine - All domain miners
 import { miningEngine } from '@/lib/miners/MiningEngine'
 
@@ -269,6 +272,20 @@ class ProductionBrain {
     // Start queue service
     queueService.start()
 
+    // Start CEO Brain for executive strategic intelligence
+    try {
+      await ceoBrain.start()
+      const ceoState = ceoBrain.getState()
+      logger.info('BRAIN', `👑 CEO Brain ACTIVATED - Executive intelligence online`)
+      logger.info('BRAIN', `👑 CEO Mood: ${ceoState.moodIndex}% | Confidence: ${ceoState.confidenceIndex}%`)
+      logger.info('BRAIN', `👑 Market Phase: ${ceoState.marketCondition.phase} | Risk Profile: ${ceoState.portfolioStrategy.riskProfile}`)
+      this.speak(`👑 CEO Brain activated - Strategic thinking engaged`)
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      logger.error('BRAIN', 'CEO Brain failed to start', error instanceof Error ? error : new Error(String(error)))
+      this.speak(`⚠️ CEO Brain failed to start: ${errorMessage}`)
+    }
+
     // Start Intelligence Core (learning, market analysis, strategic priorities)
     try {
       intelligenceCore.start()
@@ -378,6 +395,7 @@ class ProductionBrain {
     }
 
     // Stop all services
+    ceoBrain.stop()
     queueService.stop()
     automatedSaleFlow.stop()
     autoSeller.stop()
