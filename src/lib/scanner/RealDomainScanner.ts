@@ -179,7 +179,7 @@ class RealDomainScanner {
         })
       } else if (result.errors.length > 0) {
         // APIs configured but all failed
-        logger.error('SCANNER', 'All configured APIs failed', { 
+        logger.error('SCANNER', 'All configured APIs failed', undefined, { 
           errors: result.errors,
           sources: result.sources 
         })

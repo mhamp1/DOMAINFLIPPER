@@ -382,7 +382,7 @@ class ProductionBrain {
         })
       
       // Log to thought stream
-      thoughtStream.think('error', 'Pre-flight validation failed', [
+      thoughtStream.think('warning', 'Pre-flight validation failed', [
         validation.summary,
         '',
         '🛑 CRITICAL ISSUES:',
@@ -613,7 +613,7 @@ class ProductionBrain {
         
         // Log each error individually for visibility
         if (scanFullResult.errors.length > 0) {
-          logger.error('BRAIN', 'Scan cycle errors:', { errors: scanFullResult.errors })
+          logger.error('BRAIN', 'Scan cycle errors:', undefined, { errors: scanFullResult.errors })
           scanFullResult.errors.forEach(err => {
             logger.error('BRAIN', `  → ${err}`)
           })

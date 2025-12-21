@@ -173,6 +173,11 @@ class TransferService {
    */
   private getProvider(name?: string): TransferProvider {
     const providerName = name || this.defaultProvider
+    
+    if (!providerName) {
+      throw new Error('No transfer provider specified and no default provider set')
+    }
+    
     const provider = this.providers.get(providerName)
 
     if (!provider) {
