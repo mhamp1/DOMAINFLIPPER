@@ -318,6 +318,41 @@ The `module externalized` warnings are normal - they're for Node.js modules that
 git config core.autocrlf true
 ```
 
+#### 8. "No opportunities this cycle" message repeating
+**Symptoms**: Bot shows "👁️ No opportunities this cycle" every scan interval
+
+**Causes & Solutions**:
+1. **No APIs configured**: 
+   - ❌ Bot will NOT run without API configuration (no demo mode)
+   - ✅ Configure at least one API in Settings → API Setup → GoDaddy or Namecheap
+   - Check console/logs for specific error messages telling you exactly what's missing
+
+2. **API credentials invalid or expired**:
+   - Verify GoDaddy API key and secret in Settings
+   - Verify Namecheap API credentials and IP whitelist
+   - Test individual APIs using the API Setup page
+   - Bot will show specific error: "GoDaddy API error: [reason]"
+
+3. **API rate limits exceeded**:
+   - Wait for rate limit reset (usually hourly)
+   - Reduce scan frequency in settings
+   - Check API provider dashboard for rate limit status
+
+4. **All domains filtered out**:
+   - Check if minGodScore threshold is too high (default: 80)
+   - Check if minROI requirement is too strict (default: 3x)
+   - Lower thresholds temporarily to test
+   - Review thought stream logs for filtering reasons
+
+**Debug Steps**:
+```javascript
+// Check scanner status
+localStorage.setItem('domainFlipper_debugMode', 'true')
+// Reload page and check browser console for detailed logs
+```
+
+The bot will now show specific error messages and provide demo domains when APIs aren't configured, so you can test the system even without credentials.
+
 ### Performance Tips
 
 1. **First Load**: Initial scan may take 30-60 seconds

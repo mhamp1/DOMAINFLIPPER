@@ -217,40 +217,13 @@ class AvailabilityService {
 }
 
 /**
- * Stub Provider (for testing and no-op operations)
+ * REMOVED: Stub Provider
+ * NO STUBS ALLOWED - Users must configure real availability providers (GoDaddy, Namecheap, etc.)
+ * If no provider is configured, the service will throw explicit errors
  */
-class StubAvailabilityProvider implements AvailabilityProvider {
-  name = 'stub'
-
-  async checkAvailability(domain: string): Promise<AvailabilityResult> {
-    logger.debug('AVAILABILITY', `[STUB] Checking ${domain}`)
-    
-    // Simulate availability check - domains with "test" are available
-    const available = domain.includes('test') || Math.random() > 0.5
-    
-    return {
-      domain,
-      available,
-      provider: this.name,
-      price: available ? 10 + Math.random() * 40 : undefined,
-      premium: false,
-      checkTimestamp: new Date(),
-    }
-  }
-
-  async checkBulkAvailability(domains: string[]): Promise<AvailabilityResult[]> {
-    logger.debug('AVAILABILITY', `[STUB] Bulk checking ${domains.length} domains`)
-    return Promise.all(domains.map(d => this.checkAvailability(d)))
-  }
-
-  isConfigured(): boolean {
-    return true // Stub is always configured
-  }
-}
 
 // Export singleton instance
 export const availabilityService = new AvailabilityService()
 
-// Register stub provider by default
-availabilityService.registerProvider(new StubAvailabilityProvider())
-availabilityService.setDefaultProvider('stub')
+// NO STUB PROVIDER - Users must configure real APIs
+// availabilityService will throw errors if no provider is registered

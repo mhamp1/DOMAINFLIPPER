@@ -164,29 +164,41 @@ export class AutoSellEngine {
 
   /**
    * Check marketplace offers and auto-negotiate
+   * NO FALLBACK - Returns empty if no real API configured
    */
   async checkMarketplaceOffers(domain: string): Promise<SaleOffer[]> {
-    // In production, this would check all marketplace APIs for offers
-    // For now, simulate checking
-    
     const offers: SaleOffer[] = []
     
-    // Simulate receiving offers
-    // In production, this would come from:
-    // - Afternic API
-    // - Sedo API
-    // - Flippa API
-    // - GoDaddy Marketplace API
-    // - Namecheap Marketplace API
+    // TODO: Integrate real marketplace APIs
+    // - Afternic API: Check for offers/inquiries
+    // - Sedo API: Poll for buyer interest
+    // - Flippa API: Monitor auction bids
+    // - GoDaddy Marketplace API: Check buy now offers
+    // - Namecheap Marketplace API: Check make offer requests
+    
+    // For now, return empty - NO SIMULATION/FALLBACK
+    // User must configure real marketplace APIs
+    
+    if (offers.length === 0) {
+      console.warn(`[AutoSellEngine] No marketplace APIs configured for ${domain}. Configure APIs in Settings to enable offer monitoring.`)
+    }
 
     return offers
   }
 
   /**
-   * Auto-accept good offers
+   * Auto-accept good offers and store them properly
    */
   async processOffers(domain: string, purchasePrice: number) {
     const offers = await this.checkMarketplaceOffers(domain)
+    
+    // Store offers in activeOffers map
+    if (offers.length > 0) {
+      if (!this.activeOffers.has(domain)) {
+        this.activeOffers.set(domain, [])
+      }
+      this.activeOffers.get(domain)!.push(...offers)
+    }
     
     for (const offer of offers) {
       const minAcceptPrice = purchasePrice * this.minAcceptPriceMultiplier
@@ -197,6 +209,9 @@ export class AutoSellEngine {
         // Counter-offer
         const counterOffer = Math.max(minAcceptPrice, offer.offerAmount * 1.15)
         await this.sendMarketplaceCounterOffer(offer, counterOffer)
+        
+        // Log counter-offer for persistence (TODO: Store in database)
+        console.log(`[AutoSellEngine] Counter-offered ${domain}: $${offer.offerAmount} → $${counterOffer}`)
       }
     }
   }

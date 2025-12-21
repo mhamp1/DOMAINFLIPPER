@@ -104,11 +104,14 @@ class RealDomainScanner {
         logger.info('SCANNER', `GoDaddy: ${auctions.length} domains found`)
 
       } catch (error: any) {
-        result.errors.push(`GoDaddy: ${error.message}`)
+        const errorMsg = `GoDaddy API error: ${error.message}`
+        result.errors.push(errorMsg)
         logger.error('SCANNER', 'GoDaddy scan failed', error)
       }
     } else {
-      result.errors.push('GoDaddy: Not configured')
+      const errorMsg = 'GoDaddy API not configured - Add API credentials in Settings'
+      result.errors.push(errorMsg)
+      logger.warn('SCANNER', errorMsg)
     }
 
     // Scan Namecheap for available domains
@@ -147,11 +150,14 @@ class RealDomainScanner {
         logger.info('SCANNER', `Namecheap: ${result.domains.filter(d => d.source === 'namecheap').length} available domains`)
 
       } catch (error: any) {
-        result.errors.push(`Namecheap: ${error.message}`)
+        const errorMsg = `Namecheap API error: ${error.message}`
+        result.errors.push(errorMsg)
         logger.error('SCANNER', 'Namecheap scan failed', error)
       }
     } else {
-      result.errors.push('Namecheap: Not configured')
+      const errorMsg = 'Namecheap API not configured - Add API credentials in Settings'
+      result.errors.push(errorMsg)
+      logger.warn('SCANNER', errorMsg)
     }
 
     this.isScanning = false
@@ -159,9 +165,30 @@ class RealDomainScanner {
     // Sort by price (lowest first for better ROI)
     result.domains.sort((a, b) => a.price - b.price)
 
-    logger.info('SCANNER', `Scan complete: ${result.domains.length} opportunities from ${result.sources.join(', ')}`)
+    logger.info('SCANNER', `Scan complete: ${result.domains.length} opportunities from ${result.sources.join(', ') || 'no sources'}`)
 
-    if (result.domains.length > 0) {
+    // NO FALLBACKS - Tell user exactly what's wrong
+    if (result.domains.length === 0) {
+      if (result.sources.length === 0) {
+        // No APIs configured at all
+        const errorMsg = '❌ CONFIGURATION REQUIRED: No API sources are configured'
+        logger.error('SCANNER', errorMsg)
+        toast.error('Bot Cannot Run - Missing Configuration', {
+          description: 'You must configure at least one API source. Go to Settings → API Setup',
+          duration: 15000,
+        })
+      } else if (result.errors.length > 0) {
+        // APIs configured but all failed
+        logger.error('SCANNER', 'All configured APIs failed', { 
+          errors: result.errors,
+          sources: result.sources 
+        })
+        toast.error('All API Sources Failed', {
+          description: 'Check API credentials and error details in console',
+          duration: 10000,
+        })
+      }
+    } else {
       toast.success(`Scan Complete`, {
         description: `Found ${result.domains.length} domains from ${result.sources.join(', ')}`,
       })

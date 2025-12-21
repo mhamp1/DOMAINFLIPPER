@@ -18,7 +18,7 @@
 import { toast } from 'sonner'
 import { logger } from '@/lib/utils/logger'
 import { valuationEngine } from '@/lib/ai/valuationEngine'
-import { realDomainScanner, type ScannedDomain } from '@/lib/scanner/RealDomainScanner'
+import { realDomainScanner, type ScannedDomain, type ScanResult } from '@/lib/scanner/RealDomainScanner'
 import { realSniper } from '@/lib/buy/RealSniper'
 import { marketplaceLister } from '@/lib/marketplace/autoList'
 import { godScoreEngine } from '@/lib/valuation/GodScore'
@@ -57,6 +57,9 @@ import { ceoBrain } from '@/lib/intelligence/CEOBrain'
 
 // Mining Engine - All domain miners
 import { miningEngine } from '@/lib/miners/MiningEngine'
+
+// Configuration Validator - NO FALLBACKS
+import { configValidator, type ValidationResult } from '@/lib/validation/ConfigValidator'
 
 // ==================== TYPES ====================
 
@@ -346,33 +349,74 @@ class ProductionBrain {
   }
 
   /**
-   * Pre-flight checks before launch
+   * Pre-flight checks before launch - NO FALLBACKS, EXPLICIT ERRORS
    */
   private preflight(): boolean {
+    // Run comprehensive validation
+    const validation = configValidator.validate()
+    
+    // Log detailed report
+    const detailedReport = configValidator.getDetailedReport(validation)
+    logger.info('BRAIN', detailedReport)
+    console.log(detailedReport)
+    
+    // If cannot start, show ALL issues to user
+    if (!validation.canStart) {
+      this.speak('❌ Configuration validation FAILED')
+      
+      // Show summary toast
+      toast.error('Cannot Start - Configuration Issues', {
+        description: validation.summary,
+        duration: 20000,
+      })
+      
+      // Show each critical issue individually
+      validation.issues
+        .filter(i => i.severity === 'critical')
+        .forEach(issue => {
+          this.speak(`❌ ${issue.component}: ${issue.issue}`)
+          toast.error(`${issue.component}`, {
+            description: `${issue.issue}\n\nFix: ${issue.requiredAction}\nLocation: ${issue.location}`,
+            duration: 15000,
+          })
+        })
+      
+      // Log to thought stream
+      thoughtStream.think('error', 'Pre-flight validation failed', [
+        validation.summary,
+        '',
+        '🛑 CRITICAL ISSUES:',
+        ...validation.issues
+          .filter(i => i.severity === 'critical')
+          .map(i => `  • ${i.component}: ${i.issue}`),
+        '',
+        '📋 REQUIRED ACTIONS:',
+        ...validation.issues
+          .filter(i => i.severity === 'critical')
+          .map(i => `  • ${i.location}: ${i.requiredAction}`),
+      ])
+      
+      return false
+    }
+    
+    // Show warnings if any
+    const warnings = validation.issues.filter(i => i.severity === 'warning')
+    if (warnings.length > 0) {
+      warnings.forEach(issue => {
+        this.speak(`⚠️ ${issue.component}: ${issue.issue}`)
+        toast.warning(`${issue.component}`, {
+          description: `${issue.requiredAction}\nLocation: ${issue.location}`,
+          duration: 10000,
+        })
+      })
+    }
+
     // Check kill switches
     if (!killSwitches.isFullyOperational()) {
       const active = killSwitches.getActiveSwitches()
       this.speak(`⚠️ Kill switches active: ${active.map(s => s.type).join(', ')}`)
       toast.warning('Kill Switches Active', {
         description: 'Reset kill switches before launching',
-      })
-      return false
-    }
-
-    // Check API configuration
-    if (!masterConfig.hasAnyAPIConfigured()) {
-      this.speak('⚠️ No APIs configured')
-      toast.error('No APIs Configured', {
-        description: 'Configure at least one registrar API',
-      })
-      return false
-    }
-
-    // Check capital
-    if (this.state.availableCapital < 10) {
-      this.speak('⚠️ Insufficient capital')
-      toast.warning('Low Capital', {
-        description: 'Add more capital before launching',
       })
       return false
     }
@@ -499,7 +543,8 @@ class ProductionBrain {
       })
 
       const scanStartTime = Date.now()
-      const scanResult = await this.scan(correlationId)
+      const scanFullResult = await this.scanWithDetails(correlationId)
+      const scanResult = scanFullResult.domains
       const scanDuration = Date.now() - scanStartTime
       
       auditLog.logScan('completed', {
@@ -511,19 +556,70 @@ class ProductionBrain {
 
       thoughtStream.think('result', `Scan completed in ${(scanDuration / 1000).toFixed(1)}s`, [
         `Domains found: ${scanResult.length}`,
-        `Sources checked: ${this.config.scanSources.length}`,
+        `Sources checked: ${scanFullResult.sources.length}`,
+        ...(scanFullResult.errors.length > 0 ? [`Errors: ${scanFullResult.errors.join('; ')}`] : []),
       ])
 
       metrics.increment('domains_scanned', scanResult.length)
       this.state.domainsScanned += scanResult.length
 
       if (scanResult.length === 0) {
-        thoughtStream.think('observation', 'No viable opportunities detected', [
-          'Markets may be quiet or highly competitive',
-          'Will retry next cycle',
-        ])
-        this.speak('👁️ No opportunities this cycle')
-        thoughtStream.concludeThinking('No opportunities found - cycle complete')
+        // NO FALLBACKS - Tell user exactly what's wrong
+        const diagnostics = ['No opportunities found this cycle']
+        
+        if (scanFullResult.errors.length > 0) {
+          diagnostics.push('')
+          diagnostics.push('🔴 ERRORS DETECTED:')
+          scanFullResult.errors.forEach(err => {
+            diagnostics.push(`  • ${err}`)
+          })
+        }
+        
+        if (scanFullResult.sources.length === 0) {
+          diagnostics.push('')
+          diagnostics.push('❌ ROOT CAUSE: No API sources are configured or working')
+          diagnostics.push('📋 REQUIRED ACTION: Configure at least one API in Settings → API Setup')
+          diagnostics.push('   • Option 1: GoDaddy API (get keys from https://developer.godaddy.com/keys)')
+          diagnostics.push('   • Option 2: Namecheap API (get keys from https://namecheap.com/support/api)')
+          
+          this.speak('❌ CRITICAL: No API sources available')
+          toast.error('Cannot Scan - No APIs Configured', {
+            description: 'Go to Settings → API Setup to configure GoDaddy or Namecheap',
+            duration: 15000,
+          })
+        } else {
+          diagnostics.push('')
+          diagnostics.push(`Sources attempted: ${scanFullResult.sources.join(', ')}`)
+          diagnostics.push('All sources returned no results or failed')
+          
+          if (scanFullResult.errors.length > 0) {
+            this.speak(`⚠️ ${scanFullResult.errors.length} API error(s) - check console for details`)
+            toast.warning('Scan Issues Detected', {
+              description: `${scanFullResult.errors.length} error(s). Check console logs for details.`,
+              duration: 10000,
+            })
+          }
+        }
+        
+        diagnostics.push('')
+        diagnostics.push('Will retry next cycle')
+        
+        thoughtStream.think('warning', 'No opportunities found', diagnostics)
+        
+        const errorSummary = scanFullResult.errors.length > 0 
+          ? ` (${scanFullResult.errors.length} error${scanFullResult.errors.length > 1 ? 's' : ''})` 
+          : ''
+        this.speak(`👁️ No opportunities this cycle${errorSummary}`)
+        
+        // Log each error individually for visibility
+        if (scanFullResult.errors.length > 0) {
+          logger.error('BRAIN', 'Scan cycle errors:', { errors: scanFullResult.errors })
+          scanFullResult.errors.forEach(err => {
+            logger.error('BRAIN', `  → ${err}`)
+          })
+        }
+        
+        thoughtStream.concludeThinking('No opportunities - see errors above')
         return
       }
 
@@ -595,9 +691,9 @@ class ProductionBrain {
   // ==================== SCANNING ====================
 
   /**
-   * Scan for domain opportunities
+   * Scan for domain opportunities with full details including errors
    */
-  private async scan(correlationId: string): Promise<ScannedDomain[]> {
+  private async scanWithDetails(correlationId: string): Promise<ScanResult> {
     const config = masterConfig.getEmpire()
     const maxPrice = Math.min(
       config.dailyBudget,
@@ -611,8 +707,16 @@ class ProductionBrain {
         maxPrice,
         maxResults: this.config.maxDomainsPerScan,
       })
-      return result.domains
-    }, () => [])  // Empty array as fallback
+      return result
+    }, () => ({ domains: [], totalScanned: 0, sources: [], errors: ['Circuit breaker open'] }))
+  }
+
+  /**
+   * Scan for domain opportunities (legacy - returns only domains)
+   */
+  private async scan(correlationId: string): Promise<ScannedDomain[]> {
+    const result = await this.scanWithDetails(correlationId)
+    return result.domains
   }
 
   // ==================== EVALUATION ====================
@@ -1114,36 +1218,42 @@ class ProductionBrain {
 
   // ==================== AVAILABILITY CHECK ====================
 
+  /**
+   * Check domain availability across all configured registrars
+   * Uses Promise.all to check in parallel for speed
+   */
   private async checkAvailability(domain: string): Promise<{ available: boolean; price: number; registrar: string }> {
-    // Check GoDaddy
-    if (masterConfig.isGoDaddyConfigured()) {
-      try {
-        const result = await circuitBreaker.execute('godaddy', async () => {
-          return godaddyAPI.checkAvailability(domain)
-        })
-        if (result?.available) {
-          return { available: true, price: result.price || 12, registrar: 'GoDaddy' }
-        }
-      } catch (e) {
-        // Continue to next registrar
-      }
+    const checks = await Promise.all([
+      // Check GoDaddy
+      masterConfig.isGoDaddyConfigured()
+        ? circuitBreaker.execute('godaddy', async () => {
+            return godaddyAPI.checkAvailability(domain)
+          }).catch(() => null)
+        : Promise.resolve(null),
+      
+      // Check Namecheap
+      masterConfig.isNamecheapConfigured()
+        ? circuitBreaker.execute('namecheap', async () => {
+            return namecheapAPI.checkAvailability([domain])
+          }).then(results => results?.[0] || null).catch(() => null)
+        : Promise.resolve(null),
+    ])
+
+    // Return first available result with preference for lowest price
+    const availableResults = checks
+      .filter(result => result?.available)
+      .map((result, index) => ({
+        available: true,
+        price: result!.price || (index === 0 ? 12 : 10),
+        registrar: index === 0 ? 'GoDaddy' : 'Namecheap',
+      }))
+      .sort((a, b) => a.price - b.price) // Sort by price ascending
+
+    if (availableResults.length > 0) {
+      return availableResults[0]
     }
 
-    // Check Namecheap
-    if (masterConfig.isNamecheapConfigured()) {
-      try {
-        const results = await circuitBreaker.execute('namecheap', async () => {
-          return namecheapAPI.checkAvailability([domain])
-        })
-        if (results?.[0]?.available) {
-          return { available: true, price: results[0].price || 10, registrar: 'Namecheap' }
-        }
-      } catch (e) {
-        // Continue
-      }
-    }
-
-    return { available: false, price: 0, registrar: '' }
+    return { available: false, price: 0, registrar: 'None' }
   }
 
   // ==================== JOB HANDLERS ====================
