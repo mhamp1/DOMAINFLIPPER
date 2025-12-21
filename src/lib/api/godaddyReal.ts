@@ -195,17 +195,19 @@ class GoDaddyRealAPI {
     }
 
     try {
-      // Try to get domains from suggestions API
-      const response = await this.client.get('/v1/domains/suggest', {
-        params: {
-          query: 'tech',
-          country: 'US',
-          city: '',
-          sources: 'CC_TLD,EXTENSION,KEYWORD_SPIN',
-          tlds: 'com,net,org,io,ai',
-          waitMs: 1000,
-        }
+      // Use Vercel serverless proxy to bypass CORS
+      const params = new URLSearchParams({
+        query: 'tech',
+        country: 'US',
+        city: '',
+        sources: 'CC_TLD,EXTENSION,KEYWORD_SPIN',
+        tlds: 'com,net,org,io,ai',
+        waitMs: '1000',
       })
+      
+      const proxyUrl = `/api/godaddy/suggest?${params.toString()}`
+      
+      const response = await axios.get(proxyUrl)
 
       const suggestions: GoDaddyAuction[] = response.data?.map((d: any, i: number) => ({
         auctionId: `suggest-${i}`,

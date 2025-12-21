@@ -70,10 +70,11 @@ export class ExpiredDomainsMiner extends BaseMiner {
     const domains: CloseoutDomain[] = []
     
     try {
-      const response = await fetch(this.EXPIREDDOMAINS_URL, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        },
+      // Use Vercel serverless proxy to bypass CORS
+      const proxyUrl = '/api/expireddomains/scrape?tld=com'
+      
+      const response = await fetch(proxyUrl, {
+        method: 'GET',
       })
 
       if (!response.ok) {
@@ -114,10 +115,11 @@ export class ExpiredDomainsMiner extends BaseMiner {
     const domains: CloseoutDomain[] = []
     
     try {
-      const response = await fetch(this.JUSTDROPPED_URL, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        },
+      // Use Vercel serverless proxy to bypass CORS
+      const proxyUrl = '/api/justdropped/domains?limit=100&tld=com'
+      
+      const response = await fetch(proxyUrl, {
+        method: 'GET',
       })
 
       if (!response.ok) {
