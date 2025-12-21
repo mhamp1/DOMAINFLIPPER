@@ -104,11 +104,14 @@ class RealDomainScanner {
         logger.info('SCANNER', `GoDaddy: ${auctions.length} domains found`)
 
       } catch (error: any) {
-        result.errors.push(`GoDaddy: ${error.message}`)
+        const errorMsg = `GoDaddy API error: ${error.message}`
+        result.errors.push(errorMsg)
         logger.error('SCANNER', 'GoDaddy scan failed', error)
       }
     } else {
-      result.errors.push('GoDaddy: Not configured')
+      const errorMsg = 'GoDaddy API not configured - Add API credentials in Settings'
+      result.errors.push(errorMsg)
+      logger.warn('SCANNER', errorMsg)
     }
 
     // Scan Namecheap for available domains
@@ -147,11 +150,14 @@ class RealDomainScanner {
         logger.info('SCANNER', `Namecheap: ${result.domains.filter(d => d.source === 'namecheap').length} available domains`)
 
       } catch (error: any) {
-        result.errors.push(`Namecheap: ${error.message}`)
+        const errorMsg = `Namecheap API error: ${error.message}`
+        result.errors.push(errorMsg)
         logger.error('SCANNER', 'Namecheap scan failed', error)
       }
     } else {
-      result.errors.push('Namecheap: Not configured')
+      const errorMsg = 'Namecheap API not configured - Add API credentials in Settings'
+      result.errors.push(errorMsg)
+      logger.warn('SCANNER', errorMsg)
     }
 
     this.isScanning = false
@@ -159,11 +165,27 @@ class RealDomainScanner {
     // Sort by price (lowest first for better ROI)
     result.domains.sort((a, b) => a.price - b.price)
 
-    logger.info('SCANNER', `Scan complete: ${result.domains.length} opportunities from ${result.sources.join(', ')}`)
+    logger.info('SCANNER', `Scan complete: ${result.domains.length} opportunities from ${result.sources.join(', ') || 'no sources'}`)
 
     if (result.domains.length > 0) {
       toast.success(`Scan Complete`, {
         description: `Found ${result.domains.length} domains from ${result.sources.join(', ')}`,
+      })
+    } else if (result.errors.length > 0) {
+      // Log errors when scan returns no results
+      logger.warn('SCANNER', 'Scan returned no results due to errors', { 
+        errors: result.errors,
+        sources: result.sources 
+      })
+      toast.warning('Scan Complete - No Results', {
+        description: `Errors: ${result.errors.join(', ')}`,
+        duration: 5000,
+      })
+    } else if (result.sources.length === 0) {
+      logger.warn('SCANNER', 'No API sources configured')
+      toast.error('No API Sources Configured', {
+        description: 'Configure GoDaddy or Namecheap in Settings → API Setup',
+        duration: 10000,
       })
     }
 

@@ -18,7 +18,7 @@
 import { toast } from 'sonner'
 import { logger } from '@/lib/utils/logger'
 import { valuationEngine } from '@/lib/ai/valuationEngine'
-import { realDomainScanner, type ScannedDomain } from '@/lib/scanner/RealDomainScanner'
+import { realDomainScanner, type ScannedDomain, type ScanResult } from '@/lib/scanner/RealDomainScanner'
 import { realSniper } from '@/lib/buy/RealSniper'
 import { marketplaceLister } from '@/lib/marketplace/autoList'
 import { godScoreEngine } from '@/lib/valuation/GodScore'
@@ -499,7 +499,8 @@ class ProductionBrain {
       })
 
       const scanStartTime = Date.now()
-      const scanResult = await this.scan(correlationId)
+      const scanFullResult = await this.scanWithDetails(correlationId)
+      const scanResult = scanFullResult.domains
       const scanDuration = Date.now() - scanStartTime
       
       auditLog.logScan('completed', {
@@ -511,18 +512,44 @@ class ProductionBrain {
 
       thoughtStream.think('result', `Scan completed in ${(scanDuration / 1000).toFixed(1)}s`, [
         `Domains found: ${scanResult.length}`,
-        `Sources checked: ${this.config.scanSources.length}`,
+        `Sources checked: ${scanFullResult.sources.length}`,
+        ...(scanFullResult.errors.length > 0 ? [`Errors: ${scanFullResult.errors.join('; ')}`] : []),
       ])
 
       metrics.increment('domains_scanned', scanResult.length)
       this.state.domainsScanned += scanResult.length
 
       if (scanResult.length === 0) {
-        thoughtStream.think('observation', 'No viable opportunities detected', [
-          'Markets may be quiet or highly competitive',
-          'Will retry next cycle',
-        ])
-        this.speak('👁️ No opportunities this cycle')
+        // Provide detailed diagnostics when no domains are found
+        const diagnostics = []
+        
+        if (scanFullResult.errors.length > 0) {
+          diagnostics.push('⚠️ API Errors detected:')
+          scanFullResult.errors.forEach(err => diagnostics.push(`  • ${err}`))
+        }
+        
+        if (scanFullResult.sources.length === 0) {
+          diagnostics.push('❌ No API sources are configured!')
+          diagnostics.push('Configure GoDaddy or Namecheap in Settings → API Setup')
+        } else {
+          diagnostics.push(`Sources attempted: ${scanFullResult.sources.join(', ')}`)
+        }
+        
+        diagnostics.push('Will retry next cycle')
+        
+        thoughtStream.think('warning', 'No viable opportunities detected', diagnostics)
+        
+        const errorSummary = scanFullResult.errors.length > 0 
+          ? ` (${scanFullResult.errors.length} error${scanFullResult.errors.length > 1 ? 's' : ''})` 
+          : ''
+        this.speak(`👁️ No opportunities this cycle${errorSummary}`)
+        
+        // Log errors for user visibility
+        if (scanFullResult.errors.length > 0) {
+          logger.warn('BRAIN', 'Scan errors detected', { errors: scanFullResult.errors })
+          this.speak(`⚠️ Issues: ${scanFullResult.errors.join('; ')}`)
+        }
+        
         thoughtStream.concludeThinking('No opportunities found - cycle complete')
         return
       }
@@ -595,9 +622,9 @@ class ProductionBrain {
   // ==================== SCANNING ====================
 
   /**
-   * Scan for domain opportunities
+   * Scan for domain opportunities with full details including errors
    */
-  private async scan(correlationId: string): Promise<ScannedDomain[]> {
+  private async scanWithDetails(correlationId: string): Promise<ScanResult> {
     const config = masterConfig.getEmpire()
     const maxPrice = Math.min(
       config.dailyBudget,
@@ -611,8 +638,16 @@ class ProductionBrain {
         maxPrice,
         maxResults: this.config.maxDomainsPerScan,
       })
-      return result.domains
-    }, () => [])  // Empty array as fallback
+      return result
+    }, () => ({ domains: [], totalScanned: 0, sources: [], errors: ['Circuit breaker open'] }))
+  }
+
+  /**
+   * Scan for domain opportunities (legacy - returns only domains)
+   */
+  private async scan(correlationId: string): Promise<ScannedDomain[]> {
+    const result = await this.scanWithDetails(correlationId)
+    return result.domains
   }
 
   // ==================== EVALUATION ====================
