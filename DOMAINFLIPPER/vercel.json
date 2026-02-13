@@ -1,0 +1,35 @@
+{
+  "buildCommand": "npm install && npm run build",
+  "outputDirectory": "dist",
+  "framework": "vite",
+  "crons": [
+    { "path": "/api/cron/closeout-sniper", "schedule": "*/15 * * * *" },
+    { "path": "/api/cron/snipe-scan", "schedule": "*/5 * * * *" },
+    { "path": "/api/cron/scan", "schedule": "*/15 * * * *" },
+    { "path": "/api/cron/process-offers", "schedule": "10,40 * * * *" },
+    { "path": "/api/cron/reconcile", "schedule": "15,45 * * * *" },
+    { "path": "/api/cron/health-check", "schedule": "5,35 * * * *" },
+    { "path": "/api/cron/manage-listings", "schedule": "0 */6 * * *" },
+    { "path": "/api/cron/generate-domains", "schedule": "0 11 * * *" },
+    { "path": "/api/cron/trend-scan", "schedule": "0 12 * * *" },
+    { "path": "/api/cron/renewals", "schedule": "0 13 * * *" },
+    { "path": "/api/cron/optimize-portfolio", "schedule": "0 15 * * *" },
+    { "path": "/api/cron/find-buyers", "schedule": "0 16 * * 1,4" },
+    { "path": "/api/cron/daily-report", "schedule": "0 7 * * *" },
+    { "path": "/api/cron/calibrate", "schedule": "0 10 1 * *" }
+  ],
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/api/:path*" }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Credentials", "value": "true" },
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET,OPTIONS,POST,PUT" },
+        { "key": "Access-Control-Allow-Headers", "value": "Authorization, Content-Type, X-Target-URL, X-Admin-Key" }
+      ]
+    }
+  ]
+}
